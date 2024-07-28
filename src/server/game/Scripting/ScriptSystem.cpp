@@ -80,7 +80,7 @@ void SystemMgr::LoadScriptSplineChains()
             uint16 chainId = fieldsWP[1].GetUInt16();
             uint8 splineId = fieldsWP[2].GetUInt8(), wpId = fieldsWP[3].GetUInt8();
             float posX = fieldsWP[4].GetFloat(), posY = fieldsWP[5].GetFloat(), posZ = fieldsWP[6].GetFloat();
-            auto it = m_mSplineChainsMap.find({ entry,chainId });
+            auto it = m_mSplineChainsMap.find({entry,chainId});
             if (it == m_mSplineChainsMap.end())
             {
                 TC_LOG_WARN("server.loading", "Creature #{} has waypoint data for spline chain {}. No such chain exists - entry skipped.", entry, chainId);

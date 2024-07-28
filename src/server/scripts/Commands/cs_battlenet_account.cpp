@@ -92,7 +92,7 @@ public:
                     TC_LOG_INFO("entities.player.character", "Account: {} (IP: {}) Character:[{}] ({}) created Battle.net account {}{}{}",
                         handler->GetSession()->GetAccountId(), handler->GetSession()->GetRemoteAddress(),
                         handler->GetSession()->GetPlayer()->GetName(), handler->GetSession()->GetPlayer()->GetGUID().ToString(),
-                        accountName, createGameAccount != false ? " with game account " : "", createGameAccount != false ? gameAccountName : "");
+                        accountName, createGameAccount != false ? " with game account " : "", createGameAccount != false ? gameAccountName.c_str() : "");
                 }
                 break;
             }

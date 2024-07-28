@@ -17,6 +17,7 @@
 
 #include "Vehicle.h"
 #include "Battleground.h"
+#include "CharmInfo.h"
 #include "Common.h"
 #include "CreatureAI.h"
 #include "DB2Stores.h"
@@ -34,7 +35,7 @@
 #include <sstream>
 
 Vehicle::Vehicle(Unit* unit, VehicleEntry const* vehInfo, uint32 creatureEntry) :
-    UsableSeatNum(0), _me(unit), _vehicleInfo(vehInfo), _creatureEntry(creatureEntry), _status(STATUS_NONE)
+UsableSeatNum(0), _me(unit), _vehicleInfo(vehInfo), _creatureEntry(creatureEntry), _status(STATUS_NONE)
 {
     for (int8 i = 0; i < MAX_VEHICLE_SEATS; ++i)
     {
@@ -51,7 +52,7 @@ Vehicle::Vehicle(Unit* unit, VehicleEntry const* vehInfo, uint32 creatureEntry) 
     // Set or remove correct flags based on available seats. Will overwrite db data (if wrong).
     if (UsableSeatNum)
         _me->SetNpcFlag((_me->GetTypeId() == TYPEID_PLAYER ? UNIT_NPC_FLAG_PLAYER_VEHICLE : UNIT_NPC_FLAG_SPELLCLICK));
-    else
+    else if (!unit->m_unitData->InteractSpellID)
         _me->RemoveNpcFlag((_me->GetTypeId() == TYPEID_PLAYER ? UNIT_NPC_FLAG_PLAYER_VEHICLE : UNIT_NPC_FLAG_SPELLCLICK));
 
     InitMovementInfoForBase();
@@ -194,22 +195,22 @@ void Vehicle::ApplyAllImmunities()
     switch (GetVehicleInfo()->ID)
     {
         // code below prevents a bug with movable cannons
-    case 160: // Strand of the Ancients
-    case 244: // Wintergrasp
-    case 510: // Isle of Conquest
-    case 452: // Isle of Conquest
-    case 543: // Isle of Conquest
-        _me->SetControlled(true, UNIT_STATE_ROOT);
-        // why we need to apply this? we can simple add immunities to slow mechanic in DB
-        _me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_DECREASE_SPEED, true);
-        break;
-    case 335: // Salvaged Chopper
-    case 336: // Salvaged Siege Engine
-    case 338: // Salvaged Demolisher
-        _me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, false); // Battering Ram
-        break;
-    default:
-        break;
+        case 160: // Strand of the Ancients
+        case 244: // Wintergrasp
+        case 510: // Isle of Conquest
+        case 452: // Isle of Conquest
+        case 543: // Isle of Conquest
+            _me->SetControlled(true, UNIT_STATE_ROOT);
+            // why we need to apply this? we can simple add immunities to slow mechanic in DB
+            _me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_DECREASE_SPEED, true);
+            break;
+        case 335: // Salvaged Chopper
+        case 336: // Salvaged Siege Engine
+        case 338: // Salvaged Demolisher
+            _me->ApplySpellImmune(0, IMMUNITY_STATE, SPELL_AURA_MOD_DAMAGE_PERCENT_TAKEN, false); // Battering Ram
+            break;
+        default:
+            break;
     }
 }
 
@@ -246,11 +247,11 @@ void Vehicle::RemoveAllPassengers()
     // We don't need to iterate over Seats
     _me->RemoveAurasByType(SPELL_AURA_CONTROL_VEHICLE);
 
-    // Following the above logic, this assertion should NEVER fail.
-    // Even in 'hacky' cases, there should at least be VEHICLE_SPELL_RIDE_HARDCODED on us.
-    // SeatMap::const_iterator itr;
-    // for (itr = Seats.begin(); itr != Seats.end(); ++itr)
-    //    ASSERT(!itr->second.passenger);
+    // Aura script might cause the vehicle to be despawned in the middle of handling SPELL_AURA_CONTROL_VEHICLE removal
+    // In that case, aura effect has already been unregistered but passenger may still be found in Seats
+    for (auto const& [_, seat] : Seats)
+        if (Unit* passenger = ObjectAccessor::GetUnit(*_me, seat.Passenger.Guid))
+            passenger->_ExitVehicle();
 }
 
 /**
@@ -834,7 +835,9 @@ bool VehicleJoinEvent::Execute(uint64, uint32)
         }
     }
 
-    Passenger->InterruptNonMeleeSpells(false);
+    Passenger->InterruptSpell(CURRENT_GENERIC_SPELL);
+    Passenger->InterruptSpell(CURRENT_AUTOREPEAT_SPELL);
+    Passenger->RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags::Mount);
     Passenger->RemoveAurasByType(SPELL_AURA_MOUNTED);
 
     VehicleSeatEntry const* veSeat = Seat->second.SeatInfo;
@@ -843,10 +846,6 @@ bool VehicleJoinEvent::Execute(uint64, uint32)
     Player* player = Passenger->ToPlayer();
     if (player)
     {
-        // drop flag
-        if (Battleground* bg = player->GetBattleground())
-            bg->EventPlayerDroppedFlag(player);
-
         player->StopCastingCharm();
         player->StopCastingBindSight();
         player->SendOnCancelExpectedVehicleRideAura();
@@ -989,4 +988,9 @@ std::string Vehicle::GetDebugInfo() const
     }
 
     return sstr.str();
+}
+
+Trinity::unique_weak_ptr<Vehicle> Vehicle::GetWeakPtr() const
+{
+    return _me->GetVehicleKitWeakPtr();
 }

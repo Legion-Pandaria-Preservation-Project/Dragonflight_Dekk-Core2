@@ -257,8 +257,6 @@ public:
                 DoCastVictim(SPELL_DYNAMITE);
                 DynamiteTimer = 8000;
             } else DynamiteTimer -= diff;
-
-            DoMeleeAttackIfReady();
         }
 
     private:
@@ -621,8 +619,6 @@ public:
 // 29528 - Inoculate Nestlewood Owlkin
 class spell_inoculate_nestlewood : public AuraScript
 {
-    PrepareAuraScript(spell_inoculate_nestlewood);
-
     void PeriodicTick(AuraEffect const* /*aurEff*/)
     {
         if (GetTarget()->GetTypeId() != TYPEID_UNIT) // prevent error reports in case ignored player target
@@ -648,8 +644,6 @@ enum RedSnapperVeryTasty
 // 29866 - Cast Fishing Net
 class spell_azuremyst_isle_cast_fishing_net : public SpellScript
 {
-    PrepareSpellScript(spell_azuremyst_isle_cast_fishing_net);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo({ SPELL_FISHED_UP_RED_SNAPPER, SPELL_FISHED_UP_MURLOC });

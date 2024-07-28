@@ -165,11 +165,7 @@ void BlackMarketMgr::Update(bool updateTime)
 
 void BlackMarketMgr::RefreshAuctions()
 {
-    // Send auction items to players
-    Update(true);
-
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
-
     // Delete completed auctions
     for (BlackMarketEntryMap::iterator itr = _auctions.begin(); itr != _auctions.end();)
     {
@@ -199,29 +195,19 @@ void BlackMarketMgr::RefreshAuctions()
         templates.push_back(pair.second);
     }
 
-    const uint32 MaxAuctions = sWorld->getIntConfig(CONFIG_BLACKMARKET_MAXAUCTIONS);
-    Trinity::Containers::RandomResize(templates, MaxAuctions);
+    Trinity::Containers::RandomResize(templates, sWorld->getIntConfig(CONFIG_BLACKMARKET_MAXAUCTIONS));
 
     for (BlackMarketTemplate const* templat : templates)
     {
-        if (_auctions.size() >= MaxAuctions)
-        {
-            break;
-        }
-
         BlackMarketEntry* entry = new BlackMarketEntry();
         entry->Initialize(templat->MarketID, templat->Duration);
-
-        if (DoesAuctionAlreadyExist(entry))
-        {
-            continue;
-        }
-
         entry->SaveToDB(trans);
         AddAuction(entry);
     }
 
     CharacterDatabase.CommitTransaction(trans);
+
+    Update(true);
 }
 
 bool BlackMarketMgr::IsEnabled() const
@@ -272,12 +258,6 @@ void BlackMarketMgr::AddAuction(BlackMarketEntry* auction)
 void BlackMarketMgr::AddTemplate(BlackMarketTemplate* templ)
 {
     _templates[templ->MarketID] = templ;
-}
-
-bool BlackMarketMgr::DoesAuctionAlreadyExist(BlackMarketEntry* auction)
-{
-    auto it = _auctions.find(auction->GetMarketId());
-    return it != _auctions.end();
 }
 
 void BlackMarketMgr::SendAuctionWonMail(BlackMarketEntry* entry, CharacterDatabaseTransaction trans)
@@ -417,9 +397,7 @@ bool BlackMarketTemplate::LoadFromDB(Field* fields)
 
 void BlackMarketEntry::Update(time_t newTimeOfUpdate)
 {
-    _secondsRemaining -= (newTimeOfUpdate - sBlackMarketMgr->GetLastUpdate());
-    // Prevent overflow
-    _secondsRemaining = std::max(0, _secondsRemaining);
+    _secondsRemaining = _secondsRemaining - (newTimeOfUpdate - sBlackMarketMgr->GetLastUpdate());
 }
 
 BlackMarketTemplate const* BlackMarketEntry::GetTemplate() const
@@ -429,13 +407,7 @@ BlackMarketTemplate const* BlackMarketEntry::GetTemplate() const
 
 uint32 BlackMarketEntry::GetSecondsRemaining() const
 {
-    time_t CurrentTime = GameTime::GetGameTime();
-    time_t LastUpdate = sBlackMarketMgr->GetLastUpdate();
-    int32_t ElapsedTime = static_cast<int32_t>(CurrentTime - LastUpdate);
-    int32_t RemainingTime = static_cast<int32_t>(_secondsRemaining) - ElapsedTime;
-    // Prevent overflow
-    RemainingTime = std::max(0, RemainingTime);
-    return static_cast<uint32_t>(RemainingTime);
+    return _secondsRemaining - (GameTime::GetGameTime() - sBlackMarketMgr->GetLastUpdate());
 }
 
 time_t BlackMarketEntry::GetExpirationTime() const
@@ -461,7 +433,7 @@ bool BlackMarketEntry::LoadFromDB(Field* fields)
     }
 
     _currentBid = fields[1].GetUInt64();
-    _secondsRemaining = static_cast<time_t>(fields[2].GetInt64()) - sBlackMarketMgr->GetLastUpdate();
+    _secondsRemaining =  static_cast<time_t>(fields[2].GetInt64()) - sBlackMarketMgr->GetLastUpdate();
     _numBids = fields[3].GetInt32();
     _bidder = fields[4].GetUInt64();
 

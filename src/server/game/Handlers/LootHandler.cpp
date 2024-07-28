@@ -33,11 +33,10 @@
 #include "LootPackets.h"
 #include "Object.h"
 #include "ObjectAccessor.h"
+#include "ObjectMgr.h"
 #include "Player.h"
 #include "SpellMgr.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
+#include "World.h"
 
 class AELootCreatureCheck
 {
@@ -144,16 +143,8 @@ void WorldSession::HandleLootMoneyOpcode(WorldPackets::Loot::LootMoney& /*packet
 {
     Player* player = GetPlayer();
     std::vector<Loot*> forceLootRelease;
-    auto aoelootView = player->GetAELootView();
-
-    if (aoelootView.size() == 0)
-        return;
-
-    for (std::pair<ObjectGuid const, Loot*> const& lootView : aoelootView)
+    for (std::pair<ObjectGuid const, Loot*> const& lootView : player->GetAELootView())
     {
-        if (!lootView.second)
-            return;
-        
         Loot* loot = lootView.second;
         ObjectGuid guid = loot->GetOwnerGUID();
         bool shareMoney = loot->loot_type == LOOT_CORPSE;
@@ -207,10 +198,6 @@ void WorldSession::HandleLootMoneyOpcode(WorldPackets::Loot::LootMoney& /*packet
             SendPacket(packet.Write());
         }
 
-#ifdef ELUNA
-        sEluna->OnLootMoney(player, loot->gold);
-#endif
-
         loot->LootMoney();
 
         // Delete the money loot record from the DB
@@ -246,9 +233,13 @@ void WorldSession::HandleLootOpcode(WorldPackets::Loot::LootUnit& packet)
 
     GetPlayer()->RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags::Looting);
 
+    bool const aeLootEnabled = sWorld->getBoolConfig(CONFIG_ENABLE_AE_LOOT);
     std::vector<Creature*> corpses;
-    Trinity::CreatureListSearcher<AELootCreatureCheck> searcher(_player, corpses, check);
-    Cell::VisitGridObjects(_player, searcher, AELootCreatureCheck::LootDistance);
+    if (aeLootEnabled)
+    {
+        Trinity::CreatureListSearcher<AELootCreatureCheck> searcher(_player, corpses, check);
+        Cell::VisitGridObjects(_player, searcher, AELootCreatureCheck::LootDistance);
+    }
 
     if (!corpses.empty())
         SendPacket(WorldPackets::Loot::AELootTargets(uint32(corpses.size() + 1)).Write());
@@ -279,7 +270,7 @@ void WorldSession::HandleLootReleaseOpcode(WorldPackets::Loot::LootRelease& pack
 void WorldSession::DoLootRelease(Loot* loot)
 {
     ObjectGuid lguid = loot->GetOwnerGUID();
-    Player* player = GetPlayer();
+    Player  *player = GetPlayer();
 
     if (player->GetLootGUID() == lguid)
         player->SetLootGUID(ObjectGuid::Empty);
@@ -473,12 +464,10 @@ void WorldSession::HandleLootMasterGiveOpcode(WorldPackets::Loot::MasterLootItem
         }
 
         // now move item from loot to target inventory
-        Item* newitem = target->StoreNewItem(dest, item.itemid, true, item.randomBonusListId, item.GetAllowedLooters(), item.context, &item.BonusListIDs);
-        aeResult.Add(newitem, item.count, loot->loot_type, loot->GetDungeonEncounterId());
-
-#ifdef ELUNA
-        sEluna->OnLootItem(target, newitem, item.count, loot->GetOwnerGUID());
-#endif
+        if (Item* newitem = target->StoreNewItem(dest, item.itemid, true, item.randomBonusListId, item.GetAllowedLooters(), item.context, &item.BonusListIDs))
+            aeResult.Add(newitem, item.count, loot->loot_type, loot->GetDungeonEncounterId());
+        else
+            target->ApplyItemLootedSpell(sObjectMgr->GetItemTemplate(item.itemid));
 
         // mark as looted
         item.count = 0;
@@ -516,46 +505,4 @@ void WorldSession::HandleSetLootSpecialization(WorldPackets::Loot::SetLootSpecia
     }
     else
         GetPlayer()->SetLootSpecId(0);
-}
-
-void WorldSession::HandleCancelMasterLootRoll(WorldPackets::Loot::CancelMasterLootRoll& packet)
-{
-}
-
-void WorldSession::HandleDoMasterLootRoll(WorldPackets::Loot::DoMasterLootRoll& packet)
-{
-    if (!_player->GetGroup() || _player->GetGroup()->GetLooterGuid() != _player->GetGUID())
-    {
-        _player->SendLootRelease(packet.LootObj);
-        return;
-    }
-
-    Loot* loot = nullptr;
-    if (packet.LootObj.IsCreatureOrVehicle())
-    {
-        Creature* creature = GetPlayer()->GetMap()->GetCreature(packet.LootObj);
-        if (creature)
-            loot = creature->GetLootForPlayer(GetPlayer());
-    }
-    else if (packet.LootObj.IsGameObject())
-    {
-        GameObject* pGO = GetPlayer()->GetMap()->GetGameObject(packet.LootObj);
-        if (pGO)
-            loot = pGO->GetLootForPlayer(GetPlayer());
-    }
-   /* else if (packet.LootObj.isloot())
-    {
-        loot = sLootMgr->GetLoot(packet.LootObj);
-        if (!loot)
-            return;
-    }*/
-
-    packet.LootListID -= 1; //restore slot index;
-    if (packet.LootListID >= loot->items.size())
-    {
-         TC_LOG_DEBUG("LOG_FILTER_LOOT", "MasterLootItem: Player {} might be using a hack! (slot {}, size {})", GetPlayer()->GetName(), packet.LootListID, (unsigned long)loot->items.size());
-        return;
-    }
-
-   // _player->GetGroup()->DoRollForAllMembers(packet.LootObj, packet.LootListID, _player->GetMapId(), loot, _player);
 }

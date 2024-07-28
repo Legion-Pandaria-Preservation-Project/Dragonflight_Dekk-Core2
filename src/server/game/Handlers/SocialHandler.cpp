@@ -106,15 +106,15 @@ void WorldSession::HandleAddFriendOpcode(WorldPackets::Social::AddFriend& packet
     // When not found, consult database
     GetQueryProcessor().AddCallback(AccountMgr::GetSecurityAsync(friendCharacterInfo->AccountId, realm.Id.Realm,
         [this, continuation = std::move(processFriendRequest)](uint32 friendSecurity)
+    {
+        if (!AccountMgr::IsPlayerAccount(friendSecurity))
         {
-            if (!AccountMgr::IsPlayerAccount(friendSecurity))
-            {
-                sSocialMgr->SendFriendStatus(GetPlayer(), FRIEND_NOT_FOUND, ObjectGuid::Empty);
-                return;
-            }
+            sSocialMgr->SendFriendStatus(GetPlayer(), FRIEND_NOT_FOUND, ObjectGuid::Empty);
+            return;
+        }
 
-    continuation();
-        }));
+        continuation();
+    }));
 }
 
 void WorldSession::HandleDelFriendOpcode(WorldPackets::Social::DelFriend& packet)
@@ -181,9 +181,4 @@ void WorldSession::HandleSocialContractRequest(WorldPackets::Social::SocialContr
     WorldPackets::Social::SocialContractRequestResponse response;
     response.ShowSocialContract = false;
     SendPacket(response.Write());
-}
-
-//dekkCore
-void WorldSession::HandleQuickJoinAutoAcceptRequests(WorldPackets::Social::QuickJoinAutoAcceptRequests& packet)
-{
 }

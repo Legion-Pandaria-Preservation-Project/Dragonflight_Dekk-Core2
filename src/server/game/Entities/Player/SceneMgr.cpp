@@ -63,7 +63,8 @@ uint32 SceneMgr::PlaySceneByTemplate(SceneTemplate const* sceneTemplate, Positio
     playScene.SceneInstanceID      = sceneInstanceID;
     playScene.SceneScriptPackageID = sceneTemplate->ScenePackageId;
     playScene.Location             = *position;
-    playScene.TransportGUID        = GetPlayer()->GetTransGUID();
+    if (!GetPlayer()->GetVehicle()) // skip vehicles passed as transport here until further research
+        playScene.TransportGUID    = GetPlayer()->GetTransGUID();
     playScene.Encrypted            = sceneTemplate->Encrypted;
     playScene.Write();
 
@@ -111,9 +112,6 @@ void SceneMgr::OnSceneTrigger(uint32 sceneInstanceID, std::string const& trigger
 
     SceneTemplate const* sceneTemplate = GetSceneTemplateFromInstanceId(sceneInstanceID);
     sScriptMgr->OnSceneTrigger(GetPlayer(), sceneInstanceID, sceneTemplate, triggerName);
-
-    // Legacy PlayerScript
-    sScriptMgr->OnSceneTriggerEvent(GetPlayer(), sceneInstanceID, triggerName);
 }
 
 void SceneMgr::OnSceneCancel(uint32 sceneInstanceID)

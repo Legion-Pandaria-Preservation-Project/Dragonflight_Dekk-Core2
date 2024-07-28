@@ -20,6 +20,7 @@
 #include "DB2Stores.h"
 #include "Cell.h"
 #include "CellImpl.h"
+#include "Containers.h"
 #include "CreatureAIImpl.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
@@ -32,11 +33,7 @@
 #include "Spell.h"
 #include "SpellMgr.h"
 #include "TemporarySummon.h"
-//DekkCore
-#include "BotAITool.h"
-#include "BotGroupAI.h"
-#include "Pet.h"
-//dekkCore
+
 void SummonList::Summon(Creature const* summon)
 {
     _storage.push_back(summon->GetGUID());
@@ -112,8 +109,11 @@ bool SummonList::HasEntry(uint32 entry) const
     return false;
 }
 
-void SummonList::DoActionImpl(int32 action, StorageType const& summons)
+void SummonList::DoActionImpl(int32 action, StorageType& summons, uint16 max)
 {
+    if (max)
+        Trinity::Containers::RandomResize(summons, max);
+
     for (ObjectGuid const& guid : summons)
     {
         Creature* summon = ObjectAccessor::GetCreature(*_me, guid);
@@ -124,14 +124,8 @@ void SummonList::DoActionImpl(int32 action, StorageType const& summons)
 
 ScriptedAI::ScriptedAI(Creature* creature) : ScriptedAI(creature, creature->GetScriptId()) { }
 
-ScriptedAI::ScriptedAI(Creature* creature, uint32 scriptId) : CreatureAI(creature, scriptId),
-    IsFleeing(false),
-    summons(creature),
-    instance(creature->GetInstanceScript()),
-    _isCombatMovementAllowed(true),
-    _checkHomeTimer(5000) //Dekkcor
+ScriptedAI::ScriptedAI(Creature* creature, uint32 scriptId) : CreatureAI(creature, scriptId), IsFleeing(false), _isCombatMovementAllowed(true)
 {
-    _isHeroic = me->GetMap()->IsHeroic();
     _difficulty = me->GetMap()->GetDifficultyID();
 }
 
@@ -155,16 +149,13 @@ void ScriptedAI::AttackStart(Unit* who)
 void ScriptedAI::UpdateAI(uint32 /*diff*/)
 {
     // Check if we have a current target
-    if (!UpdateVictim())
-        return;
-
-    DoMeleeAttackIfReady();
+    UpdateVictim();
 }
 
 void ScriptedAI::DoStartMovement(Unit* victim, float distance, float angle)
 {
     if (victim)
-        me->GetMotionMaster()->MoveChase(victim, distance, angle);
+        me->StartDefaultCombatMovement(victim, distance, angle);
 }
 
 void ScriptedAI::DoStartNoMovement(Unit* victim)
@@ -307,6 +298,41 @@ bool ScriptedAI::HealthBelowPct(uint32 pct) const
 bool ScriptedAI::HealthAbovePct(uint32 pct) const
 {
     return me->HealthAbovePct(pct);
+}
+
+bool ScriptedAI::IsLFR() const
+{
+    return me->GetMap()->IsLFR();
+}
+
+bool ScriptedAI::IsNormal() const
+{
+    return me->GetMap()->IsNormal();
+}
+
+bool ScriptedAI::IsHeroic() const
+{
+    return me->GetMap()->IsHeroic();
+}
+
+bool ScriptedAI::IsMythic() const
+{
+    return me->GetMap()->IsMythic();
+}
+
+bool ScriptedAI::IsMythicPlus() const
+{
+    return me->GetMap()->IsMythicPlus();
+}
+
+bool ScriptedAI::IsHeroicOrHigher() const
+{
+    return me->GetMap()->IsHeroicOrHigher();
+}
+
+bool ScriptedAI::IsTimewalking() const
+{
+    return me->GetMap()->IsTimewalking();
 }
 
 SpellInfo const* ScriptedAI::SelectSpell(Unit* target, uint32 school, uint32 mechanic, SelectTargetType targets, float rangeMin, float rangeMax, SelectEffect effect)
@@ -517,11 +543,9 @@ void BossAI::_Reset()
     if (!me->IsAlive())
         return;
 
-    me->SetCombatPulseDelay(0);
     me->ResetLootMode();
     events.Reset();
     summons.DespawnAll();
-    me->RemoveAllAreaTriggers();
     scheduler.CancelAll();
     if (instance && instance->GetBossState(_bossId) != DONE)
         instance->SetBossState(_bossId, NOT_STARTED);
@@ -529,18 +553,15 @@ void BossAI::_Reset()
 
 void BossAI::_JustDied()
 {
-    Talk(TALK_DEFAULT_BOSS_DEATH);
     events.Reset();
     summons.DespawnAll();
     scheduler.CancelAll();
     if (instance)
         instance->SetBossState(_bossId, DONE);
-
 }
 
 void BossAI::_JustReachedHome()
 {
-    Talk(TALK_DEFAULT_BOSS_WIPE);
     me->setActive(false);
 }
 
@@ -551,16 +572,13 @@ void BossAI::_JustEngagedWith(Unit* who)
         // bosses do not respawn, check only on enter combat
         if (!instance->CheckRequiredBosses(_bossId, who->ToPlayer()))
         {
-            EnterEvadeMode(EVADE_REASON_SEQUENCE_BREAK);
+            EnterEvadeMode(EvadeReason::SequenceBreak);
             return;
         }
         instance->SetBossState(_bossId, IN_PROGRESS);
     }
 
-    Talk(TALK_DEFAULT_BOSS_AGGRO);
-    me->SetCombatPulseDelay(5);
     me->setActive(true);
-    DoZoneInCombat();
     ScheduleTasks();
 }
 
@@ -605,11 +623,6 @@ void BossAI::UpdateAI(uint32 diff)
         if (me->HasUnitState(UNIT_STATE_CASTING))
             return;
     }
-
-    if (GetBaseAttackSpell() != 0)
-        DoSpellAttackIfReady(GetBaseAttackSpell());
-    else
-        DoMeleeAttackIfReady();
 }
 
 bool BossAI::CanAIAttack(Unit const* target) const
@@ -639,12 +652,6 @@ void BossAI::_DespawnAtEvade(Seconds delayToRespawn /*= 30s*/, Creature* who /*=
 
     if (instance && who == me)
         instance->SetBossState(_bossId, FAIL);
-}
-
-void BossAI::_KilledUnit(Unit* victim)
-{
-    if (victim->IsPlayer())
-        Talk(TALK_DEFAULT_BOSS_KILLED);
 }
 
 // WorldBossAI - for non-instanced bosses
@@ -701,872 +708,4 @@ void WorldBossAI::UpdateAI(uint32 diff)
         if (me->HasUnitState(UNIT_STATE_CASTING))
             return;
     }
-
-    DoMeleeAttackIfReady();
 }
-
-
-
-// DekkCore >
-void GetPositionWithDistInOrientation(Position* pUnit, float dist, float orientation, float& x, float& y)
-{
-    x = pUnit->GetPositionX() + (dist * cos(orientation));
-    y = pUnit->GetPositionY() + (dist * sin(orientation));
-}
-
-void GetPositionWithDistInOrientation(Position* fromPos, float dist, float orientation, Position& movePosition)
-{
-    float x = 0.0f;
-    float y = 0.0f;
-
-    GetPositionWithDistInOrientation(fromPos, dist, orientation, x, y);
-
-    movePosition.m_positionX = x;
-    movePosition.m_positionY = y;
-    movePosition.m_positionZ = fromPos->GetPositionZ();
-}
-
-void GetPositionWithDistInFront(Position* centerPos, float dist, Position& movePosition)
-{
-    GetPositionWithDistInOrientation(centerPos, dist, centerPos->GetOrientation(), movePosition);
-}
-
-void ScriptedAI::ApplyDefaultBossImmuneMask()
-{
-    static uint32 const placeholderSpellId = std::numeric_limits<uint32>::max();
-
-    for (uint32 i = MECHANIC_NONE + 1; i < MAX_MECHANIC; ++i)
-    {
-        if (IMMUNE_TO_MOVEMENT_IMPAIRMENT_AND_LOSS_CONTROL_MASK & (1 << (i - 1)))
-            me->ApplySpellImmune(placeholderSpellId, IMMUNITY_MECHANIC, i, true);
-    }
-}
-
-bool ScriptedAI::CheckHomeDistToEvade(uint32 diff, float dist, float x, float y, float z, bool onlyZ)
-{
-    if (!me->IsInCombat())
-        return false;
-
-    bool evade = false;
-
-    if (_checkHomeTimer <= diff)
-    {
-        _checkHomeTimer = 1500;
-
-        if (onlyZ)
-        {
-            if ((me->GetPositionZ() > z + dist) || (me->GetPositionZ() < z - dist))
-                evade = true;
-        }
-        else if (x != 0.0f || y != 0.0f || z != 0.0f)
-        {
-            if (me->GetDistance(x, y, z) >= dist)
-                evade = true;
-        }
-        else if (me->GetDistance(me->GetHomePosition()) >= dist)
-            evade = true;
-
-        if (evade)
-        {
-            EnterEvadeMode();
-            return true;
-        }
-    }
-    else
-    {
-        _checkHomeTimer -= diff;
-    }
-
-    return false;
-}
-
-void ScriptedAI::GetInViewBotPlayers(std::list<Player*>& outPlayers, float range)
-{
-    Map::PlayerList const& players = me->GetMap()->GetPlayers();
-    for (Map::PlayerList::const_iterator i = players.begin(); i != players.end(); ++i)
-    {
-        Player* player = i->GetSource();
-        if (!player || !player->IsAlive() || !player->IsPlayerBot())
-            continue;
-        if (!me->InSamePhase(player->GetPhaseShift()))
-            continue;
-        if (me->GetDistance(player->GetPosition()) > range)
-            continue;
-        if (!me->IsWithinLOSInMap(player))
-            continue;
-        outPlayers.push_back(player);
-    }
-}
-
-void ScriptedAI::SearchTargetPlayerAllGroup(std::list<Player*>& players, float range)
-{
-    if (range < 3.0f)
-        return;
-    ObjectGuid targetGUID = me->GetTarget();
-    Player* targetPlayer = NULL;
-    if (targetGUID == ObjectGuid::Empty)
-    {
-        std::list<Player*> playersNearby;
-        me->GetPlayerListInGrid(playersNearby, range);
-        if (playersNearby.empty())
-            return;
-        for (Player* p : playersNearby)
-        {
-            if (p->IsAlive() && p->GetMap() == me->GetMap())
-            {
-                targetPlayer = p;
-                targetGUID = p->GetGUID();
-                break;
-            }
-        }
-    }
-    if (!targetPlayer)
-        targetPlayer = ObjectAccessor::FindPlayer(targetGUID);
-    if (!targetPlayer || targetPlayer->GetMap() != me->GetMap())
-        return;
-    players.clear();
-    players.push_back(targetPlayer);
-
-    Group* pGroup = targetPlayer->GetGroup();
-    if (!pGroup || pGroup->isBFGroup())
-        return;
-    Group::MemberSlotList const& memList = pGroup->GetMemberSlots();
-    for (Group::MemberSlot const& slot : memList)
-    {
-        Player* player = ObjectAccessor::FindPlayer(slot.guid);
-        if (!player || !player->IsAlive() || targetPlayer->GetMap() != player->GetMap() ||
-            !player->IsInWorld() || player == targetPlayer || !player->IsPlayerBot())
-            continue;
-        if (me->GetDistance(player->GetPosition()) > range)
-            continue;
-        players.push_back(player);
-    }
-}
-
-void ScriptedAI::PickBotPullMeToPosition(Position pullPos, ObjectGuid fliterTarget)
-{
-    std::list<BotGroupAI*> tankAIs;// , healAIs;
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, 120);
-    BotGroupAI* pNearTankAI = NULL;
-    float nearTankAIDist = 999999;
-    BotGroupAI* pNearHealAI[3] = { NULL };
-    float nearHealAIDist[3] = { 999999 };
-    for (Player* player : targets)
-    {
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            if (pGroupAI->IsHealerBotAI())
-            {
-                float thisDist = me->GetDistance(player->GetPosition());
-                for (int i = 0; i < 3; i++)
-                {
-                    if (thisDist < nearHealAIDist[i])
-                    {
-                        pNearHealAI[i] = pGroupAI;
-                        nearHealAIDist[i] = thisDist;
-                        break;
-                    }
-                }
-            }
-            else if (pGroupAI->IsTankBotAI())
-            {
-                if (fliterTarget != ObjectGuid::Empty)
-                {
-                    Unit* tankTarget = player->GetSelectedUnit();
-                    if (tankTarget != NULL && tankTarget->GetGUID() == fliterTarget)
-                    {
-                        if (pNearTankAI == NULL)
-                        {
-                            if (urand(0, 99) > 50)
-                                continue;
-                        }
-                        else
-                            continue;
-                    }
-                }
-                tankAIs.push_back(pGroupAI);
-                float thisDist = me->GetDistance(player->GetPosition());
-                if (thisDist < nearTankAIDist)
-                {
-                    pNearTankAI = pGroupAI;
-                    nearTankAIDist = thisDist;
-                }
-            }
-        }
-    }
-    if (pNearTankAI == NULL)
-        return;
-    for (BotGroupAI* pGroupAI : tankAIs)
-    {
-        if (pGroupAI == pNearTankAI)
-        {
-            pGroupAI->ClearTankTarget();
-            pGroupAI->AddTankTarget(me);
-            pGroupAI->SetTankPosition(pullPos);
-            pGroupAI->GetAIPayer()->SetSelection(me->GetGUID());
-            for (int i = 0; i < 3; i++)
-            {
-                if (pNearHealAI[i])
-                    pNearHealAI[i]->GetAIPayer()->SetSelection(me->GetGUID());
-            }
-        }
-        else
-        {
-            pGroupAI->ClearTankTarget();
-            pGroupAI->GetAIPayer()->SetSelection(ObjectGuid::Empty);
-        }
-    }
-}
-
-bool ScriptedAI::ExistPlayerBotByRange(float range)
-{
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, range);
-    return targets.size() > 0;
-}
-
-void ScriptedAI::BotBlockCastingMe()
-{
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, 120);
-    for (Player* player : targets)
-    {
-        if (player->HasUnitState(UNIT_STATE_CASTING))
-            continue;
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            if (pGroupAI->TryBlockCastingByTarget(me))
-                return;
-        }
-    }
-}
-
-void ScriptedAI::ClearBotMeTarget(bool all)
-{
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, 120);
-    for (Player* player : targets)
-    {
-        if (Pet* pPet = player->GetPet())
-        {
-            if (pPet->GetVictim() == me)
-            {
-                if (WorldSession* pSession = player->GetSession())
-                {
-                    pSession->HandlePetActionHelper(pPet, pPet->GetGUID(), 1, 7, ObjectGuid::Empty, 0);
-                }
-            }
-        }
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            if (all || !pGroupAI->IsTankBotAI())
-            {
-                player->SetSelection(ObjectGuid::Empty);
-                pGroupAI->ToggleFliterCreature(me, true);
-            }
-        }
-    }
-}
-
-void ScriptedAI::BotAllMovetoFarByDistance(Unit* pUnit, float range, float dist, float offset)
-{
-    float onceAngle = float(M_PI) * 2.0f / 8.0f;
-    std::list<Position> allPosition;
-    for (float angle = 0.0f; angle < (float(M_PI) * 2.0f); angle += onceAngle)
-    {
-        Position pos;
-        pUnit->GetFirstCollisionPosition(dist, angle);
-        float dist = pUnit->GetDistance(pos);
-        if (!pUnit->IsWithinLOS(pos.GetPositionX(), pos.GetPositionY(), pos.GetPositionZ()))
-            continue;
-        allPosition.push_back(pos);
-    }
-    if (allPosition.empty())
-        return;
-    Position targetPos;
-    float maxDist = 0.0f;
-    for (Position pos : allPosition)
-    {
-        float distance = pUnit->GetDistance(pos);
-        if (distance > maxDist)
-        {
-            maxDist = distance;
-            targetPos = pos;
-        }
-    }
-    if (maxDist < dist * 0.1f)
-        return;
-    targetPos.m_positionZ = pUnit->GetMap()->GetHeight(pUnit->GetPhaseShift(), targetPos.GetPositionX(), targetPos.GetPositionY(), targetPos.GetPositionZ());
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, range);
-    for (Player* player : targets)
-    {
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            Position offsetPos = Position(targetPos.GetPositionX() + frand(-offset, offset),
-                targetPos.GetPositionY() + frand(-offset, offset), targetPos.GetPositionZ());
-            pGroupAI->ClearCruxMovement();
-            pGroupAI->SetCruxMovement(targetPos);
-        }
-    }
-}
-
-void ScriptedAI::BotCruxFlee(uint32 durTime, ObjectGuid fliter)
-{
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, 120);
-    for (Player* player : targets)
-    {
-        if (fliter != ObjectGuid::Empty)
-        {
-            if (player->GetGUID() == fliter)
-                continue;
-        }
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            pGroupAI->AddCruxFlee(durTime, me);
-        }
-    }
-}
-
-void ScriptedAI::BotRndCruxMovement(float dist)
-{
-    if (dist < 1.0f)
-        return;
-    std::list<Player*> playersNearby;
-    me->GetPlayerListInGrid(playersNearby, 120);
-    if (playersNearby.empty())
-        return;
-    for (Player* player : playersNearby)
-    {
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            pGroupAI->RndCruxMovement(dist);
-        }
-    }
-}
-
-void ScriptedAI::BotCruxFleeByRange(float range)
-{
-    if (range < 3.0f)
-        return;
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, range);
-    for (Player* player : targets)
-    {
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            Position targetPos;
-            if (!BotUtility::FindFirstCollisionPosition(player, range, me, targetPos))
-                continue;
-            if (pGroupAI->GetAIPayer()->HasUnitState(UNIT_STATE_CASTING))
-            	pGroupAI->GetAIPayer()->CastStop();
-            pGroupAI->SetCruxMovement(targetPos);
-            player->SetSelection(ObjectGuid::Empty);
-        }
-    }
-}
-
-void ScriptedAI::BotCruxFleeByRange(float range, Unit* pCenter)
-{
-    if (range < 3.0f || !pCenter)
-        return;
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, range);
-    for (Player* player : targets)
-    {
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            Position targetPos;
-            if (!BotUtility::FindFirstCollisionPosition(player, range, pCenter, targetPos))
-                continue;
-            pGroupAI->SetCruxMovement(targetPos);
-            //player->SetSelection(ObjectGuid::Empty);
-        }
-    }
-}
-
-void ScriptedAI::BotCruxFleeByArea(float range, float fleeDist, Unit* pCenter)
-{
-    if (range < 3.0f || fleeDist < 3.0f || !pCenter)
-        return;
-    Position centerPos = pCenter->GetPosition();
-    std::list<Player*> players;
-    SearchTargetPlayerAllGroup(players, 80);
-    for (Player* player : players)
-    {
-        if (player->GetDistance(centerPos) > range)
-            continue;
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            Position targetPos;
-            if (!BotUtility::FindFirstCollisionPosition(player, fleeDist, pCenter, targetPos))
-                continue;
-            pGroupAI->SetCruxMovement(targetPos);
-            //player->SetSelection(ObjectGuid::Empty);
-        }
-    }
-}
-
-void ScriptedAI::BotAllTargetMe(bool all)
-{
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, 120);
-    for (Player* player : targets)
-    {
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            if (all)
-                player->SetSelection(me->GetGUID());
-            else if (!pGroupAI->IsTankBotAI() && !pGroupAI->IsHealerBotAI())
-                player->SetSelection(me->GetGUID());
-        }
-    }
-}
-
-void ScriptedAI::BotPhysicsDPSTargetMe(Unit* pUnit)
-{
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, 120);
-    for (Player* player : targets)
-    {
-        if (!player->IsPlayerBot())
-            continue;
-        if (player->GetClass() == Classes::CLASS_ROGUE || player->GetClass() == Classes::CLASS_HUNTER)
-            player->SetSelection(me->GetGUID());
-        /*else if (player->GetClass() == Classes::CLASS_WARRIOR)
-        {
-            if (player->FindTalentType() != 2)
-                player->SetSelection(pUnit->GetGUID());
-        }*/
-        else
-        {
-            if (player->GetSelectedUnit() == pUnit)
-            {
-                if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-                {
-                    if (!pGroupAI->IsHealerBotAI() && !pGroupAI->IsTankBotAI())
-                        player->SetSelection(ObjectGuid::Empty);
-                }
-            }
-        }
-    }
-}
-
-void ScriptedAI::BotMagicDPSTargetMe(Unit* pUnit)
-{
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, 120);
-    for (Player* player : targets)
-    {
-        if (!player->IsPlayerBot())
-            continue;
-        if (player->GetClass() == Classes::CLASS_ROGUE || player->GetClass() == Classes::CLASS_HUNTER ||
-            player->GetClass() == Classes::CLASS_WARRIOR)
-        {
-            if (player->GetSelectedUnit() == pUnit)
-            {
-                if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-                {
-                    if (!pGroupAI->IsHealerBotAI() && !pGroupAI->IsTankBotAI())
-                        player->SetSelection(ObjectGuid::Empty);
-                }
-            }
-        }
-        else
-        {
-            if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-            {
-                if (!pGroupAI->IsHealerBotAI() && !pGroupAI->IsTankBotAI())
-                    player->SetSelection(pUnit->GetGUID());
-            }
-        }
-    }
-}
-
-void ScriptedAI::BotAverageCreatureTarget(std::vector<Creature*>& targets, float searchRange)
-{
-    if (targets.empty() || searchRange < 3.0f)
-        return;
-    std::queue<Player*> players;
-    std::list<Player*> searchUnits;
-    SearchTargetPlayerAllGroup(searchUnits, searchRange);
-    for (Player* player : searchUnits)
-    {
-        players.push(player);
-    }
-    while (!players.empty())
-    {
-        for (Creature* pCreature : targets)
-        {
-            Player* player = players.front();
-            players.pop();
-            if (pCreature)
-                player->SetSelection(pCreature->GetGUID());
-            if (players.empty())
-                break;
-        }
-    }
-}
-
-void ScriptedAI::BotAllotCreatureTarget(std::vector<Creature*>& targets, float searchRange, uint32 onceCount)
-{
-    if (onceCount < 1 || targets.empty() || searchRange < 3.0f)
-        return;
-    std::queue<Player*> players;
-    std::list<Player*> searchUnits;
-    SearchTargetPlayerAllGroup(searchUnits, searchRange);
-    for (Player* player : searchUnits)
-    {
-        players.push(player);
-    }
-    while (!players.empty())
-    {
-        for (Creature* pCreature : targets)
-        {
-            int32 allot = int32(onceCount);
-            while (!players.empty() && allot > 0)
-            {
-                --allot;
-                Player* player = players.front();
-                players.pop();
-                if (pCreature)
-                    player->SetSelection(pCreature->GetGUID());
-            }
-            if (players.empty())
-                break;
-        }
-    }
-}
-
-void ScriptedAI::BotAllToSelectionTarget(Unit* pUnit, float searchRange, bool all)
-{
-    if (!pUnit)
-        return;
-    ObjectGuid guid = pUnit->GetGUID();
-    std::list<Player*> searchUnits;
-    SearchTargetPlayerAllGroup(searchUnits, searchRange);
-    for (Player* player : searchUnits)
-    {
-        if (player->GetTarget() == guid)
-            continue;
-        if (all)
-            player->SetSelection(pUnit->GetGUID());
-        else if (BotGroupAI* pAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            if (!pAI->IsTankBotAI())
-                player->SetSelection(pUnit->GetGUID());
-        }
-    }
-}
-
-void ScriptedAI::BotAllFullDispel(bool enables)
-{
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, 120);
-    for (Player* player : targets)
-    {
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            if (enables)
-                pGroupAI->StartFullDispel();
-            else
-                pGroupAI->ClearFullDispel();
-        }
-    }
-}
-
-void ScriptedAI::BotAllFullDispelByDecPoison(bool enables)
-{
-    std::list<Player*> targets;
-    SearchTargetPlayerAllGroup(targets, 120);
-    for (Player* player : targets)
-    {
-        if (player->GetClass() != Classes::CLASS_DRUID && player->GetClass() != Classes::CLASS_SHAMAN)
-            continue;
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            if (enables)
-                pGroupAI->StartFullDispel();
-            else
-                pGroupAI->ClearFullDispel();
-        }
-    }
-}
-
-void ScriptedAI::BotFleeLineByAngle(Unit* center, float angle, bool force)
-{
-    angle = Position::NormalizeOrientation(angle);
-    std::list<Player*> playersNearby;
-    center->GetPlayerListInGrid(playersNearby, center->GetObjectScale() + 80.0f);
-    for (Player* player : playersNearby)
-    {
-        if (!player->IsPlayerBot() || !player->IsInWorld() || player->GetMap() != center->GetMap() || !player->IsAlive())
-            continue;
-        float fleeRange = center->GetDistance(player->GetPosition());
-        if (fleeRange <= 0)
-            fleeRange = center->GetObjectScale() + 1.0f;
-        float pangle = center->GetAbsoluteAngle(player->GetPosition()) - angle;
-        if (pangle >= 0 && pangle <= float(M_PI_4))
-        {
-            if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-            {
-                float fleeAngle = Position::NormalizeOrientation(angle + float(M_PI_4));
-                Position fleePos = Position(center->GetPositionX() + fleeRange * std::cosf(fleeAngle),
-                    center->GetPositionY() + fleeRange * std::sinf(fleeAngle), player->GetPositionZ(), player->GetOrientation());
-                fleePos.m_positionZ = player->GetMap()->GetHeight(player->GetPhaseShift(), fleePos.GetPositionX(), fleePos.GetPositionY(), fleePos.GetPositionZ());
-                //if (pGroupAI->GetAIPayer()->HasUnitState(UNIT_STATE_CASTING))
-                //	pGroupAI->GetAIPayer()->CastStop();
-                if (force)
-                    pGroupAI->ClearCruxMovement();
-                pGroupAI->SetCruxMovement(fleePos);
-            }
-        }
-        else if (pangle < 0 && pangle >= float(-M_PI_4))
-        {
-            if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-            {
-                float fleeAngle = Position::NormalizeOrientation(angle - float(M_PI_4));
-                Position fleePos = Position(center->GetPositionX() + fleeRange * std::cosf(fleeAngle),
-                    center->GetPositionY() + fleeRange * std::sinf(fleeAngle), player->GetPositionZ(), player->GetOrientation());
-                fleePos.m_positionZ = player->GetMap()->GetHeight(player->GetPhaseShift(), fleePos.GetPositionX(), fleePos.GetPositionY(), fleePos.GetPositionZ());
-                //if (pGroupAI->GetAIPayer()->HasUnitState(UNIT_STATE_CASTING))
-                //	pGroupAI->GetAIPayer()->CastStop();
-                if (force)
-                    pGroupAI->ClearCruxMovement();
-                pGroupAI->SetCruxMovement(fleePos);
-            }
-        }
-    }
-}
-
-void ScriptedAI::BotSwitchPullTarget(Unit* pTarget)
-{
-    if (!pTarget || !pTarget->ToCreature())
-        return;
-    Player* pTargetPlayer = ObjectAccessor::FindPlayer(pTarget->GetTarget());
-    if (pTargetPlayer && pTargetPlayer->IsAlive())
-    {
-        pTargetPlayer->SetSelection(ObjectGuid::Empty);
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(pTargetPlayer->GetAI()))
-            pGroupAI->ClearTankTarget();
-    }
-    std::list<Player*> playersNearby;
-    pTarget->GetPlayerListInGrid(playersNearby, pTarget->GetObjectScale() + 80.0f);
-    for (Player* player : playersNearby)
-    {
-        if (player && player == pTargetPlayer)
-            continue;
-        if (!player->IsPlayerBot() || !player->IsInWorld() || player->GetMap() != pTarget->GetMap() || !player->IsAlive())
-            continue;
-        if (BotGroupAI* pGroupAI = dynamic_cast<BotGroupAI*>(player->GetAI()))
-        {
-            if (pGroupAI->IsTankBotAI())
-            {
-                if (pGroupAI->ProcessPullSpell(pTarget))
-                    return;
-            }
-        }
-    }
-}
-
-void ScriptedAI::BotVehicleChaseTarget(Unit* pTarget, float distance)
-{
-    if (!pTarget || !pTarget->ToCreature())
-        return;
-    std::list<Player*> playersNearby;
-    me->GetPlayerListInGrid(playersNearby, distance * 2);
-    if (playersNearby.empty())
-        return;
-    for (Player* bot : playersNearby)
-    {
-        if (!bot->IsPlayerBot() || !bot->IsAlive() || bot->GetMap() != pTarget->GetMap())
-            continue;
-        if (bot->GetTarget() != pTarget->GetGUID())
-            bot->SetSelection(pTarget->GetGUID());
-        if (BotGroupAI* pBotAI = dynamic_cast<BotGroupAI*>(bot->GetAI()))
-        {
-            pBotAI->SetVehicle3DNextMoveGap(8.0f);
-            pBotAI->SetVehicle3DMoveTarget(pTarget, distance);
-        }
-        Unit* vehBase = bot->GetCharmed();
-        if (!vehBase || !vehBase->IsAlive() || vehBase->GetMap() != pTarget->GetMap())
-            continue;
-        if (vehBase->GetTarget() != pTarget->GetGUID())
-            vehBase->SetTarget(pTarget->GetGUID());
-        if (vehBase->HasSpell(57092) && !vehBase->HasAura(57092))
-            vehBase->CastSpell(vehBase, 57092);
-        float power = (float)vehBase->GetPower(POWER_ENERGY) / (float)vehBase->GetMaxPower(POWER_ENERGY);
-        if (power >= 0.4f)
-        {
-            uint8 combo = bot->GetComboPoints();
-            if (combo > 4)
-            {
-                if (vehBase->GetHealthPct() < 75 && urand(0, 99) > 60)
-                {
-                    if (vehBase->HasSpell(57108) && !vehBase->HasAura(57108) && urand(0, 99) > 60)
-                        vehBase->CastSpell(vehBase, 57108);
-                    else if (vehBase->HasSpell(57143))
-                        vehBase->CastSpell(vehBase, 57143);
-                }
-                else if (vehBase->HasSpell(56092))
-                    vehBase->CastSpell(pTarget, 56092);
-            }
-            else
-            {
-                if (vehBase->GetHealthPct() < 75 && vehBase->HasSpell(57090) && urand(0, 99) > 60)
-                    vehBase->CastSpell(vehBase, 57090);
-                else if (vehBase->HasSpell(56091))
-                    vehBase->CastSpell(pTarget, 56091);
-            }
-        }
-    }
-}
-
-void ScriptedAI::BotUseGOTarget(GameObject* pGO)
-{
-    if (!pGO)
-        return;
-    std::list<Player*> playersNearby;
-    me->GetPlayerListInGrid(playersNearby, 100);
-    if (playersNearby.empty())
-        return;
-    ObjectGuid goGUID = pGO->GetGUID();
-    std::map<float, Player*> distPlayers;
-    for (Player* bot : playersNearby)
-    {
-        if (!bot->IsPlayerBot() || !bot->IsAlive() || bot->GetMap() != pGO->GetMap())
-            continue;
-        if (bot->HasUnitState(UNIT_STATE_CASTING))
-            continue;
-        distPlayers[bot->GetDistance(pGO->GetPosition())] = bot;
-    }
-    for (std::map<float, Player*>::iterator itDist = distPlayers.begin();
-        itDist != distPlayers.end();
-        itDist++)
-    {
-        Player* bot = itDist->second;
-        if (BotGroupAI* pAI = dynamic_cast<BotGroupAI*>(bot->GetAI()))
-        {
-            if (pAI->SetMovetoUseGOTarget(goGUID))
-                return;
-        }
-    }
-}
-
-bool NeedBotAttackCreature::UpdateProcess(std::list<ObjectGuid>& freeBots)
-{
-    Creature* pCreature = atMap->GetCreature(needCreature);
-    if (!pCreature || !pCreature->IsAlive())
-    {
-        allUsedBots.clear();
-        return false;
-    }
-    if (pCreature && !pCreature->IsVisible())
-    {
-        allUsedBots.clear();
-        return true;
-    }
-
-    while (int32(allUsedBots.size()) < needCount)
-    {
-        if (freeBots.empty())
-            break;
-        allUsedBots.push_back(*freeBots.begin());
-        freeBots.erase(freeBots.begin());
-    }
-    std::list<std::list<ObjectGuid>::iterator > needClearBot;
-    for (std::list<ObjectGuid>::iterator itBot = allUsedBots.begin(); itBot != allUsedBots.end(); itBot++)
-    {
-        ObjectGuid& guid = *itBot;
-        Player* player = ObjectAccessor::FindPlayer(guid);
-        if (!player || !player->IsAlive() || player->GetMap() != atMap)
-            needClearBot.push_back(itBot);
-        else if (player->GetDistance(pCreature->GetPosition()) < 120)
-            player->SetSelection(needCreature);
-    }
-    for (std::list<ObjectGuid>::iterator itClear : needClearBot)
-    {
-        allUsedBots.erase(itClear);
-    }
-    return true;
-}
-
-void BotAttackCreature::UpdateNeedAttackCreatures(uint32 diff, ScriptedAI* affiliateAI, bool attackMain)
-{
-    currentTick -= int32(diff);
-    if (currentTick >= 0)
-        return;
-    currentTick = updateGap;
-    if (!mainCreature)
-        return;
-
-    if (!affiliateAI)
-        return;
-    if (allNeedCreatures.empty())
-        return;
-    std::list<Player*> allBots;
-    affiliateAI->SearchTargetPlayerAllGroup(allBots, 120);
-    std::list<ObjectGuid> allBotGUIDs;
-    for (Player* player : allBots)
-    {
-        ObjectGuid guid = player->GetGUID();
-        bool canPush = true;
-        for (NeedBotAttackCreature* pNeed : allNeedCreatures)
-        {
-            if (pNeed->IsThisUsedBot(guid))
-            {
-                canPush = false;
-                break;
-            }
-        }
-        if (canPush)
-            allBotGUIDs.push_back(guid);
-    }
-    std::list<std::list<NeedBotAttackCreature*>::iterator > needClears;
-    for (std::list<NeedBotAttackCreature*>::iterator itNeed = allNeedCreatures.begin(); itNeed != allNeedCreatures.end(); itNeed++)
-    {
-        NeedBotAttackCreature* pNeed = *itNeed;
-        bool ing = pNeed->UpdateProcess(allBotGUIDs);
-        if (!ing)
-            needClears.push_back(itNeed);
-    }
-    for (std::list<NeedBotAttackCreature*>::iterator itClear : needClears)
-    {
-        NeedBotAttackCreature* pNeed = *itClear;
-        delete pNeed;
-        allNeedCreatures.erase(itClear);
-    }
-    if (attackMain && mainCreature && mainCreature->IsAlive())
-    {
-        for (ObjectGuid guid : allBotGUIDs)
-        {
-            Player* player = ObjectAccessor::FindPlayer(guid);
-            if (player && player->IsAlive() && player->GetMap() == mainCreature->GetMap())
-                player->SetSelection(mainCreature->GetGUID());
-        }
-    }
-    else if (attackMain)
-    {
-        mainCreature = NULL;
-    }
-}
-
-void BotAttackCreature::AddNewCreatureNeedAttack(Creature* pCreature, int32 needBotCount)
-{
-    if (!pCreature || !pCreature->IsAlive() || needBotCount < 0 || pCreature == mainCreature)
-        return;
-    Map* atMap = pCreature->GetMap();
-    if (!atMap)
-        return;
-    ObjectGuid guid = pCreature->GetGUID();
-    for (NeedBotAttackCreature* pNeed : allNeedCreatures)
-    {
-        if (pNeed->IsThisCreature(guid))
-            return;
-    }
-    NeedBotAttackCreature* pNeedCreature = new NeedBotAttackCreature(atMap, needBotCount, guid);
-    allNeedCreatures.push_back(pNeedCreature);
-}
-// < DekkCore

@@ -29,7 +29,7 @@ namespace WorldPackets
         class AccountDataTimes final : public ServerPacket
         {
         public:
-            AccountDataTimes() : ServerPacket(SMSG_ACCOUNT_DATA_TIMES, 18 + 8 + 8 * NUM_ACCOUNT_DATA_TYPES) { }
+            AccountDataTimes() : ServerPacket(SMSG_ACCOUNT_DATA_TIMES, 16 + 8 + 8 * NUM_ACCOUNT_DATA_TYPES) { }
 
             WorldPacket const* Write() override;
 
@@ -56,7 +56,7 @@ namespace WorldPackets
             void Read() override;
 
             ObjectGuid PlayerGuid;
-            uint8 DataType = 0; ///< @see enum AccountDataType
+            int32 DataType = 0; ///< @see enum AccountDataType
         };
 
         class UpdateAccountData final : public ServerPacket
@@ -69,7 +69,7 @@ namespace WorldPackets
             ObjectGuid Player;
             Timestamp<> Time;
             uint32 Size    = 0; ///< decompressed size
-            uint8 DataType = 0; ///< @see enum AccountDataType
+            int32 DataType = 0; ///< @see enum AccountDataType
             ByteBuffer CompressedData;
         };
 
@@ -83,7 +83,7 @@ namespace WorldPackets
             ObjectGuid PlayerGuid;
             Timestamp<> Time;
             uint32 Size    = 0; ///< decompressed size
-            uint8 DataType = 0; ///< @see enum AccountDataType
+            int32 DataType = 0; ///< @see enum AccountDataType
             ByteBuffer CompressedData;
         };
 
@@ -95,25 +95,6 @@ namespace WorldPackets
             void Read() override;
 
             bool Enable = false;
-        };
-
-        class AddonList final : public ClientPacket
-        {
-        public:
-            AddonList(WorldPacket && packet) : ClientPacket(CMSG_ADDON_LIST, std::move(packet)) { }
-            
-            void Read() override;
-            
-            struct AddonData
-             {
-                std::string UnkString1;
-                std::string UnkString2;
-                bool UnkBit1 = false;
-                bool UnkBit2 = false;
-              };
-            
-            ObjectGuid PlayerGuid;
-            std::list<AddonData> Addons;
         };
     }
 }

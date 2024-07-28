@@ -140,6 +140,35 @@ WorldPacket const* WorldPackets::Instance::InstanceEncounterChangePriority::Writ
     return &_worldPacket;
 }
 
+WorldPacket const* WorldPackets::Instance::InstanceEncounterTimerStart::Write()
+{
+    _worldPacket << int32(TimeRemaining);
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Instance::InstanceEncounterObjectiveStart::Write()
+{
+    _worldPacket << int32(ObjectiveID);
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Instance::InstanceEncounterObjectiveUpdate::Write()
+{
+    _worldPacket << int32(ObjectiveID);
+    _worldPacket << int32(ProgressAmount);
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Instance::InstanceEncounterObjectiveComplete::Write()
+{
+    _worldPacket << int32(ObjectiveID);
+
+    return &_worldPacket;
+}
+
 WorldPacket const* WorldPackets::Instance::InstanceEncounterStart::Write()
 {
     _worldPacket << uint32(InCombatResCount);
@@ -166,66 +195,3 @@ WorldPacket const* WorldPackets::Instance::BossKill::Write()
 
     return &_worldPacket;
 }
-
-WorldPacket const* WorldPackets::Instance::InstanceGroupSizeChanged::Write()
-{
-    _worldPacket << GroupSize;
-
-    return &_worldPacket;
-}
-//DekkCore
-WorldPacket const* WorldPackets::Instance::EncounterStart::Write()
-{
-    _worldPacket << uint32(EncounterID);
-    _worldPacket << uint32(DifficultyID);
-    _worldPacket << uint32(GroupSize);
-    _worldPacket << uint32(0);
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Instance::EncounterEnd::Write()
-{
-    _worldPacket << EncounterID;
-    _worldPacket << DifficultyID;
-    _worldPacket << GroupSize;
-    _worldPacket.WriteBit(Success);
-    _worldPacket.FlushBits();
-
-    return &_worldPacket;
-}
-
-void WorldPackets::Instance::QueryWorldCountwodnTimer::Read()
-{
-    uint32(Type) = _worldPacket.read<uint32>();
-}
-
-WorldPacket const* WorldPackets::Instance::SummonRaidMemberValidateFailed::Write()
-{
-    _worldPacket << static_cast<int32>(Members.size());
-    for (auto const& v : Members)
-    {
-        _worldPacket << v.Member;
-        _worldPacket << v.ReasonCode;
-    }
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Instance::InstanceEncounterUpdateSuppressingRelease::Write()
-{
-    _worldPacket.WriteBit(ReleaseDisabled);
-    _worldPacket.FlushBits();
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Instance::InstanceEncounterUpdateAllowingRelease::Write()
-{
-    _worldPacket.WriteBit(ReleaseAllowed);
-    _worldPacket.FlushBits();
-
-    return &_worldPacket;
-}
-
-//DekkCore

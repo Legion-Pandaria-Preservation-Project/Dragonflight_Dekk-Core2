@@ -130,33 +130,33 @@ namespace
 
             switch (source[i + 1])
             {
-            case 'c':
-            case 'C':
-                // skip color
-                i += 9;
-                break;
-            case 'r':
-                ++i;
-                break;
-            case 'H':
-                // skip just past first |h
-                i = source.find("|h", i);
-                if (i != std::string::npos)
-                    i += 2;
-                skipSquareBrackets = true;
-                break;
-            case 'h':
-                ++i;
-                skipSquareBrackets = false;
-                break;
-            case 'T':
-                // skip just past closing |t
-                i = source.find("|t", i);
-                if (i != std::string::npos)
-                    i += 2;
-                break;
-            default:
-                break;
+                case 'c':
+                case 'C':
+                    // skip color
+                    i += 9;
+                    break;
+                case 'r':
+                    ++i;
+                    break;
+                case 'H':
+                    // skip just past first |h
+                    i = source.find("|h", i);
+                    if (i != std::string::npos)
+                        i += 2;
+                    skipSquareBrackets = true;
+                    break;
+                case 'h':
+                    ++i;
+                    skipSquareBrackets = false;
+                    break;
+                case 'T':
+                    // skip just past closing |t
+                    i = source.find("|t", i);
+                    if (i != std::string::npos)
+                        i += 2;
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -229,36 +229,36 @@ std::string LanguageMgr::Translate(std::string const& msg, uint32 language, Loca
 
             switch (locale)
             {
-            case LOCALE_koKR:
-            case LOCALE_zhCN:
-            case LOCALE_zhTW:
-            {
-                size_t length = std::min(str.length(), strlen(replacementWord));
-                for (size_t i = 0; i < length; ++i)
+                case LOCALE_koKR:
+                case LOCALE_zhCN:
+                case LOCALE_zhTW:
                 {
-                    if (str[i] >= 'A' && str[i] <= 'Z')
-                        result += charToUpper(replacementWord[i]);
-                    else
-                        result += replacementWord[i];
-                }
-                break;
-            }
-            default:
-            {
-                std::wstring wstrSourceWord;
-                if (Utf8toWStr(str, wstrSourceWord))
-                {
-                    size_t length = std::min(wstrSourceWord.length(), strlen(replacementWord));
+                    size_t length = std::min(str.length(), strlen(replacementWord));
                     for (size_t i = 0; i < length; ++i)
                     {
-                        if (isUpper(wstrSourceWord[i]))
+                        if (str[i] >= 'A' && str[i] <= 'Z')
                             result += charToUpper(replacementWord[i]);
                         else
-                            result += charToLower(replacementWord[i]);
+                            result += replacementWord[i];
                     }
+                    break;
                 }
-                break;
-            }
+                default:
+                {
+                    std::wstring wstrSourceWord;
+                    if (Utf8toWStr(str, wstrSourceWord))
+                    {
+                        size_t length = std::min(wstrSourceWord.length(), strlen(replacementWord));
+                        for (size_t i = 0; i < length; ++i)
+                        {
+                            if (isUpper(wstrSourceWord[i]))
+                                result += charToUpper(replacementWord[i]);
+                            else
+                                result += charToLower(replacementWord[i]);
+                        }
+                    }
+                    break;
+                }
             }
         }
 

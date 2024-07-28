@@ -111,7 +111,7 @@ ByteBuffer& operator>>(ByteBuffer& data, WorldPackets::Social::QualifiedGUID& qG
 void WorldPackets::Social::AddFriend::Read()
 {
     uint32 nameLength = _worldPacket.ReadBits(9);
-    uint32 noteslength = _worldPacket.ReadBits(10);
+    uint32 noteslength = _worldPacket.ReadBits(9);
     Name = _worldPacket.ReadString(nameLength);
     Notes = _worldPacket.ReadString(noteslength);
 }
@@ -146,10 +146,3 @@ WorldPacket const* WorldPackets::Social::SocialContractRequestResponse::Write()
 
     return &_worldPacket;
 }
-
-//DekkCore
-void WorldPackets::Social::QuickJoinAutoAcceptRequests::Read()
-{
-    EnableAutoAccept = _worldPacket.ReadBit();
-}
-//DekkCore

@@ -61,7 +61,8 @@ constexpr bool IsStabledPetSlot(PetSaveMode slot)
 enum PetStableFlags : uint8
 {
     PET_STABLE_ACTIVE   = 0x1,
-    PET_STABLE_INACTIVE = 0x2
+    PET_STABLE_INACTIVE = 0x2,
+    PET_STABLE_FAVORITE = 0x8
 };
 
 enum PetSpellState
@@ -95,7 +96,7 @@ enum PetTalk
 };
 
 #define PET_FOLLOW_DIST  1.0f
-#define PET_FOLLOW_ANGLE float(M_PI_4) // < Fluxuriony
+#define PET_FOLLOW_ANGLE float(M_PI)
 
 enum class PetTameResult : uint8
 {
@@ -159,33 +160,11 @@ public:
     std::array<Optional<PetInfo>, MAX_PET_STABLES> StabledPets;     // PET_SAVE_FIRST_STABLE_SLOT - PET_SAVE_LAST_STABLE_SLOT
     std::vector<PetInfo> UnslottedPets;                             // PET_SAVE_NOT_IN_SLOT
 
-    bool RemovePetFromActivePets(PetInfo const* TargetPet)
-    {
-        // Remove the TargetPet from ActivePets
-        for (auto& petInfo : ActivePets)
-        {
-            if (petInfo.has_value() && petInfo.value().PetNumber == TargetPet->PetNumber)
-            {
-                petInfo.reset();
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     PetInfo* GetCurrentPet() { return const_cast<PetInfo*>(const_cast<PetStable const*>(this)->GetCurrentPet()); }
     PetInfo const* GetCurrentPet() const
     {
-        if (!CurrentPetIndex || !CurrentPetIndex.value())
-        {
-            for (size_t i = 0; i < ActivePets.size(); ++i)
-            {
-                if (ActivePets[i])
-                    return &ActivePets[i].value();
-            }
+        if (!CurrentPetIndex)
             return nullptr;
-        }
 
         if (Optional<uint32> activePetIndex = GetCurrentActivePetIndex())
             return ActivePets[*activePetIndex] ? &ActivePets[*activePetIndex].value() : nullptr;

@@ -17,6 +17,7 @@
 
 #include "ScriptMgr.h"
 #include "Battlefield.h"
+#include "Containers.h"
 #include "Battlefield/BattlefieldTB.h"
 #include "DB2Stores.h"
 #include "ObjectMgr.h"
@@ -47,26 +48,26 @@ struct npc_tb_spirit_guide : public ScriptedAI
         uint32 areaId = 0;
         switch (gossipListId)
         {
-        case GOSSIP_OPTION_ID_SLAGWORKS:
-            areaId = TB_GY_SLAGWORKS;
-            break;
-        case GOSSIP_OPTION_ID_IRONCLAD_GARRISON:
-            areaId = TB_GY_IRONCLAD_GARRISON;
-            break;
-        case GOSSIP_OPTION_ID_WARDENS_VIGIL:
-            areaId = TB_GY_WARDENS_VIGIL;
-            break;
-        case GOSSIP_OPTION_ID_EAST_SPIRE:
-            areaId = TB_GY_EAST_SPIRE;
-            break;
-        case GOSSIP_OPTION_ID_WEST_SPIRE:
-            areaId = TB_GY_WEST_SPIRE;
-            break;
-        case GOSSIP_OPTION_ID_SOUTH_SPIRE:
-            areaId = TB_GY_SOUTH_SPIRE;
-            break;
-        default:
-            return true;
+            case GOSSIP_OPTION_ID_SLAGWORKS:
+                areaId = TB_GY_SLAGWORKS;
+                break;
+            case GOSSIP_OPTION_ID_IRONCLAD_GARRISON:
+                areaId = TB_GY_IRONCLAD_GARRISON;
+                break;
+            case GOSSIP_OPTION_ID_WARDENS_VIGIL:
+                areaId = TB_GY_WARDENS_VIGIL;
+                break;
+            case GOSSIP_OPTION_ID_EAST_SPIRE:
+                areaId = TB_GY_EAST_SPIRE;
+                break;
+            case GOSSIP_OPTION_ID_WEST_SPIRE:
+                areaId = TB_GY_WEST_SPIRE;
+                break;
+            case GOSSIP_OPTION_ID_SOUTH_SPIRE:
+                areaId = TB_GY_SOUTH_SPIRE;
+                break;
+            default:
+                return true;
         }
 
         if (WorldSafeLocsEntry const* safeLoc = sObjectMgr->GetWorldSafeLoc(areaId))
@@ -84,8 +85,6 @@ public:
 
     class spell_siege_cannon_SpellScript : public SpellScript
     {
-        PrepareSpellScript(spell_siege_cannon_SpellScript);
-
         void SelectRandomTarget(std::list<WorldObject*>& targets)
         {
             if (targets.empty())

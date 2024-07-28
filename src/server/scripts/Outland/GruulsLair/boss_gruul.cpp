@@ -257,8 +257,6 @@ class boss_gruul : public CreatureScript
                     }
                     else
                         m_uiGroundSlamTimer -= diff;
-
-                    DoMeleeAttackIfReady();
                 }
             }
         };
@@ -276,8 +274,6 @@ class spell_gruul_shatter : public SpellScriptLoader
 
         class spell_gruul_shatter_SpellScript : public SpellScript
         {
-            PrepareSpellScript(spell_gruul_shatter_SpellScript);
-
             bool Validate(SpellInfo const* /*spell*/) override
             {
                 return ValidateSpellInfo({ SPELL_STONED, SPELL_SHATTER_EFFECT });
@@ -311,11 +307,9 @@ class spell_gruul_shatter_effect : public SpellScriptLoader
 
         class spell_gruul_shatter_effect_SpellScript : public SpellScript
         {
-            PrepareSpellScript(spell_gruul_shatter_effect_SpellScript);
-
             bool Validate(SpellInfo const* spellInfo) override
             {
-                return !spellInfo->GetEffects().empty();
+                return ValidateSpellEffect({ { spellInfo->Id, EFFECT_0 } });
             }
 
             void CalculateDamage()

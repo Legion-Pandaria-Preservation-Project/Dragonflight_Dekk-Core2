@@ -130,7 +130,7 @@ void ScenarioMgr::LoadDB2Data()
         }
     }
 
-    ASSERT(deepestCriteriaTreeSize < MAX_ALLOWED_SCENARIO_POI_QUERY_SIZE, "MAX_ALLOWED_SCENARIO_POI_QUERY_SIZE must be at least {}", deepestCriteriaTreeSize + 1);
+    ASSERT(deepestCriteriaTreeSize < MAX_ALLOWED_SCENARIO_POI_QUERY_SIZE, "MAX_ALLOWED_SCENARIO_POI_QUERY_SIZE must be at least %u", deepestCriteriaTreeSize + 1);
 
     for (ScenarioEntry const* scenario : sScenarioStore)
     {
@@ -195,7 +195,7 @@ void ScenarioMgr::LoadScenarioPOI()
         int32 navigationPlayerConditionID = fields[9].GetInt32();
 
         if (!sCriteriaMgr->GetCriteriaTree(criteriaTreeID))
-            TC_LOG_DEBUG("sql.sql", "`scenario_poi` CriteriaTreeID ({}) Idx1 ({}) does not correspond to a valid criteria tree", criteriaTreeID, idx1);
+            TC_LOG_ERROR("sql.sql", "`scenario_poi` CriteriaTreeID ({}) Idx1 ({}) does not correspond to a valid criteria tree", criteriaTreeID, idx1);
 
         if (std::map<int32, std::vector<ScenarioPOIPoint>>* blobs = Trinity::Containers::MapGetValuePtr(allPoints, criteriaTreeID))
         {
@@ -207,7 +207,7 @@ void ScenarioMgr::LoadScenarioPOI()
             }
         }
 
-        TC_LOG_DEBUG("server.loading", "Table scenario_poi references unknown scenario poi points for criteria tree id {} POI id {}", criteriaTreeID, blobIndex);
+        TC_LOG_ERROR("server.loading", "Table scenario_poi references unknown scenario poi points for criteria tree id {} POI id {}", criteriaTreeID, blobIndex);
 
     } while (result->NextRow());
 
@@ -222,17 +222,3 @@ ScenarioPOIVector const* ScenarioMgr::GetScenarioPOIs(int32 criteriaTreeID) cons
 
     return nullptr;
 }
-
-//DekkCore
-InstanceScenario* ScenarioMgr::CreateInstanceScenarioByID(InstanceMap* map, uint32 scenarioID)
-{
-    auto itr = _scenarioData.find(scenarioID);
-    if (itr == _scenarioData.end())
-    {
-        TC_LOG_ERROR("scenario", "Table `scenarios` contained data linking scenario (Id: {}) to map (Id: {}), difficulty (Id: {}) but no scenario data was found related to that scenario Id.", scenarioID, map->GetId(), map->GetDifficultyID());
-        return nullptr;
-    }
-
-    return new InstanceScenario(map, &itr->second);
-}
-//DekkCore

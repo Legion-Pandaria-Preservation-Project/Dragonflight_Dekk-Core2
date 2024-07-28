@@ -36,36 +36,51 @@
 #include "Player.h"
 #include "ReputationMgr.h"
 #include "SpellInfo.h"
-#include "ScriptMgr.h"
 #include "Trainer.h"
 #include "WorldPacket.h"
-#include "ObjectAccessor.h"
-#include "Conversation.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 
-void WorldSession::HandleTabardVendorActivateOpcode(WorldPackets::NPC::Hello& packet)
+enum class TabardVendorType : int32
 {
-    Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(packet.Unit, UNIT_NPC_FLAG_TABARDDESIGNER, UNIT_NPC_FLAG_2_NONE);
+    Guild       = 0,
+    Personal    = 1,
+};
+
+void WorldSession::HandleTabardVendorActivateOpcode(WorldPackets::NPC::TabardVendorActivate const& tabardVendorActivate)
+{
+    Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(tabardVendorActivate.Vendor, UNIT_NPC_FLAG_TABARDDESIGNER, UNIT_NPC_FLAG_2_NONE);
     if (!unit)
     {
-        TC_LOG_DEBUG("network", "WORLD: HandleTabardVendorActivateOpcode - {} not found or you can not interact with him.", packet.Unit.ToString());
+        TC_LOG_DEBUG("network", "WORLD: HandleTabardVendorActivateOpcode - {} not found or you can not interact with him.", tabardVendorActivate.Vendor.ToString());
         return;
     }
+
+    TabardVendorType type = TabardVendorType(tabardVendorActivate.Type);
+    if (type != TabardVendorType::Guild && type != TabardVendorType::Personal)
+        return;
 
     // remove fake death
     if (GetPlayer()->HasUnitState(UNIT_STATE_DIED))
         GetPlayer()->RemoveAurasByType(SPELL_AURA_FEIGN_DEATH);
 
-    SendTabardVendorActivate(packet.Unit);
+    SendTabardVendorActivate(tabardVendorActivate.Vendor, TabardVendorType(tabardVendorActivate.Type));
 }
 
-void WorldSession::SendTabardVendorActivate(ObjectGuid guid)
+void WorldSession::SendTabardVendorActivate(ObjectGuid guid, TabardVendorType type)
 {
     WorldPackets::NPC::NPCInteractionOpenResult npcInteraction;
     npcInteraction.Npc = guid;
-    npcInteraction.InteractionType = PlayerInteractionType::TabardVendor;
+    npcInteraction.InteractionType = [&]
+    {
+        switch (type)
+        {
+            case TabardVendorType::Guild:
+                return PlayerInteractionType::GuildTabardVendor;
+            case TabardVendorType::Personal:
+                return PlayerInteractionType::PersonalTabardVendor;
+            default:
+                ABORT_MSG("Unsupported tabard vendor type %d", AsUnderlyingType(type));
+        }
+    }();
     npcInteraction.Success = true;
     SendPacket(npcInteraction.Write());
 }
@@ -168,14 +183,9 @@ void WorldSession::HandleGossipHelloOpcode(WorldPackets::NPC::Hello& packet)
     }
 
     _player->PlayerTalkClass->ClearMenus();
-
-#ifdef ELUNA
-    if (!sEluna->OnGossipHello(_player, unit))
-#endif
-
     if (!unit->AI()->OnGossipHello(_player))
     {
-        //        _player->TalkedToCreature(unit->GetEntry(), unit->GetGUID());
+//        _player->TalkedToCreature(unit->GetEntry(), unit->GetGUID());
         _player->PrepareGossipMenu(unit, _player->GetGossipMenuForSource(unit), true);
         _player->SendPreparedGossip(unit);
     }
@@ -191,7 +201,6 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPackets::NPC::GossipSelec
     if (_player->PlayerTalkClass->GetInteractionData().SourceGuid != packet.GossipUnit)
         return;
 
-    Item* item = nullptr;
     Creature* unit = nullptr;
     GameObject* go = nullptr;
     if (packet.GossipUnit.IsCreatureOrVehicle())
@@ -209,23 +218,6 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPackets::NPC::GossipSelec
         if (!go)
         {
             TC_LOG_DEBUG("network", "WORLD: HandleGossipSelectOptionOpcode - {} not found or you can't interact with it.", packet.GossipUnit.ToString());
-            return;
-        }
-    }
-    else if (packet.GossipUnit.IsItem())
-    {
-        item = _player->GetItemByGuid(packet.GossipUnit);
-        if (!item || _player->IsBankPos(item->GetPos()))
-        {
-            TC_LOG_DEBUG("network", "WORLD: HandleGossipSelectOptionOpcode - %s not found.", packet.GossipUnit.ToString().c_str());
-            return;
-        }
-    }
-    else if (packet.GossipUnit.IsPlayer())
-    {
-        if (packet.GossipUnit != _player->GetGUID() || static_cast<uint32>(packet.GossipID) != _player->PlayerTalkClass->GetGossipMenu().GetMenuId())
-        {
-            TC_LOG_DEBUG("network", "WORLD: HandleGossipSelectOptionOpcode - %s not found.", packet.GossipUnit.ToString().c_str());
             return;
         }
     }
@@ -256,25 +248,8 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPackets::NPC::GossipSelec
     {
         if (unit)
         {
-#ifdef ELUNA
-            if (!sEluna->OnGossipSelectCode(_player, unit, _player->PlayerTalkClass->GetGossipOptionSender(gossipMenuItem->OrderIndex), _player->PlayerTalkClass->GetGossipOptionAction(gossipMenuItem->OrderIndex), packet.PromotionCode.c_str()))
-#endif
             if (!unit->AI()->OnGossipSelectCode(_player, packet.GossipID, gossipMenuItem->OrderIndex, packet.PromotionCode.c_str()))
                 _player->OnGossipSelect(unit, packet.GossipOptionID, packet.GossipID);
-
-        }
-        else if (go)
-        {
-#ifdef ELUNA
-            if (!sEluna->OnGossipSelectCode(_player, go, _player->PlayerTalkClass->GetGossipOptionSender(gossipMenuItem->OrderIndex), _player->PlayerTalkClass->GetGossipOptionAction(gossipMenuItem->OrderIndex), packet.PromotionCode.c_str()))
-#endif
-
-                if (!go->AI()->OnGossipSelectCode(_player, packet.GossipID, gossipMenuItem->OrderIndex, packet.PromotionCode.c_str()))
-                    _player->OnGossipSelect(go, packet.GossipID, packet.GossipID);
-        }
-        else if (item)
-        {
-            sScriptMgr->OnGossipSelectCode(_player, item, _player->PlayerTalkClass->GetGossipOptionSender(gossipMenuItem->OrderIndex), _player->PlayerTalkClass->GetGossipOptionAction(gossipMenuItem->OrderIndex), packet.PromotionCode.c_str());
         }
         else
         {
@@ -286,24 +261,8 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPackets::NPC::GossipSelec
     {
         if (unit)
         {
-#ifdef ELUNA
-            if (!sEluna->OnGossipSelect(_player, unit, _player->PlayerTalkClass->GetGossipOptionSender(gossipMenuItem->OrderIndex), _player->PlayerTalkClass->GetGossipOptionAction(gossipMenuItem->OrderIndex)))
-#endif
             if (!unit->AI()->OnGossipSelect(_player, packet.GossipID, gossipMenuItem->OrderIndex))
                 _player->OnGossipSelect(unit, packet.GossipOptionID, packet.GossipID);
-        }
-        else if (go)
-        {
-#ifdef ELUNA
-            if (!sEluna->OnGossipSelect(_player, go, _player->PlayerTalkClass->GetGossipOptionSender(gossipMenuItem->OrderIndex), _player->PlayerTalkClass->GetGossipOptionAction(gossipMenuItem->OrderIndex)))
-#endif
-
-                if (!go->AI()->OnGossipSelect(_player, packet.GossipID, gossipMenuItem->OrderIndex))
-                    _player->OnGossipSelect(go, packet.GossipOptionID, packet.GossipID);
-        }
-        else if (item)
-        {
-            sScriptMgr->OnGossipSelect(_player, item, _player->PlayerTalkClass->GetGossipOptionSender(gossipMenuItem->OrderIndex), _player->PlayerTalkClass->GetGossipOptionAction(gossipMenuItem->OrderIndex));
         }
         else
         {
@@ -454,95 +413,4 @@ void WorldSession::HandleRepairItemOpcode(WorldPackets::Item::RepairItem& packet
         TC_LOG_DEBUG("network", "ITEM: Repair all items at {}", packet.NpcGUID.ToString());
         _player->DurabilityRepairAll(true, discountMod, packet.UseGuildBank);
     }
-}
-
-void WorldSession::HandleChromieTimeSelectExpansionOpcode(WorldPackets::NPC::ChromieTimeSelectExpansion& selectedExpansion)
-{
-    uint32 questId = 0;
-    //uint32 conversationId = 0;
-    switch (selectedExpansion.Expansion)
-    {
-    case 5:
-        _player->CastSpell(_player, 325537, true);  //Selected Cataclysm
-        questId = 60891;
-        //conversationId = 14405;
-        break;
-    case 6:
-        _player->CastSpell(_player, 325400, true);  //Selected Outland
-        questId = 60120;
-        //conversationId = 14304;
-        break;
-    case 7:
-        _player->CastSpell(_player, 325042, true);  //Selected Northrend
-        questId = 60096;
-        //conversationId = 14278;
-        break;
-    case 8:
-        _player->CastSpell(_player, 325530, true);  //Selected Pandaria
-        questId = 60965;
-        //conversationId = 14303;
-        break;
-    case 9:
-        _player->CastSpell(_player, 325534, true);  //Selected Draenor
-        questId = 34398;
-        //conversationId = 14300;
-        break;
-    case 10:
-        _player->CastSpell(_player, 325539, true);  //Selected Legion
-        questId = 40519;
-        //conversationId = 14406;
-        break;
-    case 14:
-        _player->CastSpell(_player, 397733, true);  //Selected Shadowlands
-        questId = 60545;
-        //conversationId = 20312;
-        break;
-    default:
-        break;
-    }
-
-    if (questId)
-        if (_player->GetQuestStatus(questId) == QUEST_STATUS_NONE)
-            if (Quest const* quest = sObjectMgr->GetQuestTemplate(questId))
-                if (Creature* chromie = ObjectAccessor::GetCreature(*_player, selectedExpansion.GUID))
-                    _player->AddQuest(quest, chromie);
-
-    /* There is a spelleffect in the spells for it. It will play the convo 2 times.
-    if (conversationId)
-        Conversation::CreateConversation(conversationId, _player, *_player, { _player->GetGUID() });
-    */
-
-    WorldPackets::NPC::ChromieTimeSelectExpansionSuccess expansionSuccess;
-    SendPacket(expansionSuccess.Write());
-}
-
-void WorldSession::SendOpenTradeskillNpc(ObjectGuid guid)
-{
-    WorldPackets::NPC::NPCInteractionOpenResult npcInteraction;
-    npcInteraction.Npc = guid;
-    npcInteraction.InteractionType = PlayerInteractionType::GarrTradeskill;
-    npcInteraction.Success = true;
-    SendPacket(npcInteraction.Write());
-
-    WorldObject* source = nullptr;
-    TradeskillList const* trade = sGarrisonMgr.GetTradeSkill(source->GetEntry());
-    WorldPackets::Garrison::GarrisonTradeSkillResponse tradeSkillPacket;
-    tradeSkillPacket.GUID = source->GetGUID();
-    for (auto const& tr : *trade)
-    {
-        bool find = false;
-        for (uint32& d : tradeSkillPacket.TradeSkill.SkillLineIDs)
-        {
-            if (d == tr.skillID)
-            {
-                find = true;
-                break;
-            }
-        }
-        if (!find)
-            tradeSkillPacket.TradeSkill.SkillLineIDs.push_back(tr.skillID);
-        tradeSkillPacket.TradeSkill.KnownAbilitySpellIDs.push_back(tr.spellID);
-    }
-
-    SendPacket(tradeSkillPacket.Write());
 }

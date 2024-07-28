@@ -23,14 +23,14 @@
 namespace Trinity::Impl::EnumUtilsImpl
 {
 
-    /*********************************************************************\
-    |* data for enum 'InventoryResult' in 'ItemDefines.h' auto-generated *|
-    \*********************************************************************/
-    template <>
-    TC_API_EXPORT EnumText EnumUtils<InventoryResult>::ToString(InventoryResult value)
+/*********************************************************************\
+|* data for enum 'InventoryResult' in 'ItemDefines.h' auto-generated *|
+\*********************************************************************/
+template <>
+TC_API_EXPORT EnumText EnumUtils<InventoryResult>::ToString(InventoryResult value)
+{
+    switch (value)
     {
-        switch (value)
-        {
         case EQUIP_ERR_OK: return { "EQUIP_ERR_OK", "EQUIP_ERR_OK", "" };
         case EQUIP_ERR_CANT_EQUIP_LEVEL_I: return { "EQUIP_ERR_CANT_EQUIP_LEVEL_I", "EQUIP_ERR_CANT_EQUIP_LEVEL_I", "You must reach level %d to use that item." };
         case EQUIP_ERR_CANT_EQUIP_SKILL: return { "EQUIP_ERR_CANT_EQUIP_SKILL", "EQUIP_ERR_CANT_EQUIP_SKILL", "You aren't skilled enough to use that item." };
@@ -149,18 +149,19 @@ namespace Trinity::Impl::EnumUtilsImpl
         case EQUIP_ERR_REAGENTBAG_WRONG_SLOT: return { "EQUIP_ERR_REAGENTBAG_WRONG_SLOT", "EQUIP_ERR_REAGENTBAG_WRONG_SLOT", "Reagent Bags can only be placed in the reagent bag slot." };
         case EQUIP_ERR_SLOT_ONLY_REAGENTBAG: return { "EQUIP_ERR_SLOT_ONLY_REAGENTBAG", "EQUIP_ERR_SLOT_ONLY_REAGENTBAG", "Only Reagent Bags can be placed in the reagent bag slot." };
         case EQUIP_ERR_REAGENTBAG_ITEM_TYPE: return { "EQUIP_ERR_REAGENTBAG_ITEM_TYPE", "EQUIP_ERR_REAGENTBAG_ITEM_TYPE", "Only Reagents can be placed in Reagent Bags." };
+        case EQUIP_ERR_CANT_BULK_SELL_ITEM_WITH_REFUND: return { "EQUIP_ERR_CANT_BULK_SELL_ITEM_WITH_REFUND", "EQUIP_ERR_CANT_BULK_SELL_ITEM_WITH_REFUND", "Items that can be refunded can't be bulk sold." };
         default: throw std::out_of_range("value");
-        }
     }
+}
 
-    template <>
-    TC_API_EXPORT size_t EnumUtils<InventoryResult>::Count() { return 118; }
+template <>
+TC_API_EXPORT size_t EnumUtils<InventoryResult>::Count() { return 119; }
 
-    template <>
-    TC_API_EXPORT InventoryResult EnumUtils<InventoryResult>::FromIndex(size_t index)
+template <>
+TC_API_EXPORT InventoryResult EnumUtils<InventoryResult>::FromIndex(size_t index)
+{
+    switch (index)
     {
-        switch (index)
-        {
         case 0: return EQUIP_ERR_OK;
         case 1: return EQUIP_ERR_CANT_EQUIP_LEVEL_I;
         case 2: return EQUIP_ERR_CANT_EQUIP_SKILL;
@@ -279,15 +280,16 @@ namespace Trinity::Impl::EnumUtilsImpl
         case 115: return EQUIP_ERR_REAGENTBAG_WRONG_SLOT;
         case 116: return EQUIP_ERR_SLOT_ONLY_REAGENTBAG;
         case 117: return EQUIP_ERR_REAGENTBAG_ITEM_TYPE;
+        case 118: return EQUIP_ERR_CANT_BULK_SELL_ITEM_WITH_REFUND;
         default: throw std::out_of_range("index");
-        }
     }
+}
 
-    template <>
-    TC_API_EXPORT size_t EnumUtils<InventoryResult>::ToIndex(InventoryResult value)
+template <>
+TC_API_EXPORT size_t EnumUtils<InventoryResult>::ToIndex(InventoryResult value)
+{
+    switch (value)
     {
-        switch (value)
-        {
         case EQUIP_ERR_OK: return 0;
         case EQUIP_ERR_CANT_EQUIP_LEVEL_I: return 1;
         case EQUIP_ERR_CANT_EQUIP_SKILL: return 2;
@@ -406,18 +408,19 @@ namespace Trinity::Impl::EnumUtilsImpl
         case EQUIP_ERR_REAGENTBAG_WRONG_SLOT: return 115;
         case EQUIP_ERR_SLOT_ONLY_REAGENTBAG: return 116;
         case EQUIP_ERR_REAGENTBAG_ITEM_TYPE: return 117;
+        case EQUIP_ERR_CANT_BULK_SELL_ITEM_WITH_REFUND: return 118;
         default: throw std::out_of_range("value");
-        }
     }
+}
 
-    /***************************************************************\
-    |* data for enum 'BuyResult' in 'ItemDefines.h' auto-generated *|
-    \***************************************************************/
-    template <>
-    TC_API_EXPORT EnumText EnumUtils<BuyResult>::ToString(BuyResult value)
+/***************************************************************\
+|* data for enum 'BuyResult' in 'ItemDefines.h' auto-generated *|
+\***************************************************************/
+template <>
+TC_API_EXPORT EnumText EnumUtils<BuyResult>::ToString(BuyResult value)
+{
+    switch (value)
     {
-        switch (value)
-        {
         case BUY_ERR_CANT_FIND_ITEM: return { "BUY_ERR_CANT_FIND_ITEM", "BUY_ERR_CANT_FIND_ITEM", "" };
         case BUY_ERR_ITEM_ALREADY_SOLD: return { "BUY_ERR_ITEM_ALREADY_SOLD", "BUY_ERR_ITEM_ALREADY_SOLD", "" };
         case BUY_ERR_NOT_ENOUGHT_MONEY: return { "BUY_ERR_NOT_ENOUGHT_MONEY", "BUY_ERR_NOT_ENOUGHT_MONEY", "" };
@@ -428,17 +431,17 @@ namespace Trinity::Impl::EnumUtilsImpl
         case BUY_ERR_RANK_REQUIRE: return { "BUY_ERR_RANK_REQUIRE", "BUY_ERR_RANK_REQUIRE", "" };
         case BUY_ERR_REPUTATION_REQUIRE: return { "BUY_ERR_REPUTATION_REQUIRE", "BUY_ERR_REPUTATION_REQUIRE", "" };
         default: throw std::out_of_range("value");
-        }
     }
+}
 
-    template <>
-    TC_API_EXPORT size_t EnumUtils<BuyResult>::Count() { return 9; }
+template <>
+TC_API_EXPORT size_t EnumUtils<BuyResult>::Count() { return 9; }
 
-    template <>
-    TC_API_EXPORT BuyResult EnumUtils<BuyResult>::FromIndex(size_t index)
+template <>
+TC_API_EXPORT BuyResult EnumUtils<BuyResult>::FromIndex(size_t index)
+{
+    switch (index)
     {
-        switch (index)
-        {
         case 0: return BUY_ERR_CANT_FIND_ITEM;
         case 1: return BUY_ERR_ITEM_ALREADY_SOLD;
         case 2: return BUY_ERR_NOT_ENOUGHT_MONEY;
@@ -449,14 +452,14 @@ namespace Trinity::Impl::EnumUtilsImpl
         case 7: return BUY_ERR_RANK_REQUIRE;
         case 8: return BUY_ERR_REPUTATION_REQUIRE;
         default: throw std::out_of_range("index");
-        }
     }
+}
 
-    template <>
-    TC_API_EXPORT size_t EnumUtils<BuyResult>::ToIndex(BuyResult value)
+template <>
+TC_API_EXPORT size_t EnumUtils<BuyResult>::ToIndex(BuyResult value)
+{
+    switch (value)
     {
-        switch (value)
-        {
         case BUY_ERR_CANT_FIND_ITEM: return 0;
         case BUY_ERR_ITEM_ALREADY_SOLD: return 1;
         case BUY_ERR_NOT_ENOUGHT_MONEY: return 2;
@@ -467,17 +470,17 @@ namespace Trinity::Impl::EnumUtilsImpl
         case BUY_ERR_RANK_REQUIRE: return 7;
         case BUY_ERR_REPUTATION_REQUIRE: return 8;
         default: throw std::out_of_range("value");
-        }
     }
+}
 
-    /****************************************************************\
-    |* data for enum 'SellResult' in 'ItemDefines.h' auto-generated *|
-    \****************************************************************/
-    template <>
-    TC_API_EXPORT EnumText EnumUtils<SellResult>::ToString(SellResult value)
+/****************************************************************\
+|* data for enum 'SellResult' in 'ItemDefines.h' auto-generated *|
+\****************************************************************/
+template <>
+TC_API_EXPORT EnumText EnumUtils<SellResult>::ToString(SellResult value)
+{
+    switch (value)
     {
-        switch (value)
-        {
         case SELL_ERR_CANT_FIND_ITEM: return { "SELL_ERR_CANT_FIND_ITEM", "SELL_ERR_CANT_FIND_ITEM", "The item was not found." };
         case SELL_ERR_CANT_SELL_ITEM: return { "SELL_ERR_CANT_SELL_ITEM", "SELL_ERR_CANT_SELL_ITEM", "The merchant doesn't want that item." };
         case SELL_ERR_CANT_FIND_VENDOR: return { "SELL_ERR_CANT_FIND_VENDOR", "SELL_ERR_CANT_FIND_VENDOR", "The merchant doesn't like you." };
@@ -485,18 +488,21 @@ namespace Trinity::Impl::EnumUtilsImpl
         case SELL_ERR_UNK: return { "SELL_ERR_UNK", "SELL_ERR_UNK", "nothing appears..." };
         case SELL_ERR_ONLY_EMPTY_BAG: return { "SELL_ERR_ONLY_EMPTY_BAG", "SELL_ERR_ONLY_EMPTY_BAG", "You can only do that with empty bags." };
         case SELL_ERR_CANT_SELL_TO_THIS_MERCHANT: return { "SELL_ERR_CANT_SELL_TO_THIS_MERCHANT", "SELL_ERR_CANT_SELL_TO_THIS_MERCHANT", "You cannot sell items to this merchant." };
+        case SELL_ERR_MUST_REPAIR_DURABILITY: return { "SELL_ERR_MUST_REPAIR_DURABILITY", "SELL_ERR_MUST_REPAIR_DURABILITY", "You must repair that item's durability to use it." };
+        case SELL_ERR_VENDOR_REFUSE_SCRAPPABLE_AZERITE: return { "SELL_ERR_VENDOR_REFUSE_SCRAPPABLE_AZERITE", "SELL_ERR_VENDOR_REFUSE_SCRAPPABLE_AZERITE", "The merchant doesn't want that item. Bring it to the Scrapper to extract Titan Residuum." };
+        case SELL_ERR_INTERNAL_BAG_ERROR: return { "SELL_ERR_INTERNAL_BAG_ERROR", "SELL_ERR_INTERNAL_BAG_ERROR", "Internal Bag Error" };
         default: throw std::out_of_range("value");
-        }
     }
+}
 
-    template <>
-    TC_API_EXPORT size_t EnumUtils<SellResult>::Count() { return 7; }
+template <>
+TC_API_EXPORT size_t EnumUtils<SellResult>::Count() { return 10; }
 
-    template <>
-    TC_API_EXPORT SellResult EnumUtils<SellResult>::FromIndex(size_t index)
+template <>
+TC_API_EXPORT SellResult EnumUtils<SellResult>::FromIndex(size_t index)
+{
+    switch (index)
     {
-        switch (index)
-        {
         case 0: return SELL_ERR_CANT_FIND_ITEM;
         case 1: return SELL_ERR_CANT_SELL_ITEM;
         case 2: return SELL_ERR_CANT_FIND_VENDOR;
@@ -504,15 +510,18 @@ namespace Trinity::Impl::EnumUtilsImpl
         case 4: return SELL_ERR_UNK;
         case 5: return SELL_ERR_ONLY_EMPTY_BAG;
         case 6: return SELL_ERR_CANT_SELL_TO_THIS_MERCHANT;
+        case 7: return SELL_ERR_MUST_REPAIR_DURABILITY;
+        case 8: return SELL_ERR_VENDOR_REFUSE_SCRAPPABLE_AZERITE;
+        case 9: return SELL_ERR_INTERNAL_BAG_ERROR;
         default: throw std::out_of_range("index");
-        }
     }
+}
 
-    template <>
-    TC_API_EXPORT size_t EnumUtils<SellResult>::ToIndex(SellResult value)
+template <>
+TC_API_EXPORT size_t EnumUtils<SellResult>::ToIndex(SellResult value)
+{
+    switch (value)
     {
-        switch (value)
-        {
         case SELL_ERR_CANT_FIND_ITEM: return 0;
         case SELL_ERR_CANT_SELL_ITEM: return 1;
         case SELL_ERR_CANT_FIND_VENDOR: return 2;
@@ -520,7 +529,10 @@ namespace Trinity::Impl::EnumUtilsImpl
         case SELL_ERR_UNK: return 4;
         case SELL_ERR_ONLY_EMPTY_BAG: return 5;
         case SELL_ERR_CANT_SELL_TO_THIS_MERCHANT: return 6;
+        case SELL_ERR_MUST_REPAIR_DURABILITY: return 7;
+        case SELL_ERR_VENDOR_REFUSE_SCRAPPABLE_AZERITE: return 8;
+        case SELL_ERR_INTERNAL_BAG_ERROR: return 9;
         default: throw std::out_of_range("value");
-        }
     }
+}
 }

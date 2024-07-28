@@ -24,89 +24,89 @@
 
 class achievement_arena_kills : public AchievementCriteriaScript
 {
-public:
-    achievement_arena_kills(char const* name, uint8 arenaType) : AchievementCriteriaScript(name),
-        _arenaType(arenaType)
-    {
-    }
+    public:
+        achievement_arena_kills(char const* name, uint8 arenaType) : AchievementCriteriaScript(name),
+            _arenaType(arenaType)
+        {
+        }
 
-    bool OnCheck(Player* source, Unit* /*target*/) override
-    {
-        // this checks GetBattleground() for NULL already
-        if (!source->InArena())
-            return false;
+        bool OnCheck(Player* source, Unit* /*target*/) override
+        {
+            // this checks GetBattleground() for NULL already
+            if (!source->InArena())
+                return false;
 
-        return ASSERT_NOTNULL(source->GetBattleground())->GetArenaType() == _arenaType;
-    }
+            return ASSERT_NOTNULL(source->GetBattleground())->GetArenaType() == _arenaType;
+        }
 
-private:
-    uint8 const _arenaType;
+    private:
+        uint8 const _arenaType;
 };
 
 enum ArgentTournamentAreas
 {
-    AREA_ARGENT_TOURNAMENT_FIELDS = 4658,
-    AREA_RING_OF_ASPIRANTS = 4670,
-    AREA_RING_OF_ARGENT_VALIANTS = 4671,
+    AREA_ARGENT_TOURNAMENT_FIELDS  = 4658,
+    AREA_RING_OF_ASPIRANTS         = 4670,
+    AREA_RING_OF_ARGENT_VALIANTS   = 4671,
     AREA_RING_OF_ALLIANCE_VALIANTS = 4672,
-    AREA_RING_OF_HORDE_VALIANTS = 4673,
-    AREA_RING_OF_CHAMPIONS = 4669,
+    AREA_RING_OF_HORDE_VALIANTS    = 4673,
+    AREA_RING_OF_CHAMPIONS         = 4669,
 };
 
 class achievement_tilted : public AchievementCriteriaScript
 {
-public:
-    achievement_tilted() : AchievementCriteriaScript("achievement_tilted") { }
+    public:
+        achievement_tilted() : AchievementCriteriaScript("achievement_tilted") { }
 
-    bool OnCheck(Player* player, Unit* /*target*/) override
-    {
-        if (!player)
-            return false;
+        bool OnCheck(Player* player, Unit* /*target*/) override
+        {
+            if (!player)
+                return false;
 
-        bool checkArea = player->GetAreaId() == AREA_ARGENT_TOURNAMENT_FIELDS ||
-            player->GetAreaId() == AREA_RING_OF_ASPIRANTS ||
-            player->GetAreaId() == AREA_RING_OF_ARGENT_VALIANTS ||
-            player->GetAreaId() == AREA_RING_OF_ALLIANCE_VALIANTS ||
-            player->GetAreaId() == AREA_RING_OF_HORDE_VALIANTS ||
-            player->GetAreaId() == AREA_RING_OF_CHAMPIONS;
+            bool checkArea = player->GetAreaId() == AREA_ARGENT_TOURNAMENT_FIELDS ||
+                                player->GetAreaId() == AREA_RING_OF_ASPIRANTS ||
+                                player->GetAreaId() == AREA_RING_OF_ARGENT_VALIANTS ||
+                                player->GetAreaId() == AREA_RING_OF_ALLIANCE_VALIANTS ||
+                                player->GetAreaId() == AREA_RING_OF_HORDE_VALIANTS ||
+                                player->GetAreaId() == AREA_RING_OF_CHAMPIONS;
 
-        return checkArea && player->duel && player->duel->IsMounted;
-    }
+            return checkArea && player->duel && player->duel->IsMounted;
+        }
 };
 
 enum FlirtWithDisaster
 {
-    AURA_PERFUME_FOREVER = 70235,
-    AURA_PERFUME_ENCHANTRESS = 70234,
-    AURA_PERFUME_VICTORY = 70233,
+    AURA_PERFUME_FOREVER           = 70235,
+    AURA_PERFUME_ENCHANTRESS       = 70234,
+    AURA_PERFUME_VICTORY           = 70233,
 };
 
 class achievement_flirt_with_disaster_perf_check : public AchievementCriteriaScript
 {
-public:
-    achievement_flirt_with_disaster_perf_check() : AchievementCriteriaScript("achievement_flirt_with_disaster_perf_check") { }
+    public:
+        achievement_flirt_with_disaster_perf_check() : AchievementCriteriaScript("achievement_flirt_with_disaster_perf_check") { }
 
-    bool OnCheck(Player* player, Unit* /*target*/) override
-    {
-        if (!player)
+        bool OnCheck(Player* player, Unit* /*target*/) override
+        {
+            if (!player)
+                return false;
+
+            if (player->HasAura(AURA_PERFUME_FOREVER) || player->HasAura(AURA_PERFUME_ENCHANTRESS) || player->HasAura(AURA_PERFUME_VICTORY))
+                return true;
+
             return false;
-
-        if (player->HasAura(AURA_PERFUME_FOREVER) || player->HasAura(AURA_PERFUME_ENCHANTRESS) || player->HasAura(AURA_PERFUME_VICTORY))
-            return true;
-
-        return false;
-    }
+        }
 };
 
 class achievement_killed_exp_or_honor_target : public AchievementCriteriaScript
 {
-public:
-    achievement_killed_exp_or_honor_target() : AchievementCriteriaScript("achievement_killed_exp_or_honor_target") { }
+    public:
+        achievement_killed_exp_or_honor_target() : AchievementCriteriaScript("achievement_killed_exp_or_honor_target") { }
 
-    bool OnCheck(Player* player, Unit* target) override
-    {
-        return target && player->isHonorOrXPTarget(target);
-    }
+        bool OnCheck(Player* player, Unit* target) override
+        {
+            return target && player->isHonorOrXPTarget(target);
+        }
 };
 
 // 7433 - Newbie
@@ -117,8 +117,8 @@ public:
 
     void OnCompleted(Player* player, AchievementEntry const* /*achievement*/) override
     {
-//        player->GetSession()->GetBattlePetMgr()->UnlockSlot(BattlePets::BattlePetSlot::Slot1);
-        // TODO THOR: Unlock trap
+        player->GetSession()->GetBattlePetMgr()->UnlockSlot(BattlePets::BattlePetSlot::Slot1);
+        // TODO: Unlock trap
     }
 };
 
@@ -130,7 +130,7 @@ public:
 
     void OnCompleted(Player* player, AchievementEntry const* /*achievement*/) override
     {
-       //todo player->GetSession()->GetBattlePetMgr()->UnlockSlot(BattlePets::BattlePetSlot::Slot2);
+        player->GetSession()->GetBattlePetMgr()->UnlockSlot(BattlePets::BattlePetSlot::Slot2);
     }
 };
 

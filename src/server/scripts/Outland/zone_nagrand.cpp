@@ -197,8 +197,6 @@ public:
             }
             else
                 FrostShockTimer -= diff;
-
-            DoMeleeAttackIfReady();
         }
 
         void OnQuestAccept(Player* player, Quest const* quest) override
@@ -392,8 +390,6 @@ public:
                 DoCastVictim(SPELL_KUR_FROST_SHOCK);
                 FrostShockTimer = urand(7500, 15000);
             } else FrostShockTimer -= diff;
-
-            DoMeleeAttackIfReady();
         }
 
         void OnQuestAccept(Player* player, Quest const* quest) override
@@ -429,7 +425,9 @@ enum PlantBannerQuests
     NPC_KIL_SORROW_DEATHSWORN        = 17148,
     NPC_GISELDA_THE_CRONE            = 18391,
     NPC_WARMAUL_REAVER               = 17138,
-    NPC_WARMAUL_SHAMAN               = 18064
+    NPC_WARMAUL_SHAMAN               = 18064,
+
+    PATH_NAGRAND_BANNER              = 4816480,
 };
 
 class npc_nagrand_banner : public CreatureScript
@@ -463,15 +461,27 @@ public:
             if (!UpdateVictim())
                 return;
 
-            scheduler.Update(diff, [this]
-            {
-                DoMeleeAttackIfReady();
-            });
+            scheduler.Update(diff);
         }
 
         bool IsBannered()
         {
             return bannered;
+        }
+
+        void WaypointReached(uint32 waypointId, uint32 pathId) override
+        {
+            if (pathId != PATH_NAGRAND_BANNER)
+                return;
+
+            if (waypointId == 11)
+                me->HandleEmoteCommand(EMOTE_ONESHOT_APPLAUD);
+            else if (waypointId == 4 || waypointId == 8)
+                me->HandleEmoteCommand(EMOTE_ONESHOT_TALK);
+            else if (waypointId == 10)
+                me->HandleEmoteCommand(EMOTE_ONESHOT_POINT);
+            else if (waypointId == 3 || waypointId == 7)
+                me->HandleEmoteCommand(EMOTE_STATE_USE_STANDING);
         }
 
     protected:
@@ -527,10 +537,7 @@ public:
                 interrupt_cooldown = 0;
             }
 
-            scheduler.Update(diff, [this]
-            {
-                DoMeleeAttackIfReady();
-            });
+            scheduler.Update(diff);
         }
 
         void DamageTaken(Unit* /*attacker*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
@@ -716,8 +723,6 @@ enum FireBomb
 // 31959 - Fire Bomb Target Summon Trigger
 class spell_nagrand_fire_bomb_target_summon_trigger : public SpellScript
 {
-    PrepareSpellScript(spell_nagrand_fire_bomb_target_summon_trigger);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo({ SPELL_FIRE_BOMB_TARGET_SUMMON_EFFECT });
@@ -739,8 +744,6 @@ class spell_nagrand_fire_bomb_target_summon_trigger : public SpellScript
 // 31960 - Fire Bomb Target Summon Effect
 class spell_nagrand_fire_bomb_target_summon_effect : public SpellScript
 {
-    PrepareSpellScript(spell_nagrand_fire_bomb_target_summon_effect);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo({ SPELL_FIRE_BOMB_DAMAGE_MISSILE });
@@ -760,8 +763,6 @@ class spell_nagrand_fire_bomb_target_summon_effect : public SpellScript
 // 31961 - Fire Bomb
 class spell_nagrand_fire_bomb_damage_missile : public SpellScript
 {
-    PrepareSpellScript(spell_nagrand_fire_bomb_damage_missile);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo({ SPELL_FIRE_BOMB_SUMMON_CATAPULT_BLAZE, SPELL_FIRE_BOMB_FLAMES });

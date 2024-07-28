@@ -19,7 +19,6 @@
 #include "DBCEnums.h"
 #include "GameObject.h"
 #include "Garrison.h"
-#include "WodGarrison.h"
 #include "Log.h"
 #include "ObjectAccessor.h"
 #include "ObjectGridLoader.h"
@@ -74,27 +73,24 @@ void GarrisonGridLoader::LoadN()
 
 void GarrisonGridLoader::Visit(GameObjectMapType& m)
 {
-    if (i_garrison->IsWodGarrison())
+    std::vector<Garrison::Plot*> plots = i_garrison->GetPlots();
+    if (!plots.empty())
     {
-        std::vector<WodGarrison::Plot*> plots = i_garrison->ToWodGarrison()->GetPlots();
-        if (!plots.empty())
+        CellCoord cellCoord = i_cell.GetCellCoord();
+        for (Garrison::Plot* plot : plots)
         {
-            CellCoord cellCoord = i_cell.GetCellCoord();
-            for (WodGarrison::Plot* plot : plots)
-            {
-                Position const& spawn = plot->PacketInfo.PlotPos.Pos;
-                if (cellCoord != Trinity::ComputeCellCoord(spawn.GetPositionX(), spawn.GetPositionY()))
-                    continue;
+            Position const& spawn = plot->PacketInfo.PlotPos.Pos;
+            if (cellCoord != Trinity::ComputeCellCoord(spawn.GetPositionX(), spawn.GetPositionY()))
+                continue;
 
-                GameObject* go = plot->CreateGameObject(i_map, i_garrison->GetFaction());
-                if (!go)
-                    continue;
+            GameObject* go = plot->CreateGameObject(i_map, i_garrison->GetFaction());
+            if (!go)
+                continue;
 
-                go->AddToGrid(m);
-                ObjectGridLoader::SetObjectCell(go, cellCoord);
-                go->AddToWorld();
-                ++i_gameObjects;
-            }
+            go->AddToGrid(m);
+            ObjectGridLoader::SetObjectCell(go, cellCoord);
+            go->AddToWorld();
+            ++i_gameObjects;
         }
     }
 }
@@ -121,10 +117,10 @@ void GarrisonMap::LoadGridObjects(NGridType* grid, Cell const& cell)
 Garrison* GarrisonMap::GetGarrison()
 {
     if (_loadingPlayer)
-        return _loadingPlayer->GetGarrison(GARRISON_TYPE_COVENANT);
+        return _loadingPlayer->GetGarrison();
 
     if (Player* owner = ObjectAccessor::FindConnectedPlayer(_owner))
-        return owner->GetGarrison(GARRISON_TYPE_COVENANT);
+        return owner->GetGarrison();
 
     return nullptr;
 }

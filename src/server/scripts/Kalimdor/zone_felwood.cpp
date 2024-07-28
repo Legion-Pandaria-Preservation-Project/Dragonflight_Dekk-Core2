@@ -63,7 +63,7 @@ public:
             }
             else
             {
-                me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+                me->SetUninteractible(true);
             }
 
             me->RemoveNpcFlag(UNIT_NPC_FLAG_SPELLCLICK);
@@ -95,7 +95,6 @@ public:
                     break;
                 }
             }
-            DoMeleeAttackIfReady();
         }
 
     private:
@@ -127,8 +126,6 @@ public:
 
     class spell_swipe_honey_SpellScript : public SpellScript
     {
-        PrepareSpellScript(spell_swipe_honey_SpellScript);
-
         SpellCastResult CheckTarget()
         {
             if (GetCaster()->FindNearestCreature(NPC_HONEY_BUNNY, 5.0f, true))
@@ -181,8 +178,6 @@ public: spell_beesbees() : SpellScriptLoader("spell_beesbees") { }
 
         class spell_beesbees_SpellScript : public SpellScript
         {
-            PrepareSpellScript(spell_beesbees_SpellScript);
-
             void HandleScriptEffect(SpellEffIndex /* effIndex */)
             {
                 if (Creature* honey = GetCaster()->ToCreature())
@@ -216,6 +211,7 @@ enum RuumbosSillyDance
 {
     NPC_DRIZZLE  = 47556,
     NPC_FERLI    = 47558,
+    MAP_KALIMDOR = 1
 };
 
 Position const DrizzleSpawnPos = { 3852.52f, -1321.92f, 213.3353f, 5.72468f };
@@ -227,8 +223,6 @@ public: spell_ruumbos_silly_dance() : SpellScriptLoader("spell_ruumbos_silly_dan
 
         class spell_ruumbos_silly_dance_SpellScript : public SpellScript
         {
-            PrepareSpellScript(spell_ruumbos_silly_dance_SpellScript);
-
             void HandleScriptEffect(SpellEffIndex /* effIndex */)
             {
                 if (Player* player = GetHitPlayer())

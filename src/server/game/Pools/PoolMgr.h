@@ -53,127 +53,127 @@ typedef std::map<uint64, uint32> SpawnedPoolPools;
 
 class TC_GAME_API SpawnedPoolData
 {
-public:
-    explicit SpawnedPoolData(Map* owner);
-    ~SpawnedPoolData();
+    public:
+        explicit SpawnedPoolData(Map* owner);
+        ~SpawnedPoolData();
 
-    SpawnedPoolData(SpawnedPoolData const& right) = delete;
-    SpawnedPoolData(SpawnedPoolData&& right) = delete;
-    SpawnedPoolData& operator=(SpawnedPoolData const& right) = delete;
-    SpawnedPoolData& operator=(SpawnedPoolData&& right) = delete;
+        SpawnedPoolData(SpawnedPoolData const& right) = delete;
+        SpawnedPoolData(SpawnedPoolData&& right) = delete;
+        SpawnedPoolData& operator=(SpawnedPoolData const& right) = delete;
+        SpawnedPoolData& operator=(SpawnedPoolData&& right) = delete;
 
-    Map* GetMap() const { return mOwner; }
+        Map* GetMap() const { return mOwner; }
 
-    template<typename T>
-    bool IsSpawnedObject(uint64 db_guid_or_pool_id) const;
+        template<typename T>
+        bool IsSpawnedObject(uint64 db_guid_or_pool_id) const;
 
-    bool IsSpawnedObject(SpawnObjectType type, uint64 db_guid_or_pool_id) const;
+        bool IsSpawnedObject(SpawnObjectType type, uint64 db_guid_or_pool_id) const;
 
-    uint32 GetSpawnedObjects(uint32 pool_id) const;
+        uint32 GetSpawnedObjects(uint32 pool_id) const;
 
-    template<typename T>
-    void AddSpawn(uint64 db_guid_or_pool_id, uint32 pool_id);
+        template<typename T>
+        void AddSpawn(uint64 db_guid_or_pool_id, uint32 pool_id);
 
-    template<typename T>
-    void RemoveSpawn(uint64 db_guid_or_pool_id, uint32 pool_id);
-private:
-    Map* mOwner;
-    SpawnedPoolObjects mSpawnedCreatures;
-    SpawnedPoolObjects mSpawnedGameobjects;
-    SpawnedPoolPools   mSpawnedPools;
+        template<typename T>
+        void RemoveSpawn(uint64 db_guid_or_pool_id, uint32 pool_id);
+    private:
+        Map* mOwner;
+        SpawnedPoolObjects mSpawnedCreatures;
+        SpawnedPoolObjects mSpawnedGameobjects;
+        SpawnedPoolPools   mSpawnedPools;
 };
 
 template <class T>
 class TC_GAME_API PoolGroup
 {
     typedef std::vector<PoolObject> PoolObjectList;
-public:
-    explicit PoolGroup();
-    ~PoolGroup();
+    public:
+        explicit PoolGroup();
+        ~PoolGroup();
 
-    PoolGroup(PoolGroup const& right) = delete;
-    PoolGroup(PoolGroup&& right) = delete;
-    PoolGroup& operator=(PoolGroup const& right) = delete;
-    PoolGroup& operator=(PoolGroup&& right) = delete;
+        PoolGroup(PoolGroup const& right) = delete;
+        PoolGroup(PoolGroup&& right) = delete;
+        PoolGroup& operator=(PoolGroup const& right) = delete;
+        PoolGroup& operator=(PoolGroup&& right) = delete;
 
-    void SetPoolId(uint32 pool_id) { poolId = pool_id; }
-    bool isEmpty() const { return ExplicitlyChanced.empty() && EqualChanced.empty(); }
-    bool isEmptyDeepCheck() const;
-    void AddEntry(PoolObject& poolitem, uint32 maxentries);
-    bool CheckPool() const;
-    void DespawnObject(SpawnedPoolData& spawns, uint64 guid = 0, bool alwaysDeleteRespawnTime = false);
-    void Despawn1Object(SpawnedPoolData& spawns, uint64 guid, bool alwaysDeleteRespawnTime = false, bool saveRespawnTime = true);
-    void SpawnObject(SpawnedPoolData& spawns, uint32 limit, uint64 triggerFrom);
-    void RemoveRespawnTimeFromDB(SpawnedPoolData& spawns, uint64 guid);
+        void SetPoolId(uint32 pool_id) { poolId = pool_id; }
+        bool isEmpty() const { return ExplicitlyChanced.empty() && EqualChanced.empty(); }
+        bool isEmptyDeepCheck() const;
+        void AddEntry(PoolObject& poolitem, uint32 maxentries);
+        bool CheckPool() const;
+        void DespawnObject(SpawnedPoolData& spawns, uint64 guid=0, bool alwaysDeleteRespawnTime = false);
+        void Despawn1Object(SpawnedPoolData& spawns, uint64 guid, bool alwaysDeleteRespawnTime = false, bool saveRespawnTime = true);
+        void SpawnObject(SpawnedPoolData& spawns, uint32 limit, uint64 triggerFrom);
+        void RemoveRespawnTimeFromDB(SpawnedPoolData& spawns, uint64 guid);
 
-    void Spawn1Object(SpawnedPoolData& spawns, PoolObject* obj);
-    void ReSpawn1Object(SpawnedPoolData& spawns, PoolObject* obj);
-    void RemoveOneRelation(uint32 child_pool_id);
-    uint32 GetPoolId() const { return poolId; }
-private:
-    uint32 poolId;
-    PoolObjectList ExplicitlyChanced;
-    PoolObjectList EqualChanced;
+        void Spawn1Object(SpawnedPoolData& spawns, PoolObject* obj);
+        void ReSpawn1Object(SpawnedPoolData& spawns, PoolObject* obj);
+        void RemoveOneRelation(uint32 child_pool_id);
+        uint32 GetPoolId() const { return poolId; }
+    private:
+        uint32 poolId;
+        PoolObjectList ExplicitlyChanced;
+        PoolObjectList EqualChanced;
 };
 
 class TC_GAME_API PoolMgr
 {
-private:
-    PoolMgr();
-    ~PoolMgr();
+    private:
+        PoolMgr();
+        ~PoolMgr();
 
-public:
-    PoolMgr(PoolMgr const& right) = delete;
-    PoolMgr(PoolMgr&& right) = delete;
-    PoolMgr& operator=(PoolMgr const& right) = delete;
-    PoolMgr& operator=(PoolMgr&& right) = delete;
+    public:
+        PoolMgr(PoolMgr const& right) = delete;
+        PoolMgr(PoolMgr&& right) = delete;
+        PoolMgr& operator=(PoolMgr const& right) = delete;
+        PoolMgr& operator=(PoolMgr&& right) = delete;
 
-    static PoolMgr* instance();
+        static PoolMgr* instance();
 
-    void LoadFromDB();
+        void LoadFromDB();
 
-    void Initialize();
+        void Initialize();
 
-    template<typename T>
-    uint32 IsPartOfAPool(uint64 db_guid_or_pool_id) const;
-    uint32 IsPartOfAPool(SpawnObjectType type, uint64 spawnId) const;
+        template<typename T>
+        uint32 IsPartOfAPool(uint64 db_guid_or_pool_id) const;
+        uint32 IsPartOfAPool(SpawnObjectType type, uint64 spawnId) const;
 
-    template<typename T>
-    bool IsSpawnedObject(SpawnedPoolData& spawnedPoolData, uint64 db_guid_or_pool_id) const { return spawnedPoolData.IsSpawnedObject<T>(db_guid_or_pool_id); }
+        template<typename T>
+        bool IsSpawnedObject(SpawnedPoolData& spawnedPoolData, uint64 db_guid_or_pool_id) const { return spawnedPoolData.IsSpawnedObject<T>(db_guid_or_pool_id); }
 
-    bool IsEmpty(uint32 pool_id) const;
-    bool CheckPool(uint32 pool_id) const;
+        bool IsEmpty(uint32 pool_id) const;
+        bool CheckPool(uint32 pool_id) const;
 
-    void SpawnPool(SpawnedPoolData& spawnedPoolData, uint32 pool_id);
-    void DespawnPool(SpawnedPoolData& spawnedPoolData, uint32 pool_id, bool alwaysDeleteRespawnTime = false);
+        void SpawnPool(SpawnedPoolData& spawnedPoolData, uint32 pool_id);
+        void DespawnPool(SpawnedPoolData& spawnedPoolData, uint32 pool_id, bool alwaysDeleteRespawnTime = false);
 
-    template<typename T>
-    void UpdatePool(SpawnedPoolData& spawnedPoolData, uint32 pool_id, uint64 db_guid_or_pool_id);
-    void UpdatePool(SpawnedPoolData& spawnedPoolData, uint32 pool_id, SpawnObjectType type, uint64 spawnId);
+        template<typename T>
+        void UpdatePool(SpawnedPoolData& spawnedPoolData, uint32 pool_id, uint64 db_guid_or_pool_id);
+        void UpdatePool(SpawnedPoolData& spawnedPoolData, uint32 pool_id, SpawnObjectType type, uint64 spawnId);
 
-    std::unique_ptr<SpawnedPoolData> InitPoolsForMap(Map* map);
+        std::unique_ptr<SpawnedPoolData> InitPoolsForMap(Map* map);
 
-    PoolTemplateData const* GetPoolTemplate(uint16 pool_id) const;
+        PoolTemplateData const* GetPoolTemplate(uint16 pool_id) const;
 
-private:
-    template<typename T>
-    void SpawnPool(SpawnedPoolData& spawnedPoolData, uint32 pool_id, uint64 db_guid_or_pool_id);
+    private:
+        template<typename T>
+        void SpawnPool(SpawnedPoolData& spawnedPoolData, uint32 pool_id, uint64 db_guid_or_pool_id);
 
-    typedef std::unordered_map<uint32, PoolTemplateData>      PoolTemplateDataMap;
-    typedef std::unordered_map<uint32, PoolGroup<Creature>>   PoolGroupCreatureMap;
-    typedef std::unordered_map<uint32, PoolGroup<GameObject>> PoolGroupGameObjectMap;
-    typedef std::unordered_map<uint32, PoolGroup<Pool>>       PoolGroupPoolMap;
-    typedef std::pair<uint64, uint32> SearchPair;
-    typedef std::map<uint64, uint32> SearchMap;
+        typedef std::unordered_map<uint32, PoolTemplateData>      PoolTemplateDataMap;
+        typedef std::unordered_map<uint32, PoolGroup<Creature>>   PoolGroupCreatureMap;
+        typedef std::unordered_map<uint32, PoolGroup<GameObject>> PoolGroupGameObjectMap;
+        typedef std::unordered_map<uint32, PoolGroup<Pool>>       PoolGroupPoolMap;
+        typedef std::pair<uint64, uint32> SearchPair;
+        typedef std::map<uint64, uint32> SearchMap;
 
-    PoolTemplateDataMap    mPoolTemplate;
-    PoolGroupCreatureMap   mPoolCreatureGroups;
-    PoolGroupGameObjectMap mPoolGameobjectGroups;
-    PoolGroupPoolMap       mPoolPoolGroups;
-    SearchMap mCreatureSearchMap;
-    SearchMap mGameobjectSearchMap;
-    SearchMap mPoolSearchMap;
-    std::unordered_map<uint32, std::vector<uint32>> mAutoSpawnPoolsPerMap;
+        PoolTemplateDataMap    mPoolTemplate;
+        PoolGroupCreatureMap   mPoolCreatureGroups;
+        PoolGroupGameObjectMap mPoolGameobjectGroups;
+        PoolGroupPoolMap       mPoolPoolGroups;
+        SearchMap mCreatureSearchMap;
+        SearchMap mGameobjectSearchMap;
+        SearchMap mPoolSearchMap;
+        std::unordered_map<uint32, std::vector<uint32>> mAutoSpawnPoolsPerMap;
 };
 
 #define sPoolMgr PoolMgr::instance()

@@ -55,13 +55,10 @@ typedef std::map<uint32, ScenarioData> ScenarioDataContainer;
 
 enum ScenarioType
 {
-    SCENARIO_TYPE_SCENARIO            = 0,
-    SCENARIO_TYPE_CHALLENGE_MODE      = 1,
-    SCENARIO_TYPE_SOLO                = 2,
-    SCENARIO_TYPE_USE_DUNGEON_DISPLAY = 3,
-    SCENARIO_TYPE_LEGION_INVASION     = 4,
-    SCENARIO_TYPE_BOOST_TUTORIAL      = 5,
-    SCENARIO_TYPE_DUNGEON             = 10,
+    SCENARIO_TYPE_SCENARIO          = 0,
+    SCENARIO_TYPE_CHALLENGE_MODE    = 1,
+    SCENARIO_TYPE_SOLO              = 2,
+    SCENARIO_TYPE_DUNGEON           = 10,
 };
 
 struct ScenarioPOIPoint
@@ -123,11 +120,6 @@ private:
 
     ScenarioMgr(ScenarioMgr const&) = delete;
     ScenarioMgr& operator=(ScenarioMgr const&) = delete;
-
-    // DekkCore
-public:
-    InstanceScenario* CreateInstanceScenarioByID(InstanceMap* map, uint32 scenarioID);
-
 };
 
 #define sScenarioMgr ScenarioMgr::Instance()

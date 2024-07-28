@@ -134,7 +134,7 @@ void WorldSession::moveItems(Item* myItems[], Item* hisItems[])
                 }
 
                 // adjust time (depends on /played)
-                if (myItems[i]->IsBOPTradeable())
+                if (*myItems[i]->m_itemData->CreatePlayedTime)
                     myItems[i]->SetCreatePlayedTime(trader->GetTotalPlayedTime() - (_player->GetTotalPlayedTime() - myItems[i]->m_itemData->CreatePlayedTime));
                 // store
                 trader->MoveItemToInventory(traderDst, myItems[i], true, true);
@@ -152,7 +152,7 @@ void WorldSession::moveItems(Item* myItems[], Item* hisItems[])
                 }
 
                 // adjust time (depends on /played)
-                if (hisItems[i]->IsBOPTradeable())
+                if (*hisItems[i]->m_itemData->CreatePlayedTime)
                     hisItems[i]->SetCreatePlayedTime(_player->GetTotalPlayedTime() - (trader->GetTotalPlayedTime() - hisItems[i]->m_itemData->CreatePlayedTime));
                 // store
                 _player->MoveItemToInventory(playerDst, hisItems[i], true, true);
@@ -187,7 +187,7 @@ void WorldSession::moveItems(Item* myItems[], Item* hisItems[])
 
 //==============================================================
 
-static void setAcceptTradeMode(TradeData* myTrade, TradeData* hisTrade, Item** myItems, Item** hisItems)
+static void setAcceptTradeMode(TradeData* myTrade, TradeData* hisTrade, Item* *myItems, Item* *hisItems)
 {
     myTrade->SetInAcceptProcess(true);
     hisTrade->SetInAcceptProcess(true);
@@ -218,7 +218,7 @@ static void clearAcceptTradeMode(TradeData* myTrade, TradeData* hisTrade)
     hisTrade->SetInAcceptProcess(false);
 }
 
-static void clearAcceptTradeMode(Item** myItems, Item** hisItems)
+static void clearAcceptTradeMode(Item* *myItems, Item* *hisItems)
 {
     // clear 'in-trade' flag
     for (uint8 i = 0; i < TRADE_SLOT_TRADED_COUNT; ++i)
@@ -242,7 +242,7 @@ void WorldSession::HandleAcceptTradeOpcode(WorldPackets::Trade::AcceptTrade& acc
     if (!his_trade)
         return;
 
-    Item* myItems[TRADE_SLOT_TRADED_COUNT] = { };
+    Item* myItems[TRADE_SLOT_TRADED_COUNT]  = { };
     Item* hisItems[TRADE_SLOT_TRADED_COUNT] = { };
 
     // set before checks for propertly undo at problems (it already set in to client)
@@ -672,7 +672,7 @@ void WorldSession::HandleInitiateTradeOpcode(WorldPackets::Trade::InitiateTrade&
         pOther->HasPlayerFlagEx(PLAYER_FLAGS_EX_MERCENARY_MODE) ||
         _player->HasPlayerFlagEx(PLAYER_FLAGS_EX_MERCENARY_MODE)) &&
         (!sWorld->getBoolConfig(CONFIG_ALLOW_TWO_SIDE_TRADE) &&
-            !HasPermission(rbac::RBAC_PERM_ALLOW_TWO_SIDE_TRADE)))
+        !HasPermission(rbac::RBAC_PERM_ALLOW_TWO_SIDE_TRADE)))
     {
         info.Status = TRADE_STATUS_WRONG_FACTION;
         SendTradeStatus(info);

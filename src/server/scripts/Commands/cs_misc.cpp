@@ -50,9 +50,6 @@
 #include "World.h"
 #include "WorldSession.h"
 
-#include "ChallengeModeMgr.h"
-#include "WorldStateMgr.h"
-
 // temporary hack until includes are sorted out (don't want to pull in Windows.h)
 #ifdef GetClassName
 #undef GetClassName
@@ -295,7 +292,7 @@ public:
             zoneX, zoneY, groundZ, floorZ, map->GetMinHeight(object->GetPhaseShift(), object->GetPositionX(), object->GetPositionY()), haveMap, haveVMap, haveMMap);
 
         LiquidData liquidStatus;
-        ZLiquidStatus status = map->GetLiquidStatus(object->GetPhaseShift(), object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), map_liquidHeaderTypeFlags::AllLiquids, &liquidStatus);
+        ZLiquidStatus status = map->GetLiquidStatus(object->GetPhaseShift(), object->GetPositionX(), object->GetPositionY(), object->GetPositionZ(), {}, &liquidStatus);
         if (status)
             handler->PSendSysMessage(LANG_LIQUID_STATUS, liquidStatus.level, liquidStatus.depth_level, liquidStatus.entry, uint32(liquidStatus.type_flags.AsUnderlyingType()), status);
 
@@ -392,7 +389,7 @@ public:
 
                 // all's well, set bg id
                 // when porting out from the bg, it will be reset to 0
-                _player->SetBattlegroundId(target->GetBattlegroundId(), target->GetBattlegroundTypeId());
+                _player->SetBattlegroundId(target->GetBattlegroundId(), target->GetBattlegroundTypeId(), BATTLEGROUND_QUEUE_NONE); // unsure
                 // remember current position as entry point for return at bg end teleportation
                 if (!_player->GetMap()->IsBattlegroundOrArena())
                     _player->SetBattlegroundEntryPoint();
@@ -525,7 +522,7 @@ public:
 
                 // all's well, set bg id
                 // when porting out from the bg, it will be reset to 0
-                target->SetBattlegroundId(_player->GetBattlegroundId(), _player->GetBattlegroundTypeId());
+                target->SetBattlegroundId(_player->GetBattlegroundId(), _player->GetBattlegroundTypeId(), BATTLEGROUND_QUEUE_NONE); // unsure about this
                 // remember current position as entry point for return at bg end teleportation
                 if (!target->GetMap()->IsBattlegroundOrArena())
                     target->SetBattlegroundEntryPoint();
@@ -1017,7 +1014,7 @@ public:
         uint32 zoneId = player->GetZoneId();
 
         AreaTableEntry const* areaEntry = sAreaTableStore.LookupEntry(zoneId);
-        if (!areaEntry || areaEntry->ParentAreaID !=0)
+        if (!areaEntry || areaEntry->GetFlags().HasFlag(AreaFlags::IsSubzone))
         {
             handler->PSendSysMessage(LANG_COMMAND_GRAVEYARDWRONGZONE, graveyardId, zoneId);
             handler->SetSentErrorMessage(true);
@@ -1116,13 +1113,6 @@ public:
         }
 
         uint32 offset = area->AreaBit / PLAYER_EXPLORED_ZONES_BITS;
-        if (offset >= PLAYER_EXPLORED_ZONES_SIZE)
-        {
-            handler->SendSysMessage(LANG_BAD_VALUE);
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-
         uint64 val = UI64LIT(1) << (area->AreaBit % PLAYER_EXPLORED_ZONES_BITS);
         playerTarget->AddExploredZones(offset, val);
 
@@ -1156,13 +1146,6 @@ public:
         }
 
         uint32 offset = area->AreaBit / PLAYER_EXPLORED_ZONES_BITS;
-        if (offset >= PLAYER_EXPLORED_ZONES_SIZE)
-        {
-            handler->SendSysMessage(LANG_BAD_VALUE);
-            handler->SetSentErrorMessage(true);
-            return false;
-        }
-
         uint64 val = UI64LIT(1) << (area->AreaBit % PLAYER_EXPLORED_ZONES_BITS);
         playerTarget->RemoveExploredZones(offset, val);
 
@@ -1301,47 +1284,21 @@ public:
             return false;
         }
 
-        // Check for Mythic Keystone
-        if (itemId == 180653)
+        Item* item = playerTarget->StoreNewItem(dest, itemId, true, GenerateItemRandomBonusListId(itemId), GuidSet(), itemContext,
+            bonusListIDs.empty() ? nullptr : &bonusListIDs);
+
+        // remove binding (let GM give it to another player later)
+        if (player == playerTarget)
+            for (ItemPosCountVec::const_iterator itr = dest.begin(); itr != dest.end(); ++itr)
+                if (Item* item1 = player->GetItemByPos(itr->pos))
+                    item1->SetBinding(false);
+
+        if (count > 0 && item)
         {
-            int challengeLevel = urand(1, 20);
-
-            player->AddChallengeKey(sChallengeModeMgr->GetRandomChallengeId(), challengeLevel);
-
-            if (Item* keystone = player->GetItemByEntry(180653))
-            {
-                keystone->SetModifier(ITEM_MODIFIER_CHALLENGE_MAP_CHALLENGE_MODE_ID, Trinity::Containers::SelectRandomContainerElement(sDB2Manager.GetChallngeMaps()));
-                keystone->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_LEVEL, challengeLevel);
-                if (challengeLevel > 3)
-                    keystone->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_1, sWorldStateMgr->GetValue(WS_CHALLENGE_AFFIXE1_RESET_TIME, nullptr));
-                if (challengeLevel > 6)
-                    keystone->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_2, sWorldStateMgr->GetValue(WS_CHALLENGE_AFFIXE2_RESET_TIME, nullptr));
-                if (challengeLevel > 9)
-                    keystone->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_3, sWorldStateMgr->GetValue(WS_CHALLENGE_AFFIXE3_RESET_TIME, nullptr));
-                if (challengeLevel > 12)
-                    keystone->SetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_4, sWorldStateMgr->GetValue(WS_CHALLENGE_AFFIXE4_RESET_TIME, nullptr));
-
-                keystone->SetState(ITEM_CHANGED, player);
-            }
-        }
-        else
-        {
-            Item* item = playerTarget->StoreNewItem(dest, itemId, true, GenerateItemRandomBonusListId(itemId), GuidSet(), itemContext,
-                bonusListIDs.empty() ? nullptr : &bonusListIDs);
-
-            // remove binding (let GM give it to another player later)
-            if (player == playerTarget)
-                for (ItemPosCountVec::const_iterator itr = dest.begin(); itr != dest.end(); ++itr)
-                    if (Item* item1 = player->GetItemByPos(itr->pos))
-                        item1->SetBinding(false);
-
-            if (count > 0 && item)
-            {
-                player->SendNewItem(item, count, false, true);
-                handler->PSendSysMessage(LANG_ADDITEM, itemId, count, handler->GetNameLink(playerTarget).c_str());
-                if (player != playerTarget)
-                    playerTarget->SendNewItem(item, count, true, false);
-            }
+            player->SendNewItem(item, count, false, true);
+            handler->PSendSysMessage(LANG_ADDITEM, itemId, count, handler->GetNameLink(playerTarget).c_str());
+            if (player != playerTarget)
+                playerTarget->SendNewItem(item, count, true, false);
         }
 
         if (noSpaceForCount > 0)
@@ -1515,7 +1472,7 @@ public:
         // prevent generation all items with itemset field value '0'
         if (*itemSetId == 0)
         {
-            handler->PSendSysMessage(LANG_NO_ITEMS_FROM_ITEMSET_FOUND, itemSetId);
+            handler->PSendSysMessage(LANG_NO_ITEMS_FROM_ITEMSET_FOUND, *itemSetId);
             handler->SetSentErrorMessage(true);
             return false;
         }
@@ -1558,6 +1515,8 @@ public:
 
                 Item* item = playerTarget->StoreNewItem(dest, itemTemplatePair.first, true, {}, GuidSet(), itemContext,
                     bonusListIDsForItem.empty() ? nullptr : &bonusListIDsForItem);
+                if (!item)
+                    continue;
 
                 // remove binding (let GM give it to another player later)
                 if (player == playerTarget)
@@ -1576,7 +1535,7 @@ public:
 
         if (!found)
         {
-            handler->PSendSysMessage(LANG_NO_ITEMS_FROM_ITEMSET_FOUND, itemSetId);
+            handler->PSendSysMessage(LANG_NO_ITEMS_FROM_ITEMSET_FOUND, *itemSetId);
             handler->SetSentErrorMessage(true);
             return false;
         }
@@ -1629,7 +1588,7 @@ public:
         SkillLineEntry const* skillLine = sSkillLineStore.LookupEntry(skillId);
         if (!skillLine)
         {
-            handler->PSendSysMessage(LANG_INVALID_SKILL_ID, skillId);
+            handler->PSendSysMessage(LANG_INVALID_SKILL_ID, *skillId);
             handler->SetSentErrorMessage(true);
             return false;
         }
@@ -1647,7 +1606,7 @@ public:
         // add the skill to the player's book with step 1 (which is the first rank, in most cases something
         // like 'Apprentice <skill>'.
         target->SetSkill(skillId, targetHasSkill ? target->GetSkillStep(skillId) : 1, level, max);
-        handler->PSendSysMessage(LANG_SET_SKILL, skillId, skillLine->DisplayName[handler->GetSessionDbcLocale()], handler->GetNameLink(target).c_str(), level, max);
+        handler->PSendSysMessage(LANG_SET_SKILL, *skillId, skillLine->DisplayName[handler->GetSessionDbcLocale()], handler->GetNameLink(target).c_str(), level, max);
         return true;
     }
 
@@ -1714,52 +1673,52 @@ public:
          * For a cleaner overview, I segment each output in Roman numerals
          */
 
-         // Account data print variables
-        std::string userName = handler->GetTrinityString(LANG_ERROR);
-        uint32 accId = 0;
-        ObjectGuid::LowType lowguid = targetGuid.GetCounter();
-        std::string eMail = handler->GetTrinityString(LANG_ERROR);
-        std::string regMail = handler->GetTrinityString(LANG_ERROR);
-        uint32 security = 0;
-        std::string lastIp = handler->GetTrinityString(LANG_ERROR);
-        uint8 locked = 0;
-        std::string lastLogin = handler->GetTrinityString(LANG_ERROR);
-        uint32 failedLogins = 0;
-        uint32 latency = 0;
-        std::string OS = handler->GetTrinityString(LANG_UNKNOWN);
+        // Account data print variables
+        std::string userName          = handler->GetTrinityString(LANG_ERROR);
+        uint32 accId                  = 0;
+        ObjectGuid::LowType lowguid   = targetGuid.GetCounter();
+        std::string eMail             = handler->GetTrinityString(LANG_ERROR);
+        std::string regMail           = handler->GetTrinityString(LANG_ERROR);
+        uint32 security               = 0;
+        std::string lastIp            = handler->GetTrinityString(LANG_ERROR);
+        uint8 locked                  = 0;
+        std::string lastLogin         = handler->GetTrinityString(LANG_ERROR);
+        uint32 failedLogins           = 0;
+        uint32 latency                = 0;
+        std::string OS                = handler->GetTrinityString(LANG_UNKNOWN);
 
         // Mute data print variables
-        int64 muteTime = -1;
-        std::string muteReason = handler->GetTrinityString(LANG_NO_REASON);
-        std::string muteBy = handler->GetTrinityString(LANG_UNKNOWN);
+        int64 muteTime                = -1;
+        std::string muteReason        = handler->GetTrinityString(LANG_NO_REASON);
+        std::string muteBy            = handler->GetTrinityString(LANG_UNKNOWN);
 
         // Ban data print variables
-        int64 banTime = -1;
-        std::string banType = handler->GetTrinityString(LANG_UNKNOWN);
-        std::string banReason = handler->GetTrinityString(LANG_NO_REASON);
-        std::string bannedBy = handler->GetTrinityString(LANG_UNKNOWN);
+        int64 banTime                 = -1;
+        std::string banType           = handler->GetTrinityString(LANG_UNKNOWN);
+        std::string banReason         = handler->GetTrinityString(LANG_NO_REASON);
+        std::string bannedBy          = handler->GetTrinityString(LANG_UNKNOWN);
 
         // Character data print variables
-        uint8 raceid, classid = 0; //RACE_NONE, CLASS_NONE
-        std::string raceStr, classStr = handler->GetTrinityString(LANG_UNKNOWN);
-        uint8 gender = 0;
-        LocaleConstant locale = handler->GetSessionDbcLocale();
-        uint32 totalPlayerTime = 0;
-        uint8 level = 0;
-        std::string alive = handler->GetTrinityString(LANG_ERROR);
-        uint64 money = 0;
-        uint32 xp = 0;
-        uint32 xptotal = 0;
+        uint8 raceid, classid           = 0; //RACE_NONE, CLASS_NONE
+        std::string raceStr, classStr   = handler->GetTrinityString(LANG_UNKNOWN);
+        uint8 gender                    = 0;
+        LocaleConstant locale           = handler->GetSessionDbcLocale();
+        uint32 totalPlayerTime          = 0;
+        uint8 level                     = 0;
+        std::string alive               = handler->GetTrinityString(LANG_ERROR);
+        uint64 money                    = 0;
+        uint32 xp                       = 0;
+        uint32 xptotal                  = 0;
 
         // Position data print
         uint32 mapId;
         uint32 areaId;
-        char const* areaName = nullptr;
-        char const* zoneName = nullptr;
+        char const* areaName    = nullptr;
+        char const* zoneName    = nullptr;
 
         // Guild data print variables defined so that they exist, but are not necessarily used
         ObjectGuid::LowType guildId = UI64LIT(0);
-        uint8 guildRankId = 0;
+        uint8 guildRankId        = 0;
         std::string guildName;
         std::string guildRank;
         std::string note;
@@ -1773,18 +1732,18 @@ public:
             if (handler->HasLowerSecurity(target, ObjectGuid::Empty))
                 return false;
 
-            accId = target->GetSession()->GetAccountId();
-            money = target->GetMoney();
-            totalPlayerTime = target->GetTotalPlayedTime();
-            level = target->GetLevel();
-            latency = target->GetSession()->GetLatency();
-            raceid = target->GetRace();
-            classid = target->GetClass();
-            muteTime = target->GetSession()->m_muteTime;
-            mapId = target->GetMapId();
-            areaId = target->GetAreaId();
-            alive = target->IsAlive() ? handler->GetTrinityString(LANG_YES) : handler->GetTrinityString(LANG_NO);
-            gender = target->GetNativeGender();
+            accId             = target->GetSession()->GetAccountId();
+            money             = target->GetMoney();
+            totalPlayerTime   = target->GetTotalPlayedTime();
+            level             = target->GetLevel();
+            latency           = target->GetSession()->GetLatency();
+            raceid            = target->GetRace();
+            classid           = target->GetClass();
+            muteTime          = target->GetSession()->m_muteTime;
+            mapId             = target->GetMapId();
+            areaId            = target->GetAreaId();
+            alive             = target->IsAlive() ? handler->GetTrinityString(LANG_YES) : handler->GetTrinityString(LANG_NO);
+            gender            = target->GetNativeGender();
         }
         // get additional information from DB
         else
@@ -1801,17 +1760,17 @@ public:
             if (!result)
                 return false;
 
-            Field* fields = result->Fetch();
-            totalPlayerTime = fields[0].GetUInt32();
-            level = fields[1].GetUInt8();
-            money = fields[2].GetUInt64();
-            accId = fields[3].GetUInt32();
-            raceid = fields[4].GetUInt8();
-            classid = fields[5].GetUInt8();
-            mapId = fields[6].GetUInt16();
-            areaId = fields[7].GetUInt16();
-            gender = fields[8].GetUInt8();
-            uint32 health = fields[9].GetUInt32();
+            Field* fields      = result->Fetch();
+            totalPlayerTime    = fields[0].GetUInt32();
+            level              = fields[1].GetUInt8();
+            money              = fields[2].GetUInt64();
+            accId              = fields[3].GetUInt32();
+            raceid             = fields[4].GetUInt8();
+            classid            = fields[5].GetUInt8();
+            mapId              = fields[6].GetUInt16();
+            areaId             = fields[7].GetUInt16();
+            gender             = fields[8].GetUInt8();
+            uint32 health      = fields[9].GetUInt32();
             uint32 playerFlags = fields[10].GetUInt32();
 
             if (!health || playerFlags & PLAYER_FLAGS_GHOST)
@@ -1829,16 +1788,16 @@ public:
         if (result)
         {
             Field* fields = result->Fetch();
-            userName = fields[0].GetString();
-            security = fields[1].GetUInt8();
+            userName      = fields[0].GetString();
+            security      = fields[1].GetUInt8();
 
             // Only fetch these fields if commander has sufficient rights)
             if (handler->HasPermission(rbac::RBAC_PERM_COMMANDS_PINFO_CHECK_PERSONAL_DATA) && // RBAC Perm. 48, Role 39
-                (!handler->GetSession() || handler->GetSession()->GetSecurity() >= AccountTypes(security)))
+               (!handler->GetSession() || handler->GetSession()->GetSecurity() >= AccountTypes(security)))
             {
-                eMail = fields[2].GetString();
-                regMail = fields[3].GetString();
-                lastIp = fields[4].GetString();
+                eMail     = fields[2].GetString();
+                regMail   = fields[3].GetString();
+                lastIp    = fields[4].GetString();
                 lastLogin = fields[5].GetString();
 
                 if (IpLocationRecord const* location = sIPLocation->GetLocationRecord(lastIp))
@@ -1850,17 +1809,17 @@ public:
             }
             else
             {
-                eMail = handler->GetTrinityString(LANG_UNAUTHORIZED);
-                regMail = handler->GetTrinityString(LANG_UNAUTHORIZED);
-                lastIp = handler->GetTrinityString(LANG_UNAUTHORIZED);
+                eMail     = handler->GetTrinityString(LANG_UNAUTHORIZED);
+                regMail   = handler->GetTrinityString(LANG_UNAUTHORIZED);
+                lastIp    = handler->GetTrinityString(LANG_UNAUTHORIZED);
                 lastLogin = handler->GetTrinityString(LANG_UNAUTHORIZED);
             }
-            muteTime = fields[6].GetUInt64();
-            muteReason = fields[7].GetString();
-            muteBy = fields[8].GetString();
-            failedLogins = fields[9].GetUInt32();
-            locked = fields[10].GetUInt8();
-            OS = fields[11].GetString();
+            muteTime      = fields[6].GetUInt64();
+            muteReason    = fields[7].GetString();
+            muteBy        = fields[8].GetString();
+            failedLogins  = fields[9].GetUInt32();
+            locked        = fields[10].GetUInt8();
+            OS            = fields[11].GetString();
         }
 
         // Creates a chat link to the character. Returns nameLink
@@ -1882,11 +1841,11 @@ public:
 
         if (result2)
         {
-            Field* fields = result2->Fetch();
+            Field* fields  = result2->Fetch();
             bool permanent = fields[1].GetUInt64() != 0;
-            banTime = !permanent ? int64(fields[0].GetUInt32()) : 0;
-            bannedBy = fields[2].GetString();
-            banReason = fields[3].GetString();
+            banTime        = !permanent ? int64(fields[0].GetUInt32()) : 0;
+            bannedBy       = fields[2].GetString();
+            banReason      = fields[3].GetString();
         }
 
         // Can be used to query data from Characters database
@@ -1897,8 +1856,8 @@ public:
         if (result4)
         {
             Field* fields = result4->Fetch();
-            xp = fields[0].GetUInt32(); // Used for "current xp" output and "%u XP Left" calculation
-            ObjectGuid::LowType gguid = fields[1].GetUInt64(); // We check if have a guild for the person, so we might not require to query it at all
+            xp            = fields[0].GetUInt32(); // Used for "current xp" output and "%u XP Left" calculation
+            ObjectGuid::LowType gguid  = fields[1].GetUInt64(); // We check if have a guild for the person, so we might not require to query it at all
             xptotal = sObjectMgr->GetXPForLevel(level);
 
             if (gguid)
@@ -1909,13 +1868,13 @@ public:
                 PreparedQueryResult result5 = CharacterDatabase.Query(stmt);
                 if (result5)
                 {
-                    Field* fields5 = result5->Fetch();
-                    guildId = fields5[0].GetUInt64();
-                    guildName = fields5[1].GetString();
-                    guildRank = fields5[2].GetString();
-                    guildRankId = fields5[3].GetUInt8();
-                    note = fields5[4].GetString();
-                    officeNote = fields5[5].GetString();
+                    Field* fields5  = result5->Fetch();
+                    guildId         = fields5[0].GetUInt64();
+                    guildName       = fields5[1].GetString();
+                    guildRank       = fields5[2].GetString();
+                    guildRankId     = fields5[3].GetUInt8();
+                    note            = fields5[4].GetString();
+                    officeNote      = fields5[5].GetString();
                 }
             }
         }
@@ -1958,7 +1917,7 @@ public:
             handler->PSendSysMessage(LANG_PINFO_CHR_LEVEL_HIGH, level);
 
         // Output XI. LANG_PINFO_CHR_RACE
-        raceStr = DB2Manager::GetChrRaceName(raceid, locale);
+        raceStr  = DB2Manager::GetChrRaceName(raceid, locale);
         classStr = DB2Manager::GetClassName(classid, locale);
         handler->PSendSysMessage(LANG_PINFO_CHR_RACE, (gender == 0 ? handler->GetTrinityString(LANG_CHARACTER_GENDER_MALE) : handler->GetTrinityString(LANG_CHARACTER_GENDER_FEMALE)), raceStr.c_str(), classStr.c_str());
 
@@ -1970,9 +1929,9 @@ public:
             PhasingHandler::PrintToChat(handler, target);
 
         // Output XIV. LANG_PINFO_CHR_MONEY
-        uint32 gold = money / GOLD;
-        uint32 silv = (money % GOLD) / SILVER;
-        uint32 copp = (money % GOLD) % SILVER;
+        uint32 gold                   = money / GOLD;
+        uint32 silv                   = (money % GOLD) / SILVER;
+        uint32 copp                   = (money % GOLD) % SILVER;
         handler->PSendSysMessage(LANG_PINFO_CHR_MONEY, gold, silv, copp);
 
         // Position data
@@ -1982,11 +1941,14 @@ public:
         {
             zoneName = area->AreaName[locale];
 
-            AreaTableEntry const* zone = sAreaTableStore.LookupEntry(area->ParentAreaID);
-            if (zone)
+            if (area->GetFlags().HasFlag(AreaFlags::IsSubzone))
             {
-                areaName = zoneName;
-                zoneName = zone->AreaName[locale];
+                AreaTableEntry const* zone = sAreaTableStore.LookupEntry(area->ParentAreaID);
+                if (zone)
+                {
+                    areaName = zoneName;
+                    zoneName = zone->AreaName[locale];
+                }
             }
         }
 
@@ -2019,13 +1981,13 @@ public:
         PreparedQueryResult result6 = CharacterDatabase.Query(stmt);
         if (result6)
         {
-            Field* fields = result6->Fetch();
-            uint32 readmail = uint32(fields[0].GetDouble());
-            uint32 totalmail = uint32(fields[1].GetUInt64());
+            Field* fields         = result6->Fetch();
+            uint32 readmail       = uint32(fields[0].GetDouble());
+            uint32 totalmail      = uint32(fields[1].GetUInt64());
 
             // Output XXI. LANG_INFO_CHR_MAILS if at least one mail is given
             if (totalmail >= 1)
-                handler->PSendSysMessage(LANG_PINFO_CHR_MAILS, readmail, totalmail);
+               handler->PSendSysMessage(LANG_PINFO_CHR_MAILS, readmail, totalmail);
         }
 
         return true;

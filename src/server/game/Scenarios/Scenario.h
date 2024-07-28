@@ -19,16 +19,13 @@
 #define Scenario_h__
 
 #include "CriteriaHandler.h"
-#include "Challenge.h"
+#include <map>
 #include <unordered_set>
 
-class Challenge;
 class Map;
 struct ScenarioData;
 struct ScenarioEntry;
 struct ScenarioStepEntry;
-
-typedef std::vector<ScenarioStepEntry const*> ScenarioSteps;
 
 namespace WorldPackets
 {
@@ -68,17 +65,17 @@ class TC_GAME_API Scenario : public CriteriaHandler
         virtual void OnPlayerExit(Player* player);
         virtual void Update(uint32 /*diff*/) { }
 
-        bool IsComplete();
+        bool IsComplete() const;
         bool IsCompletedStep(ScenarioStepEntry const* step);
         void SetStepState(ScenarioStepEntry const* step, ScenarioStepState state) { _stepStates[step] = state; }
         ScenarioEntry const* GetEntry() const;
-        ScenarioStepState GetStepState(ScenarioStepEntry const* step);
+        ScenarioStepState GetStepState(ScenarioStepEntry const* step) const;
         ScenarioStepEntry const* GetStep() const { return _currentstep; }
         ScenarioStepEntry const* GetFirstStep() const;
         ScenarioStepEntry const* GetLastStep() const;
 
-        void SendScenarioState(Player* player);
-        void SendBootPlayer(Player* player);
+        void SendScenarioState(Player const* player) const;
+        void SendBootPlayer(Player const* player) const;
 
     protected:
         Map const* _map;
@@ -92,14 +89,15 @@ class TC_GAME_API Scenario : public CriteriaHandler
         void CompletedCriteriaTree(CriteriaTree const* tree, Player* referencePlayer) override;
         void AfterCriteriaTreeUpdate(CriteriaTree const* /*tree*/, Player* /*referencePlayer*/) override { }
 
+        void DoForAllPlayers(std::function<void(Player*)> const& worker) const;
         void SendPacket(WorldPacket const* data) const override;
 
         void SendAllData(Player const* /*receiver*/) const override { }
 
-        void BuildScenarioState(WorldPackets::Scenario::ScenarioState* scenarioState);
+        void BuildScenarioStateFor(Player const* player, WorldPackets::Scenario::ScenarioState* scenarioState) const;
 
-        std::vector<WorldPackets::Scenario::BonusObjectiveData> GetBonusObjectivesData();
-        std::vector<WorldPackets::Achievement::CriteriaProgress> GetCriteriasProgress();
+        std::vector<WorldPackets::Scenario::BonusObjectiveData> GetBonusObjectivesData() const;
+        std::vector<WorldPackets::Achievement::CriteriaProgress> GetCriteriasProgressFor(Player const* player) const;
 
         CriteriaList const& GetCriteriaByType(CriteriaType type, uint32 asset) const override;
         ScenarioData const* _data;
@@ -108,33 +106,6 @@ class TC_GAME_API Scenario : public CriteriaHandler
         ObjectGuid const _guid;
         ScenarioStepEntry const* _currentstep;
         std::map<ScenarioStepEntry const*, ScenarioStepState> _stepStates;
-
-        //DekkCore
-    public:
-        void BroadCastPacket(const WorldPacket* data);
-        uint32 GetScenarioId() const;
-        bool IsCompleted(bool bonus) const;
-        uint8 GetStepCount(bool withBonus) const;
-        uint32 GetCurrentStep() const;
-        void CreateChallenge(Player* player);
-        Challenge* GetChallenge();
-        Map* GetMap();
-        uint32 GetInstanceId() const;
-        uint32 scenarioId;
-        void SendScenarioEvent(Player* player, uint32 eventId);
-        void SendStepUpdate(Player* player = nullptr, bool full = false);
-
-    private:
-        ScenarioEntry const* _scenarioEntry;
-        Challenge* _challenge;
-        uint8 currentStep;
-        uint32 currentTree;
-        ScenarioSteps steps;
-
-        std::vector<uint32> ActiveSteps;
-    protected:
-        Map* curMap;
-        uint32 instanceId;
 };
 
 #endif // Scenario_h__

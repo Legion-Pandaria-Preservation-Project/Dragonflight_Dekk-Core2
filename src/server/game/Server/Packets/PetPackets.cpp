@@ -148,6 +148,11 @@ void WorldPackets::Pet::PetAbandon::Read()
     _worldPacket >> Pet;
 }
 
+void WorldPackets::Pet::PetAbandonByNumber::Read()
+{
+    _worldPacket >> PetNumber;
+}
+
 void WorldPackets::Pet::PetSpellAutocast::Read()
 {
     _worldPacket >> PetGUID;
@@ -196,32 +201,11 @@ WorldPacket const* WorldPackets::Pet::PetTameFailure::Write()
     return &_worldPacket;
 }
 
-WorldPacket const* WorldPackets::Pet::Mode::Write()
+WorldPacket const* WorldPackets::Pet::PetMode::Write()
 {
     _worldPacket << PetGUID;
-
-    //! custom code - jam data looks like: x >> 0 + x2 >> 8 + x2 >> 16
-    _worldPacket << static_cast<uint8>(_reactState);
-    _worldPacket << static_cast<uint8>(_commandState);
-    _worldPacket << static_cast<uint16>(_flag);
+    _worldPacket << uint16(CommandState | Flag << 8);
+    _worldPacket << uint8(ReactState);
 
     return &_worldPacket;
 }
-
-WorldPacket const* WorldPackets::Pet::Guids::Write()
-{
-    _worldPacket << static_cast<uint32>(PetGUIDs.size());
-    for (auto const& map : PetGUIDs)
-        _worldPacket << map;
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Pet::PetDismissSound::Write()
-{
-    _worldPacket << ModelID;
-    _worldPacket << ModelPosition;
-
-    return &_worldPacket;
-}
-

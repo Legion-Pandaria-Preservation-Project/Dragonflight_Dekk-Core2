@@ -85,19 +85,19 @@ WorldPackets::Mail::MailListEntry::MailListEntry(::Mail const* mail, ::Player* p
 
     switch (mail->messageType)
     {
-    case MAIL_NORMAL:
-        SenderCharacter = ObjectGuid::Create<HighGuid::Player>(mail->sender);
-        break;
-    case MAIL_CREATURE:
-    case MAIL_GAMEOBJECT:
-    case MAIL_AUCTION:
-    case MAIL_CALENDAR:
-    case MAIL_BLACKMARKET:
-    case MAIL_COMMERCE_AUCTION:
-    case MAIL_AUCTION_2:
-    case MAIL_ARTISANS_CONSORTIUM:
-        AltSenderID = mail->sender;
-        break;
+        case MAIL_NORMAL:
+            SenderCharacter = ObjectGuid::Create<HighGuid::Player>(mail->sender);
+            break;
+        case MAIL_CREATURE:
+        case MAIL_GAMEOBJECT:
+        case MAIL_AUCTION:
+        case MAIL_CALENDAR:
+        case MAIL_BLACKMARKET:
+        case MAIL_COMMERCE_AUCTION:
+        case MAIL_AUCTION_2:
+        case MAIL_ARTISANS_CONSORTIUM:
+            AltSenderID = mail->sender;
+            break;
     }
 
     Cod = mail->COD;
@@ -127,23 +127,24 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Mail::MailListEntry const
     data << float(entry.DaysLeft);
     data << int32(entry.MailTemplateID);
     data << uint32(entry.Attachments.size());
+
     switch (entry.SenderType)
     {
-    case MAIL_NORMAL:
-        data << entry.SenderCharacter;
-        break;
-    case MAIL_AUCTION:
-    case MAIL_CREATURE:
-    case MAIL_GAMEOBJECT:
-    case MAIL_CALENDAR:
-    case MAIL_BLACKMARKET:
-    case MAIL_COMMERCE_AUCTION:
-    case MAIL_AUCTION_2:
-    case MAIL_ARTISANS_CONSORTIUM:
-        data << int32(entry.AltSenderID);
-        break;
-    default:
-        break;
+        case MAIL_NORMAL:
+            data << entry.SenderCharacter;
+            break;
+        case MAIL_AUCTION:
+        case MAIL_CREATURE:
+        case MAIL_GAMEOBJECT:
+        case MAIL_CALENDAR:
+        case MAIL_BLACKMARKET:
+        case MAIL_COMMERCE_AUCTION:
+        case MAIL_AUCTION_2:
+        case MAIL_ARTISANS_CONSORTIUM:
+            data << int32(entry.AltSenderID);
+            break;
+        default:
+            break;
     }
 
     data.WriteBits(entry.Subject.size(), 8);
@@ -257,21 +258,21 @@ WorldPackets::Mail::MailQueryNextTimeResult::MailNextTimeEntry::MailNextTimeEntr
 {
     switch (mail->messageType)
     {
-    case MAIL_NORMAL:
-        SenderGuid = ObjectGuid::Create<HighGuid::Player>(mail->sender);
-        break;
-    case MAIL_AUCTION:
-    case MAIL_CREATURE:
-    case MAIL_GAMEOBJECT:
-    case MAIL_CALENDAR:
-    case MAIL_BLACKMARKET:
-    case MAIL_COMMERCE_AUCTION:
-    case MAIL_AUCTION_2:
-    case MAIL_ARTISANS_CONSORTIUM:
-        AltSenderID = mail->sender;
-        break;
-    default:
-        break;
+        case MAIL_NORMAL:
+            SenderGuid = ObjectGuid::Create<HighGuid::Player>(mail->sender);
+            break;
+        case MAIL_AUCTION:
+        case MAIL_CREATURE:
+        case MAIL_GAMEOBJECT:
+        case MAIL_CALENDAR:
+        case MAIL_BLACKMARKET:
+        case MAIL_COMMERCE_AUCTION:
+        case MAIL_AUCTION_2:
+        case MAIL_ARTISANS_CONSORTIUM:
+            AltSenderID = mail->sender;
+            break;
+        default:
+            break;
     }
 
     TimeLeft = mail->deliver_time - GameTime::GetGameTime();

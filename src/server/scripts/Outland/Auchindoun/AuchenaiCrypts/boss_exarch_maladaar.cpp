@@ -20,7 +20,6 @@
 #include "ObjectAccessor.h"
 #include "Player.h"
 #include "ScriptedCreature.h"
-#include "Spell.h"
 #include "SpellInfo.h"
 #include "SpellScript.h"
 
@@ -122,7 +121,7 @@ struct boss_exarch_maladaar : public BossAI
         }
     }
 
-   void OnSpellCast(SpellInfo const* spell) override
+    void OnSpellCast(SpellInfo const* spell) override
     {
         if (spell->Id == SPELL_STOLEN_SOUL)
             if (roll_chance_i(25))
@@ -190,8 +189,6 @@ struct boss_exarch_maladaar : public BossAI
             if (me->HasUnitState(UNIT_STATE_CASTING))
                 return;
         }
-
-        DoMeleeAttackIfReady();
     }
 
 private:
@@ -338,10 +335,7 @@ struct npc_stolen_soul : public ScriptedAI
         if (!UpdateVictim())
             return;
 
-        _scheduler.Update(diff, [this]
-        {
-            DoMeleeAttackIfReady();
-        });
+        _scheduler.Update(diff);
     }
 
 private:
@@ -353,8 +347,6 @@ private:
 // 33326 - Stolen Soul Dispel
 class spell_exarch_maladaar_stolen_soul_dispel : public AuraScript
 {
-    PrepareAuraScript(spell_exarch_maladaar_stolen_soul_dispel);
-
     bool Validate(SpellInfo const* /*spell*/) override
     {
         return ValidateSpellInfo({ SPELL_STOLEN_SOUL });

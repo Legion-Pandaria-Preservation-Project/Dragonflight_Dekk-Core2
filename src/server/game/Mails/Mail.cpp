@@ -35,27 +35,27 @@ MailSender::MailSender(Object* sender, MailStationery stationery) : m_stationery
 {
     switch (sender->GetTypeId())
     {
-    case TYPEID_UNIT:
-        m_messageType = MAIL_CREATURE;
-        m_senderId = uint64(sender->GetEntry());
-        break;
-    case TYPEID_GAMEOBJECT:
-        m_messageType = MAIL_GAMEOBJECT;
-        m_senderId = uint64(sender->GetEntry());
-        break;
+        case TYPEID_UNIT:
+            m_messageType = MAIL_CREATURE;
+            m_senderId = uint64(sender->GetEntry());
+            break;
+        case TYPEID_GAMEOBJECT:
+            m_messageType = MAIL_GAMEOBJECT;
+            m_senderId = uint64(sender->GetEntry());
+            break;
         /*case TYPEID_ITEM:
             m_messageType = MAIL_ITEM;
             m_senderId = sender->GetEntry();
             break;*/
-    case TYPEID_PLAYER:
-        m_messageType = MAIL_NORMAL;
-        m_senderId = sender->GetGUID().GetCounter();
-        break;
-    default:
-        m_messageType = MAIL_NORMAL;
-        m_senderId = UI64LIT(0);                        // will show mail from non-existing player
-        TC_LOG_ERROR("misc", "MailSender::MailSender - Mail message contains unexpected sender typeid ({}).", sender->GetTypeId());
-        break;
+        case TYPEID_PLAYER:
+            m_messageType = MAIL_NORMAL;
+            m_senderId = sender->GetGUID().GetCounter();
+            break;
+        default:
+            m_messageType = MAIL_NORMAL;
+            m_senderId = UI64LIT(0);                        // will show mail from non-existing player
+            TC_LOG_ERROR("misc", "MailSender::MailSender - Mail message contains unexpected sender typeid ({}).", sender->GetTypeId());
+            break;
     }
 }
 
@@ -131,7 +131,7 @@ void MailDraft::prepareItems(Player* receiver, CharacterDatabaseTransaction tran
     }
 }
 
-void MailDraft::deleteIncludedItems(CharacterDatabaseTransaction trans, bool inDB /*= false*/)
+void MailDraft::deleteIncludedItems(CharacterDatabaseTransaction trans, bool inDB /*= false*/ )
 {
     for (MailItemMap::iterator mailItemIter = m_items.begin(); mailItemIter != m_items.end(); ++mailItemIter)
     {
@@ -207,7 +207,7 @@ void MailDraft::SendMailTo(CharacterDatabaseTransaction trans, MailReceiver cons
     // auction mail without any items and money
     if (sender.GetMailMessageType() == MAIL_AUCTION && m_items.empty() && !m_money)
         expire_delay = sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY);
-    // default case: expire time if COD 3 days, if no COD 30 days (or 90 days if sender is a game master)
+     // default case: expire time if COD 3 days, if no COD 30 days (or 90 days if sender is a game master)
     else
     {
         if (m_COD)
@@ -221,20 +221,20 @@ void MailDraft::SendMailTo(CharacterDatabaseTransaction trans, MailReceiver cons
     // Add to DB
     uint8 index = 0;
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_MAIL);
-    stmt->setUInt64(index, mailId);
-    stmt->setUInt8(++index, uint8(sender.GetMailMessageType()));
-    stmt->setInt8(++index, int8(sender.GetStationery()));
+    stmt->setUInt64(  index, mailId);
+    stmt->setUInt8 (++index, uint8(sender.GetMailMessageType()));
+    stmt->setInt8  (++index, int8(sender.GetStationery()));
     stmt->setUInt16(++index, GetMailTemplateId());
     stmt->setUInt64(++index, sender.GetSenderId());
     stmt->setUInt64(++index, receiver.GetPlayerGUIDLow());
     stmt->setString(++index, GetSubject());
     stmt->setString(++index, GetBody());
-    stmt->setBool(++index, !m_items.empty());
-    stmt->setInt64(++index, expire_time);
-    stmt->setInt64(++index, deliver_time);
+    stmt->setBool  (++index, !m_items.empty());
+    stmt->setInt64 (++index, expire_time);
+    stmt->setInt64 (++index, deliver_time);
     stmt->setUInt64(++index, m_money);
     stmt->setUInt64(++index, m_COD);
-    stmt->setUInt8(++index, uint8(checked));
+    stmt->setUInt8 (++index, uint8(checked));
     trans->Append(stmt);
 
     for (MailItemMap::const_iterator mailItemIter = m_items.begin(); mailItemIter != m_items.end(); ++mailItemIter)

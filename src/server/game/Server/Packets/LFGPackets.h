@@ -22,8 +22,6 @@
 #include "PacketUtilities.h"
 #include "ItemPacketsCommon.h"
 #include "LFGPacketsCommon.h"
-#include "LFGPackets.h"
-#include "LFGListPackets.h"
 #include "Optional.h"
 
 namespace lfg
@@ -44,8 +42,8 @@ namespace WorldPackets
 
             bool QueueAsGroup = false;
             bool Unknown = false;       // Always false in 7.2.5
-            uint8 PartyIndex = 0;
-            uint32 Roles = 0;
+            Optional<uint8> PartyIndex;
+            uint8 Roles = 0;
             Array<uint32, 50> Slots;
         };
 
@@ -79,8 +77,8 @@ namespace WorldPackets
 
             void Read() override;
 
-            uint32 RolesDesired = 0;
-            uint8 PartyIndex = 0;
+            uint8 RolesDesired = 0;
+            Optional<uint8> PartyIndex;
         };
 
         class DFBootPlayerVote final : public ClientPacket
@@ -110,7 +108,7 @@ namespace WorldPackets
 
             void Read() override;
 
-            uint8 PartyIndex = 0;
+            Optional<uint8> PartyIndex;
             bool Player = false;
         };
 
@@ -161,7 +159,7 @@ namespace WorldPackets
 
         struct LfgPlayerQuestReward
         {
-            uint32 Mask = 0;                                            // Roles required for this reward, only used by ShortageReward in SMSG_LFG_PLAYER_INFO
+            uint8 Mask = 0;                                             // Roles required for this reward, only used by ShortageReward in SMSG_LFG_PLAYER_INFO
             int32 RewardMoney = 0;                                      // Only used by SMSG_LFG_PLAYER_INFO
             int32 RewardXP = 0;
             std::vector<LfgPlayerQuestRewardItem> Item;
@@ -228,7 +226,7 @@ namespace WorldPackets
             uint8 SubType = 0;
             uint8 Reason = 0;
             std::vector<uint32> Slots;
-            uint32 RequestedRoles = 0;
+            uint8 RequestedRoles = 0;
             std::vector<ObjectGuid> SuspendedPlayers;
             uint32 QueueMapID = 0;
             bool NotifyUI = false;
@@ -237,10 +235,6 @@ namespace WorldPackets
             bool LfgJoined = false;
             bool Queued = false;
             bool Unused = false;
-            uint8 UNK1;
-            uint8 UNK2;
-            uint8 UNK3;
-            uint8 UNK4;
         };
 
         class RoleChosen final : public ServerPacket
@@ -251,18 +245,18 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid Player;
-            uint32 RoleMask = 0;
+            uint8 RoleMask = 0;
             bool Accepted = false;
         };
 
         struct LFGRoleCheckUpdateMember
         {
             LFGRoleCheckUpdateMember() = default;
-            LFGRoleCheckUpdateMember(ObjectGuid guid, uint32 rolesDesired, uint8 level, bool roleCheckComplete)
+            LFGRoleCheckUpdateMember(ObjectGuid guid, uint8 rolesDesired, uint8 level, bool roleCheckComplete)
                 : Guid(guid), RolesDesired(rolesDesired), Level(level), RoleCheckComplete(roleCheckComplete) { }
 
             ObjectGuid Guid;
-            uint32 RolesDesired = 0;
+            uint8 RolesDesired = 0;
             uint8 Level = 0;
             bool RoleCheckComplete = false;
         };
@@ -377,7 +371,7 @@ namespace WorldPackets
 
         struct LFGProposalUpdatePlayer
         {
-            uint32 Roles = 0;
+            uint8 Roles = 0;
             bool Me = false;
             bool SameParty = false;
             bool MyParty = false;
@@ -433,106 +427,6 @@ namespace WorldPackets
 
             lfg::LfgTeleportResult Reason;
         };
-
-        //DekkCore
-        class SetFastLaunchResult final : public ServerPacket
-        {
-        public:
-            SetFastLaunchResult() : ServerPacket(SMSG_SET_DF_FAST_LAUNCH_RESULT, 1) { }
-
-            WorldPacket const* Write() override;
-
-            bool Set = false;
-        };
-
-        class SlotInvalid final : public ServerPacket
-        {
-        public:
-            SlotInvalid() : ServerPacket(SMSG_LFG_SLOT_INVALID, 12) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 Reason = 0;
-            int32 SubReason1 = 0;
-            int32 SubReason2 = 0;
-        };
-
-        class ReadyCheckUpdate final : public ServerPacket
-        {
-        public:
-            ReadyCheckUpdate() : ServerPacket(SMSG_LFG_READY_CHECK_UPDATE, 4 + 8 + 3) { }
-
-            WorldPacket const* Write() override;
-
-            struct UpdateData
-            {
-                ObjectGuid PlayerGuid;
-                bool IsReady = false;
-                bool UnkBit = false;
-            };
-
-            std::vector<UpdateData> Data;
-            uint64 UnkLong = 0;
-            uint8 UnkByte = 0;
-            uint8 UnkByte2 = 0;
-            bool IsCompleted = false;
-        };
-
-        class ReadyCheckResult final : public ServerPacket
-        {
-        public:
-            ReadyCheckResult() : ServerPacket(SMSG_LFG_READY_CHECK_RESULT, 17) { }
-
-            WorldPacket const* Write() override;
-
-            ObjectGuid PlayerGuid;
-            bool IsReady = false;
-        };
-
-        class RequestPVPRewardsResponse final : public ServerPacket
-        {
-        public:
-            RequestPVPRewardsResponse() : ServerPacket(SMSG_REQUEST_PVP_REWARDS_RESPONSE, 40 * 4) { }
-
-            WorldPacket const* Write() override;
-
-            LfgPlayerQuestReward Rewards;
-            LfgPlayerQuestReward RatedBGRewards;
-            LfgPlayerQuestReward ArenaSkirmishRewards;
-            LfgPlayerQuestReward ArenaRewards2v2;
-            LfgPlayerQuestReward ArenaRewards3v3;
-            LfgPlayerQuestReward BrawlRewardsBattleground;
-            LfgPlayerQuestReward BrawlRewardsArena;
-
-            bool HasWon10vs10 = false;
-            bool HasWonSkirmish = false;
-            bool HasWon2vs2 = false;
-            bool HasWon3vs3 = false;
-            bool BattlegroundBraw = false;
-            bool ArenaBraw = false;
-        };
-
-        class CompleteReadyCheck final : public ClientPacket
-        {
-        public:
-            CompleteReadyCheck(WorldPacket&& packet) : ClientPacket(CMSG_DF_READY_CHECK_RESPONSE, std::move(packet)) { }
-
-            void Read() override;
-
-            uint8 PartyIndex = 0;
-            bool IsReady = false;
-        };
-
-        class OpenLfgDungeonFinder final : public ServerPacket
-        {
-        public:
-            OpenLfgDungeonFinder() : ServerPacket(SMSG_OPEN_LFG_DUNGEON_FINDER) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 DungeonEntry = 0;
-        };
-        //DEkkCore
     }
 }
 

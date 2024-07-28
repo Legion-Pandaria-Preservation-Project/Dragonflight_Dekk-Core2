@@ -16,7 +16,9 @@
  */
 
 #include "MapManager.h"
+#include "BattlefieldMgr.h"
 #include "Battleground.h"
+#include "CharacterCache.h"
 #include "Containers.h"
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
@@ -25,6 +27,7 @@
 #include "InstanceLockMgr.h"
 #include "Log.h"
 #include "Map.h"
+#include "OutdoorPvPMgr.h"
 #include "Player.h"
 #include "ScenarioMgr.h"
 #include "ScriptMgr.h"
@@ -32,9 +35,6 @@
 #include "WorldStateMgr.h"
 #include <boost/dynamic_bitset.hpp>
 #include <numeric>
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 
 MapManager::MapManager()
     : _freeInstanceIds(std::make_unique<InstanceIds>()), _nextInstanceId(0), _scheduledScripts(0)
@@ -50,17 +50,6 @@ void MapManager::Initialize()
     Map::InitStateMachine();
 
     int num_threads(sWorld->getIntConfig(CONFIG_NUMTHREADS));
-
-#if ELUNA
-    if (num_threads > 1)
-    {
-        // Force 1 thread for Eluna as lua is single threaded. By default thread count is 1
-        // This should allow us not to use mutex locks
-        TC_LOG_ERROR("maps", "Map update threads set to %i, when Eluna only allows 1, changing to 1", num_threads);
-        num_threads = 4;
-    }
-#endif
-
     // Start mtmaps if needed.
     if (num_threads > 0)
         m_updater.activate(num_threads);
@@ -80,7 +69,8 @@ MapManager* MapManager::instance()
 
 Map* MapManager::FindMap_i(uint32 mapId, uint32 instanceId) const
 {
-    return Trinity::Containers::MapGetValuePtr(i_maps, { mapId, instanceId });
+    auto itr = i_maps.find({ mapId, instanceId });
+    return itr != i_maps.end() ? itr->second.get() : nullptr;
 }
 
 Map* MapManager::CreateWorldMap(uint32 mapId, uint32 instanceId)
@@ -88,6 +78,7 @@ Map* MapManager::CreateWorldMap(uint32 mapId, uint32 instanceId)
     Map* map = new Map(mapId, i_gridCleanUpDelay, instanceId, DIFFICULTY_NONE);
     map->LoadRespawnTimes();
     map->LoadCorpseData();
+    map->InitSpawnGroupState();
 
     if (sWorld->getBoolConfig(CONFIG_BASEMAP_LOAD_GRIDS))
         map->LoadAllCells();
@@ -121,6 +112,7 @@ InstanceMap* MapManager::CreateInstance(uint32 mapId, uint32 instanceId, Instanc
 
     map->CreateInstanceData();
     map->SetInstanceScenario(sScenarioMgr->CreateInstanceScenario(map, team));
+    map->InitSpawnGroupState();
 
     if (sWorld->getBoolConfig(CONFIG_INSTANCEMAP_LOAD_GRIDS))
         map->LoadAllCells();
@@ -136,6 +128,12 @@ BattlegroundMap* MapManager::CreateBattleground(uint32 mapId, uint32 instanceId,
     ASSERT(map->IsBattlegroundOrArena());
     map->SetBG(bg);
     bg->SetBgMap(map);
+    map->InitScriptData();
+    map->InitSpawnGroupState();
+
+    if (sWorld->getBoolConfig(CONFIG_BATTLEGROUNDMAP_LOAD_GRIDS))
+        map->LoadAllCells();
+
     return map;
 }
 
@@ -143,6 +141,7 @@ GarrisonMap* MapManager::CreateGarrison(uint32 mapId, uint32 instanceId, Player*
 {
     GarrisonMap* map = new GarrisonMap(mapId, i_gridCleanUpDelay, instanceId, owner->GetGUID());
     ASSERT(map->IsGarrison());
+    map->InitSpawnGroupState();
     return map;
 }
 
@@ -226,7 +225,7 @@ Map* MapManager::CreateMap(uint32 mapId, Player* player)
 
         if (!map)
         {
-            map = CreateInstance(mapId, newInstanceId, instanceLock, difficulty, player->GetTeamId(), group);
+            map = CreateInstance(mapId, newInstanceId, instanceLock, difficulty, GetTeamIdForTeam(sCharacterCache->GetCharacterTeamByGuid(instanceOwnerGuid)), group);
             if (group)
                 group->SetRecentInstance(mapId, instanceOwnerGuid, newInstanceId);
             else
@@ -252,15 +251,20 @@ Map* MapManager::CreateMap(uint32 mapId, Player* player)
     }
 
     if (map)
-        i_maps[{ map->GetId(), map->GetInstanceId() }] = map;
+    {
+        Trinity::unique_trackable_ptr<Map>& ptr = i_maps[{ map->GetId(), map->GetInstanceId() }];
+        if (ptr.get() != map)
+        {
+            ptr.reset(map);
+            map->SetWeakPtr(ptr);
+
+            sScriptMgr->OnCreateMap(map);
+            sOutdoorPvPMgr->CreateOutdoorPvPForMap(map);
+            sBattlefieldMgr->CreateBattlefieldsForMap(map);
+        }
+    }
 
     return map;
-}
-
-Map* MapManager::CreateBaseMap(uint32 id)
-{
-// TODO
-    return nullptr;
 }
 
 Map* MapManager::FindMap(uint32 mapId, uint32 instanceId) const
@@ -323,7 +327,7 @@ void MapManager::Update(uint32 diff)
     {
         if (iter->second->CanUnload(diff))
         {
-            if (DestroyMap(iter->second))
+            if (DestroyMap(iter->second.get()))
                 iter = i_maps.erase(iter);
             else
                 ++iter;
@@ -353,6 +357,10 @@ bool MapManager::DestroyMap(Map* map)
     if (map->HavePlayers())
         return false;
 
+    sOutdoorPvPMgr->DestroyOutdoorPvPForMap(map);
+    sBattlefieldMgr->DestroyBattlefieldsForMap(map);
+    sScriptMgr->OnDestroyMap(map);
+
     map->UnloadAll();
 
     // Free up the instance id and allow it to be reused for normal dungeons, bgs and arenas
@@ -360,7 +368,6 @@ bool MapManager::DestroyMap(Map* map)
         sMapMgr->FreeInstanceId(map->GetInstanceId());
 
     // erase map
-    delete map;
     return true;
 }
 
@@ -373,12 +380,15 @@ void MapManager::UnloadAll()
 {
     // first unload maps
     for (auto iter = i_maps.begin(); iter != i_maps.end(); ++iter)
+    {
         iter->second->UnloadAll();
 
-    // then delete them
-    for (auto iter = i_maps.begin(); iter != i_maps.end(); ++iter)
-        delete iter->second;
+        sOutdoorPvPMgr->DestroyOutdoorPvPForMap(iter->second.get());
+        sBattlefieldMgr->DestroyBattlefieldsForMap(iter->second.get());
+        sScriptMgr->OnDestroyMap(iter->second.get());
+    }
 
+    // then delete them
     i_maps.clear();
 
     if (m_updater.activated())
@@ -458,10 +468,6 @@ void MapManager::FreeInstanceId(uint32 instanceId)
     // If freed instance id is lower than the next id available for new instances, use the freed one instead
     _nextInstanceId = std::min(instanceId, _nextInstanceId);
     _freeInstanceIds->set(instanceId, true);
-
-#ifdef ELUNA
-    sEluna->FreeInstanceId(instanceId);
-#endif
 }
 
 // hack to allow conditions to access what faction owns the map (these worldstates should not be set on these maps)

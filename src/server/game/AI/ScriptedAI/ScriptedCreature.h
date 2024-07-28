@@ -98,9 +98,9 @@ public:
     void DoAction(int32 info, Predicate&& predicate, uint16 max = 0)
     {
         // We need to use a copy of SummonList here, otherwise original SummonList would be modified
-        StorageType listCopy = _storage;
-        Trinity::Containers::RandomResize<StorageType, Predicate>(listCopy, std::forward<Predicate>(predicate), max);
-        DoActionImpl(info, listCopy);
+        StorageType listCopy;
+        std::copy_if(std::begin(_storage), std::end(_storage), std::inserter(listCopy, std::end(listCopy)), predicate);
+        DoActionImpl(info, listCopy, max);
     }
 
     void DoZoneInCombat(uint32 entry = 0);
@@ -108,7 +108,7 @@ public:
     bool HasEntry(uint32 entry) const;
 
 private:
-    void DoActionImpl(int32 action, StorageType const& summons);
+    void DoActionImpl(int32 action, StorageType& summons, uint16 max);
 
     Creature* _me;
     StorageType _storage;
@@ -144,7 +144,7 @@ struct TC_GAME_API ScriptedAI : public CreatureAI
         void AttackStartNoMove(Unit* target);
 
         // Called at World update tick
-        void UpdateAI(uint32 diff) override;
+        virtual void UpdateAI(uint32 diff) override;
 
         // *************
         // Variables
@@ -152,13 +152,6 @@ struct TC_GAME_API ScriptedAI : public CreatureAI
 
         // For fleeing
         bool IsFleeing;
-
-        SummonList summons;
-        EventMap events;
-        EventMap controls;
-        InstanceScript* const instance;
-        bool haseventdata;
-        bool hastalkdata;
 
         // *************
         // Pure virtual functions
@@ -244,40 +237,13 @@ struct TC_GAME_API ScriptedAI : public CreatureAI
         void SetCombatMovement(bool allowMovement);
         bool IsCombatMovementAllowed() const { return _isCombatMovementAllowed; }
 
-        //DekkCore
-        bool CheckHomeDistToEvade(uint32 diff, float dist = 0.0f, float x = 0.0f, float y = 0.0f, float z = 0.0f, bool onlyZ = false);
-        void GetInViewBotPlayers(std::list<Player*>& outPlayers, float range);
-        void SearchTargetPlayerAllGroup(std::list<Player*>& players, float range);
-        void PickBotPullMeToPosition(Position pullPos, ObjectGuid fliterTarget);
-        bool ExistPlayerBotByRange(float range);
-        void BotBlockCastingMe();
-        void ClearBotMeTarget(bool all);
-        void BotAllMovetoFarByDistance(Unit* pUnit, float range, float dist, float offset);
-        void BotCruxFlee(uint32 durTime, ObjectGuid fliter);
-        void BotRndCruxMovement(float dist);
-        void BotCruxFleeByRange(float range);
-        void BotCruxFleeByRange(float range, Unit* pCenter);
-        void BotCruxFleeByArea(float range, float fleeDist, Unit* pCenter);
-        void BotAllTargetMe(bool all);
-        void BotPhysicsDPSTargetMe(Unit* pUnit);
-        void BotMagicDPSTargetMe(Unit* pUnit);
-        void BotAverageCreatureTarget(std::vector<Creature*>& targets, float searchRange);
-        void BotAllotCreatureTarget(std::vector<Creature*>& targets, float searchRange, uint32 onceCount);
-        void BotAllToSelectionTarget(Unit* pUnit, float searchRange, bool all);
-        void BotAllFullDispel(bool enables = true);
-        void BotAllFullDispelByDecPoison(bool enables = true);
-        void BotFleeLineByAngle(Unit* center, float angle, bool force = true);
-        void BotSwitchPullTarget(Unit* pTarget);
-        void BotVehicleChaseTarget(Unit* pTarget, float distance);
-        void BotUseGOTarget(GameObject* pGO);
-        // Dekkcore
-        // return true for heroic mode. i.e.
-        //   - for dungeon in mode 10-heroic,
-        //   - for raid in mode 10-Heroic
-        //   - for raid in mode 25-heroic
-        // DO NOT USE to check raid in mode 25-normal.
-        bool IsHeroic() const { return _isHeroic; }
-        bool IsNormal() const { return _isNormal; }
+        bool IsLFR() const;
+        bool IsNormal() const;
+        bool IsHeroic() const;
+        bool IsMythic() const;
+        bool IsMythicPlus() const;
+        bool IsHeroicOrHigher() const;
+        bool IsTimewalking() const;
 
         // return the dungeon or raid difficulty
         Difficulty GetDifficulty() const { return _difficulty; }
@@ -340,110 +306,6 @@ struct TC_GAME_API ScriptedAI : public CreatureAI
     private:
         Difficulty _difficulty;
         bool _isCombatMovementAllowed;
-        uint32 _checkHomeTimer;
-        bool _isHeroic;
-        bool _isNormal;
-
-
-
-    // DekkCore >
-    public:
-
-        enum TC_GAME_API DelayTalkType
-        {
-            DELAY_TALK,
-            DELAY_SAY,
-            DELAY_YELL,
-            DELAY_TEXTEMOTE,
-        };
-
-        class TC_GAME_API DelayCreatureTalkEvent final : public BasicEvent
-        {
-        public:
-            explicit DelayCreatureTalkEvent(uint32 type, Creature * speaker, uint32 textId, Creature * target = nullptr) :
-                _type(type), _speaker(speaker), _textId(textId), _target(target)
-            {
-            }
-
-            bool Execute(uint64, uint32) final
-            {
-                if (!_speaker)
-                    return true;
-
-                switch (_type)
-                {
-                case DELAY_TALK:
-                    _speaker->AI()->Talk(_textId);
-                    break;
-                case DELAY_SAY:
-                    _speaker->Say(_textId, _target);
-                    break;
-                case DELAY_YELL:
-                    _speaker->Yell(_textId, _target);
-                    break;
-                case DELAY_TEXTEMOTE:
-                    _speaker->TextEmote(_textId, _target);
-                    break;
-                default:
-                    break;
-                }
-                return true;
-            }
-
-        private:
-            uint32 _type;
-            Creature* _speaker;
-            uint32 _textId;
-            Creature* _target;
-        };
-
-        // Hook used to execute events scheduled into EventMap without the need
-        // to override UpdateAI
-        // note: You must re-schedule the event within this method if the event
-        // is supposed to run more than once
-        virtual void ExecuteEvent(uint32 /*eventId*/) { }
-        void KillCreditMe(Player* player) { player->KilledMonsterCredit(me->GetEntry()); } //dekkcore
-        bool IsLFR() const { return _difficulty == DIFFICULTY_LFR || _difficulty == DIFFICULTY_LFR_NEW; }
-        bool IsChallengeMode() const { return _difficulty == DIFFICULTY_MYTHIC_KEYSTONE; }
-        bool IsTimeWalking() const { return _difficulty == DIFFICULTY_TIMEWALKING || _difficulty == DIFFICULTY_TIMEWALKING_RAID; }
-        bool IsMythic() const { return me->GetMap()->IsMythic(); }
-        bool IsMythicRaid() const { return _difficulty == DIFFICULTY_MYTHIC_RAID; }
-        bool IsNormalRaid() const { return _difficulty == DIFFICULTY_NORMAL_RAID; }
-        bool IsHeroicRaid() const { return _difficulty == DIFFICULTY_HEROIC_RAID; }
-        bool IsHeroicPlusRaid() const { return _difficulty == DIFFICULTY_HEROIC_RAID || _difficulty == DIFFICULTY_MYTHIC_RAID; }
-        void ApplyDefaultBossImmuneMask();
-
-        void DelayTalk(Creature* speaker, uint32 id, Milliseconds timer, Creature* target = nullptr)
-        {
-            DelayCreatureTalkEvent* delaytalkEvent = new DelayCreatureTalkEvent(DELAY_TALK, speaker, id, target);
-            speaker->m_Events.AddEvent(delaytalkEvent, speaker->m_Events.CalculateTime(timer));
-        }
-
-        void DelaySay(Creature* speaker, uint32 id, Milliseconds timer, Creature* target = nullptr)
-        {
-            DelayCreatureTalkEvent* delaytalkEvent = new DelayCreatureTalkEvent(DELAY_SAY, speaker, id, target);
-            speaker->m_Events.AddEvent(delaytalkEvent, speaker->m_Events.CalculateTime(timer));
-        }
-        void DelayYell(Creature* speaker, uint32 id, Milliseconds timer, Creature* target = nullptr)
-        {
-            DelayCreatureTalkEvent* delaytalkEvent = new DelayCreatureTalkEvent(DELAY_YELL, speaker, id, target);
-            speaker->m_Events.AddEvent(delaytalkEvent, speaker->m_Events.CalculateTime(timer));
-        }
-        void DelayTextEmote(Creature* speaker, uint32 id, Milliseconds timer, Creature* target = nullptr)
-        {
-            DelayCreatureTalkEvent* delaytalkEvent = new DelayCreatureTalkEvent(DELAY_TEXTEMOTE, speaker, id, target);
-            speaker->m_Events.AddEvent(delaytalkEvent, speaker->m_Events.CalculateTime(timer));
-        }
-
-    // < DekkCore
-};
-
-enum BossDefaultTalks : uint8
-{
-    TALK_DEFAULT_BOSS_AGGRO     = 200,
-    TALK_DEFAULT_BOSS_DEATH     = 201,
-    TALK_DEFAULT_BOSS_KILLED    = 202,
-    TALK_DEFAULT_BOSS_WIPE      = 203,
 };
 
 class TC_GAME_API BossAI : public ScriptedAI
@@ -463,7 +325,7 @@ class TC_GAME_API BossAI : public ScriptedAI
         // to override UpdateAI
         // note: You must re-schedule the event within this method if the event
         // is supposed to run more than once
-        virtual void ExecuteEvent(uint32 /*eventId*/) override { }
+        virtual void ExecuteEvent(uint32 /*eventId*/) { }
 
         virtual void ScheduleTasks() { }
 
@@ -471,7 +333,6 @@ class TC_GAME_API BossAI : public ScriptedAI
         void JustEngagedWith(Unit* who) override { _JustEngagedWith(who); }
         void JustDied(Unit* /*killer*/) override { _JustDied(); }
         void JustReachedHome() override { _JustReachedHome(); }
-        void KilledUnit(Unit* victim) override { _KilledUnit(victim); }
 
         bool CanAIAttack(Unit const* target) const override;
 
@@ -483,7 +344,6 @@ class TC_GAME_API BossAI : public ScriptedAI
         void _JustDied();
         void _JustReachedHome();
         void _DespawnAtEvade(Seconds delayToRespawn = 30s, Creature* who = nullptr);
-        void _KilledUnit(Unit* victim);
 
         void TeleportCheaters();
 
@@ -493,7 +353,6 @@ class TC_GAME_API BossAI : public ScriptedAI
 
     private:
         uint32 const _bossId;
-
 };
 
 class TC_GAME_API WorldBossAI : public ScriptedAI
@@ -511,7 +370,7 @@ class TC_GAME_API WorldBossAI : public ScriptedAI
         // to override UpdateAI
         // note: You must re-schedule the event within this method if the event
         // is supposed to run more than once
-        virtual void ExecuteEvent(uint32 /*eventId*/) override { }
+        virtual void ExecuteEvent(uint32 /*eventId*/) { }
 
         void Reset() override { _Reset(); }
         void JustEngagedWith(Unit* /*who*/) override { _JustEngagedWith(); }
@@ -524,7 +383,6 @@ class TC_GAME_API WorldBossAI : public ScriptedAI
 
         EventMap events;
         SummonList summons;
-
 };
 
 // SD2 grid searchers.
@@ -566,69 +424,5 @@ inline void GetPlayerListInGrid(Container& container, WorldObject* source, float
 {
     source->GetPlayerListInGrid(container, maxSearchRange, alive);
 }
-
-
-
-// DekkCore >
-class TC_GAME_API NeedBotAttackCreature
-{
-public:
-    NeedBotAttackCreature(Map* map, int32 count, ObjectGuid guid)
-    {
-        atMap = map;
-        needCount = count;
-        needCreature = guid;
-    }
-
-    bool UpdateProcess(std::list<ObjectGuid>& freeBots);
-
-    bool IsThisUsedBot(ObjectGuid& guid)
-    {
-        for (ObjectGuid id : allUsedBots)
-        {
-            if (id == guid)
-                return true;
-        }
-        return false;
-    }
-    bool IsThisCreature(ObjectGuid& guid) { return guid == needCreature; }
-
-private:
-    Map* atMap;
-    int32 needCount;
-    ObjectGuid needCreature;
-    std::list<ObjectGuid> allUsedBots;
-};
-
-struct BotAttackCreature
-{
-    BotAttackCreature(Creature* creature, int32 gap) : mainCreature(creature), updateGap(gap), currentTick(gap), attackState(0) {}
-    ~BotAttackCreature()
-    {
-        for (NeedBotAttackCreature* pNeed : allNeedCreatures)
-            delete pNeed;
-        allNeedCreatures.clear();
-    }
-
-    uint32 GetState() { return attackState; }
-    void SetState(uint32 state) { attackState = state; }
-    bool MatchMainCreature(Creature* creature) { return creature == mainCreature; }
-    Creature* GetMainCreature() { return mainCreature; }
-    void UpdateNeedAttackCreatures(uint32 diff, ScriptedAI* affiliateAI, bool attackMain);
-    void AddNewCreatureNeedAttack(Creature* pCreature, int32 needBotCount);
-    void ClearCreatures() { allNeedCreatures.clear(); mainCreature = NULL; }
-
-private:
-    int32 updateGap;
-    int32 currentTick;
-    uint32 attackState;
-    Creature* mainCreature;
-    std::list<NeedBotAttackCreature*> allNeedCreatures;
-};
-
-TC_GAME_API void GetPositionWithDistInOrientation(Position* pUnit, float dist, float orientation, float& x, float& y);
-TC_GAME_API void GetPositionWithDistInOrientation(Position* fromPos, float dist, float orientation, Position& movePosition);
-TC_GAME_API void GetPositionWithDistInFront(Position* centerPos, float dist, Position& movePosition);
-// < DekkCore
 
 #endif // TRINITY_SCRIPTEDCREATURE_H

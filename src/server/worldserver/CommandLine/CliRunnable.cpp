@@ -33,7 +33,7 @@
 #include <Windows.h>
 #endif
 
-static constexpr char CLI_PREFIX[] = "|DekkCore| command:> ";
+static constexpr char CLI_PREFIX[] = "TC> ";
 
 static inline void PrintCliPrefix()
 {

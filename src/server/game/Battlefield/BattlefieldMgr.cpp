@@ -26,9 +26,9 @@
 
 namespace
 {
-    constexpr std::array<uint32, BATTLEFIELD_MAX> BattlefieldIdToMapId = { 0, 571, 732 };
-    constexpr std::array<uint32, BATTLEFIELD_MAX> BattlefieldIdToZoneId = { 0, 4197, 5095 }; // imitate World_PVP_Area.db2
-    std::array<uint32, BATTLEFIELD_MAX> BattlefieldIdToScriptId = { 0, 0, 0 };
+constexpr std::array<uint32, BATTLEFIELD_MAX> BattlefieldIdToMapId = { 0, 571, 732 };
+constexpr std::array<uint32, BATTLEFIELD_MAX> BattlefieldIdToZoneId = { 0, 4197, 5095 }; // imitate World_PVP_Area.db2
+std::array<uint32, BATTLEFIELD_MAX> BattlefieldIdToScriptId = { 0, 0, 0 };
 }
 
 BattlefieldMgr::BattlefieldMgr()

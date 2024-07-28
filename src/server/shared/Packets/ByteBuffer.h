@@ -31,14 +31,12 @@ class MessageBuffer;
 class TC_SHARED_API ByteBufferException : public std::exception
 {
 public:
-    ~ByteBufferException() noexcept = default;
+    explicit ByteBufferException() = default;
+    explicit ByteBufferException(std::string&& message) noexcept : msg_(std::move(message)) { }
 
     char const* what() const noexcept override { return msg_.c_str(); }
 
 protected:
-    std::string & message() noexcept { return msg_; }
-
-private:
     std::string msg_;
 };
 
@@ -46,16 +44,12 @@ class TC_SHARED_API ByteBufferPositionException : public ByteBufferException
 {
 public:
     ByteBufferPositionException(size_t pos, size_t size, size_t valueSize);
-
-    ~ByteBufferPositionException() noexcept = default;
 };
 
 class TC_SHARED_API ByteBufferInvalidValueException : public ByteBufferException
 {
 public:
     ByteBufferInvalidValueException(char const* type, char const* value);
-
-    ~ByteBufferInvalidValueException() noexcept = default;
 };
 
 class TC_SHARED_API ByteBuffer
@@ -519,8 +513,6 @@ class TC_SHARED_API ByteBuffer
 
         std::string ReadString(uint32 length, bool requireValidUtf8 = true);
 
-        uint32 ReadPackedTime();
-
         uint8* contents()
         {
             if (_storage.empty())
@@ -623,8 +615,6 @@ class TC_SHARED_API ByteBuffer
 
             return resultSize;
         }
-
-        void AppendPackedTime(time_t time);
 
         void put(size_t pos, uint8 const* src, size_t cnt);
 

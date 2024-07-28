@@ -16,16 +16,11 @@
  */
 
 // This is where scripts' loading functions should be declared:
-void AddSC_alterac_valley();                 //Alterac Valley
-void AddSC_boss_balinda();
-void AddSC_boss_drekthar();
-void AddSC_boss_galvangar();
-void AddSC_boss_vanndar();
-void AddSC_arathi_basin();                   //Arathi Basin
 void AddSC_boss_alizabal();                  //Baradin Hold
 void AddSC_boss_occuthar();
-void AddSC_boss_pit_lord_argaloth();
+void AddSC_boss_argaloth();
 void AddSC_instance_baradin_hold();
+void AddSC_instance_bastion_of_twilight();   //Bastion of Twilight
 void AddSC_boss_romogg_bonecrusher();        //Blackrock Caverns
 void AddSC_boss_corla();
 void AddSC_boss_karsh_steelbender();
@@ -59,6 +54,7 @@ void AddSC_boss_gizrul_the_slavener();
 void AddSC_boss_urok_doomhowl();
 void AddSC_boss_lord_valthalak();
 void AddSC_instance_blackrock_spire();
+void AddSC_instance_blackwing_descent();     //Blackwing Descent
 void AddSC_boss_razorgore();                 //Blackwing lair
 void AddSC_boss_vaelastrasz();
 void AddSC_boss_broodlord();
@@ -68,17 +64,10 @@ void AddSC_boss_flamegor();
 void AddSC_boss_chromaggus();
 void AddSC_boss_nefarian();
 void AddSC_instance_blackwing_lair();
-void AddSC_deadmines();                      //Deadmines
-void AddSC_instance_deadmines();
-void AddSC_boss_helix_gearbreaker();
-void AddSC_boss_foereaper5000();
-void AddSC_boss_glubtok();
-void AddSC_boss_captain_cookie();
-void AddSC_boss_admiral_ripsnarl();
-void AddSC_boss_vanessa_vancleef();
-void AddSC_boss_mr_smite();
+void AddSC_instance_deadmines();             //Deadmines
 void AddSC_gnomeregan();                     //Gnomeregan
 void AddSC_instance_gnomeregan();
+void AddSC_instance_grim_batol();            //Grim Batol
 void AddSC_boss_attumen();                   //Karazhan
 void AddSC_boss_curator();
 void AddSC_boss_maiden_of_virtue();
@@ -108,10 +97,6 @@ void AddSC_boss_sulfuron();
 void AddSC_boss_majordomo();
 void AddSC_boss_ragnaros();
 void AddSC_instance_molten_core();
-void AddSC_instance_scarlet_halls();         //Scarlet Halls
-void AddSC_armsmaster_harlan();
-void AddSC_flameweaver_koegler();
-void AddSC_houndmaster_braun();
 void AddSC_the_scarlet_enclave();            //Scarlet Enclave
 void AddSC_the_scarlet_enclave_c1();
 void AddSC_the_scarlet_enclave_c2();
@@ -127,6 +112,8 @@ void AddSC_boss_interrogator_vishas();
 void AddSC_boss_scorn();
 void AddSC_instance_scarlet_monastery();
 void AddSC_boss_mograine_and_whitemane();
+void AddSC_instance_scarlet_halls();        // Scarlet Halls
+void AddSC_boss_armsmaster_harlan();
 void AddSC_boss_darkmaster_gandling();       //Scholomance
 void AddSC_boss_death_knight_darkreaver();
 void AddSC_boss_theolenkrastinov();
@@ -144,12 +131,6 @@ void AddSC_instance_scholomance();
 void AddSC_shadowfang_keep();                //Shadowfang keep
 void AddSC_instance_shadowfang_keep();
 void AddSC_boss_apothecary_hummel();
-void AddSC_boss_apothecary_trio();
-void AddSC_boss_baron_ashbury();
-void AddSC_boss_baron_silverlaine();
-void AddSC_boss_commander_springvale();
-void AddSC_boss_lord_valden();
-void AddSC_boss_lord_godfrey();
 void AddSC_boss_magistrate_barthilas();      //Stratholme
 void AddSC_boss_maleki_the_pallid();
 void AddSC_boss_nerubenkan();
@@ -181,6 +162,7 @@ void AddSC_instance_the_stockade();          //The Stockade
 void AddSC_boss_hogger();
 void AddSC_boss_randolph_moloch();
 void AddSC_boss_lord_overheat();
+void AddSC_instance_throne_of_the_tides();   //Throne of the Tides
 void AddSC_boss_akilzon();                   //Zul'Aman
 void AddSC_boss_halazzi();
 void AddSC_boss_hex_lord_malacrass();
@@ -225,16 +207,11 @@ void AddSC_undercity();
 // void Add${NameOfDirectory}Scripts()
 void AddEasternKingdomsScripts()
 {
-    AddSC_alterac_valley();                 //Alterac Valley
-    AddSC_boss_balinda();
-    AddSC_boss_drekthar();
-    AddSC_boss_galvangar();
-    AddSC_boss_vanndar();
-    AddSC_arathi_basin();                   //Arathi Basin
     AddSC_boss_alizabal();                  //Baradin Hold
     AddSC_boss_occuthar();
-    AddSC_boss_pit_lord_argaloth();
+    AddSC_boss_argaloth();
     AddSC_instance_baradin_hold();
+    AddSC_instance_bastion_of_twilight();   //Bastion of Twilight
     AddSC_boss_romogg_bonecrusher();        //Blackrock Caverns
     AddSC_boss_corla();
     AddSC_boss_karsh_steelbender();
@@ -268,6 +245,7 @@ void AddEasternKingdomsScripts()
     AddSC_boss_urok_doomhowl();
     AddSC_boss_lord_valthalak();
     AddSC_instance_blackrock_spire();
+    AddSC_instance_blackwing_descent();     //Blackwing Descent
     AddSC_boss_razorgore();                 //Blackwing lair
     AddSC_boss_vaelastrasz();
     AddSC_boss_broodlord();
@@ -277,16 +255,10 @@ void AddEasternKingdomsScripts()
     AddSC_boss_chromaggus();
     AddSC_boss_nefarian();
     AddSC_instance_blackwing_lair();
-    AddSC_deadmines();                      //Deadmines
-    AddSC_boss_foereaper5000();
-    AddSC_boss_glubtok();
-    AddSC_boss_captain_cookie();
-    AddSC_boss_mr_smite();
-    AddSC_boss_admiral_ripsnarl();
-    AddSC_boss_vanessa_vancleef();
-    AddSC_instance_deadmines();
+    AddSC_instance_deadmines();             //Deadmines
     AddSC_gnomeregan();                     //Gnomeregan
     AddSC_instance_gnomeregan();
+    AddSC_instance_grim_batol();            //Grim Batol
     AddSC_boss_attumen();                   //Karazhan
     AddSC_boss_curator();
     AddSC_boss_maiden_of_virtue();
@@ -316,10 +288,6 @@ void AddEasternKingdomsScripts()
     AddSC_boss_majordomo();
     AddSC_boss_ragnaros();
     AddSC_instance_molten_core();
-    AddSC_instance_scarlet_halls();         //Scarlet Halls
-    AddSC_armsmaster_harlan();
-    AddSC_flameweaver_koegler();
-    AddSC_houndmaster_braun();
     AddSC_the_scarlet_enclave();            //Scarlet Enclave
     AddSC_the_scarlet_enclave_c1();
     AddSC_the_scarlet_enclave_c2();
@@ -335,6 +303,8 @@ void AddEasternKingdomsScripts()
     AddSC_boss_scorn();
     AddSC_instance_scarlet_monastery();
     AddSC_boss_mograine_and_whitemane();
+    AddSC_instance_scarlet_halls();        // Scarlet Halls
+    AddSC_boss_armsmaster_harlan();
     AddSC_boss_darkmaster_gandling();       //Scholomance
     AddSC_boss_death_knight_darkreaver();
     AddSC_boss_theolenkrastinov();
@@ -352,12 +322,6 @@ void AddEasternKingdomsScripts()
     AddSC_shadowfang_keep();                //Shadowfang keep
     AddSC_instance_shadowfang_keep();
     AddSC_boss_apothecary_hummel();
-    AddSC_boss_apothecary_trio();
-    AddSC_boss_baron_ashbury();
-    AddSC_boss_baron_silverlaine();
-    AddSC_boss_lord_godfrey();
-    AddSC_boss_lord_valden();
-    AddSC_boss_commander_springvale();
     AddSC_boss_magistrate_barthilas();      //Stratholme
     AddSC_boss_maleki_the_pallid();
     AddSC_boss_nerubenkan();
@@ -385,6 +349,7 @@ void AddEasternKingdomsScripts()
     AddSC_boss_hogger();
     AddSC_boss_randolph_moloch();
     AddSC_boss_lord_overheat();
+    AddSC_instance_throne_of_the_tides();   //Throne of the Tides
     AddSC_boss_archaedas();                 //Uldaman
     AddSC_boss_ironaya();
     AddSC_uldaman();

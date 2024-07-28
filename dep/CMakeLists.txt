@@ -12,7 +12,6 @@ add_subdirectory(threads)
 
 if(SERVERS OR TOOLS)
   add_subdirectory(boost)
-  add_subdirectory(process)
   add_subdirectory(zlib)
   add_subdirectory(g3dlite)
   add_subdirectory(recastnavigation)
@@ -38,10 +37,6 @@ endif()
 
 if(TOOLS)
   add_subdirectory(CascLib)
-endif()
-
-if (ELUNA)
-  add_subdirectory(lualib)
 endif()
 
 if(BUILD_TESTING)

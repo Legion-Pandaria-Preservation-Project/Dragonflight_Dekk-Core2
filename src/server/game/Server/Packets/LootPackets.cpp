@@ -246,26 +246,3 @@ WorldPacket const* WorldPackets::Loot::AELootTargets::Write()
 
     return &_worldPacket;
 }
-
-
-
-// DekkCore >
-WorldPacket const* WorldPackets::Loot::LegacyLootRules::Write()
-{
-    _worldPacket.WriteBit(LegacyRulesActive);
-
-    return &_worldPacket;
-}
-
-void WorldPackets::Loot::CancelMasterLootRoll::Read()
-{
-    _worldPacket >> LootObj;
-    _worldPacket >> LootListID;
-}
-
-void WorldPackets::Loot::DoMasterLootRoll::Read()
-{
-    _worldPacket >> LootObj;
-    _worldPacket >> LootListID;
-}
-// < DekkCore

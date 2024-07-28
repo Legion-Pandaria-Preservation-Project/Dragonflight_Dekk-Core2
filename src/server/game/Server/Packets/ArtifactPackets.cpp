@@ -69,12 +69,3 @@ WorldPacket const* WorldPackets::Artifact::ArtifactXpGain::Write()
 
     return &_worldPacket;
 }
-
-WorldPacket const* WorldPackets::Artifact::ArtifactEndgamePowersRefunded::Write()
-{
-    _worldPacket << Guid;
-    _worldPacket << UnkInt;
-    _worldPacket << UnkInt2;
-
-    return &_worldPacket;
-}

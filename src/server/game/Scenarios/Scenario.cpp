@@ -18,18 +18,16 @@
 #include "Scenario.h"
 #include "Log.h"
 #include "Map.h"
-#include "Challenge.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
-#include "Group.h"
 #include "Player.h"
 #include "ScenarioMgr.h"
 #include "ScenarioPackets.h"
-
+#include "WorldSession.h"
 
 Scenario::Scenario(Map* map, ScenarioData const* scenarioData) : _map(map), _data(scenarioData),
-_guid(ObjectGuid::Create<HighGuid::Scenario>(map->GetId(), scenarioData->Entry->ID, map->GenerateLowGuid<HighGuid::Scenario>())),
-_currentstep(nullptr)
+    _guid(ObjectGuid::Create<HighGuid::Scenario>(map->GetId(), scenarioData->Entry->ID, map->GenerateLowGuid<HighGuid::Scenario>())),
+    _currentstep(nullptr)
 {
     ASSERT(_data);
 
@@ -89,18 +87,32 @@ void Scenario::CompleteStep(ScenarioStepEntry const* step)
 
 void Scenario::CompleteScenario()
 {
-    return SendPacket(WorldPackets::Scenario::ScenarioCompleted(_data->Entry->ID).Write());
+    SendPacket(WorldPackets::Scenario::ScenarioCompleted(_data->Entry->ID).Write());
+
+    DoForAllPlayers([&](Player* player)
+    {
+        player->UpdateCriteria(CriteriaType::CompleteAnyScenario, 1);
+        player->UpdateCriteria(CriteriaType::CompleteScenario, _data->Entry->ID);
+    });
 }
 
 void Scenario::SetStep(ScenarioStepEntry const* step)
 {
     _currentstep = step;
     if (step)
+    {
         SetStepState(step, SCENARIO_STEP_IN_PROGRESS);
+        for (ObjectGuid const& guid : _players)
+            if (Player* player = ObjectAccessor::GetPlayer(_map, guid))
+                player->StartCriteria(CriteriaStartEvent::BeginScenarioStep, step->ID);
+    }
 
-    WorldPackets::Scenario::ScenarioState scenarioState;
-    BuildScenarioState(&scenarioState);
-    SendPacket(scenarioState.Write());
+    DoForAllPlayers([&](Player const* receiver)
+    {
+        WorldPackets::Scenario::ScenarioState scenarioState;
+        BuildScenarioStateFor(receiver, &scenarioState);
+        receiver->SendDirectMessage(scenarioState.Write());
+    });
 }
 
 void Scenario::OnPlayerEnter(Player* player)
@@ -115,7 +127,7 @@ void Scenario::OnPlayerExit(Player* player)
     SendBootPlayer(player);
 }
 
-bool Scenario::IsComplete()
+bool Scenario::IsComplete() const
 {
     for (std::pair<uint8 const, ScenarioStepEntry const*> const& scenarioStep : _data->Steps)
     {
@@ -134,29 +146,33 @@ ScenarioEntry const* Scenario::GetEntry() const
     return _data->Entry;
 }
 
-ScenarioStepState Scenario::GetStepState(ScenarioStepEntry const* step)
+ScenarioStepState Scenario::GetStepState(ScenarioStepEntry const* step) const
 {
-    std::map<ScenarioStepEntry const*, ScenarioStepState>::const_iterator itr = _stepStates.find(step);
+    auto itr = _stepStates.find(step);
     if (itr == _stepStates.end())
         return SCENARIO_STEP_INVALID;
 
     return itr->second;
 }
 
-void Scenario::SendCriteriaUpdate(Criteria const * criteria, CriteriaProgress const * progress, Seconds timeElapsed, bool timedCompleted) const
+void Scenario::SendCriteriaUpdate(Criteria const* criteria, CriteriaProgress const* progress, Seconds timeElapsed, bool timedCompleted) const
 {
-    WorldPackets::Scenario::ScenarioProgressUpdate progressUpdate;
-    progressUpdate.CriteriaProgress.Id = criteria->ID;
-    progressUpdate.CriteriaProgress.Quantity = progress->Counter;
-    progressUpdate.CriteriaProgress.Player = progress->PlayerGUID;
-    progressUpdate.CriteriaProgress.Date = progress->Date;
-    if (criteria->Entry->StartTimer)
-        progressUpdate.CriteriaProgress.Flags = timedCompleted ? 1 : 0;
+    DoForAllPlayers([=](Player const* receiver)
+    {
+        WorldPackets::Scenario::ScenarioProgressUpdate progressUpdate;
+        progressUpdate.CriteriaProgress.Id = criteria->ID;
+        progressUpdate.CriteriaProgress.Quantity = progress->Counter;
+        progressUpdate.CriteriaProgress.Player = progress->PlayerGUID;
+        progressUpdate.CriteriaProgress.Date.SetUtcTimeFromUnixTime(progress->Date);
+        progressUpdate.CriteriaProgress.Date += receiver->GetSession()->GetTimezoneOffset();
+        if (criteria->Entry->StartTimer)
+            progressUpdate.CriteriaProgress.Flags = timedCompleted ? 1 : 0;
 
-    progressUpdate.CriteriaProgress.TimeFromStart = timeElapsed;
-    progressUpdate.CriteriaProgress.TimeFromCreate = Seconds::zero();
+        progressUpdate.CriteriaProgress.TimeFromStart = timeElapsed;
+        progressUpdate.CriteriaProgress.TimeFromCreate = Seconds::zero();
 
-    SendPacket(progressUpdate.Write());
+        receiver->SendDirectMessage(progressUpdate.Write());
+    });
 }
 
 bool Scenario::CanUpdateCriteriaTree(Criteria const * /*criteria*/, CriteriaTree const * tree, Player * /*referencePlayer*/) const
@@ -218,20 +234,28 @@ bool Scenario::IsCompletedStep(ScenarioStepEntry const* step)
     return IsCompletedCriteriaTree(tree);
 }
 
-void Scenario::SendPacket(WorldPacket const* data) const
+void Scenario::DoForAllPlayers(std::function<void(Player*)> const& worker) const
 {
     for (ObjectGuid guid : _players)
         if (Player* player = ObjectAccessor::GetPlayer(_map, guid))
-            player->SendDirectMessage(data);
+            worker(player);
 }
 
-void Scenario::BuildScenarioState(WorldPackets::Scenario::ScenarioState* scenarioState)
+void Scenario::SendPacket(WorldPacket const* data) const
+{
+    DoForAllPlayers([data](Player const* player)
+    {
+        player->SendDirectMessage(data);
+    });
+}
+
+void Scenario::BuildScenarioStateFor(Player const* player, WorldPackets::Scenario::ScenarioState* scenarioState) const
 {
     scenarioState->ScenarioGUID = _guid;
     scenarioState->ScenarioID = _data->Entry->ID;
     if (ScenarioStepEntry const* step = GetStep())
         scenarioState->CurrentStep = step->ID;
-    scenarioState->CriteriaProgress = GetCriteriasProgress();
+    scenarioState->CriteriaProgress = GetCriteriasProgressFor(player);
     scenarioState->BonusObjectives = GetBonusObjectivesData();
     // Don't know exactly what this is for, but seems to contain list of scenario steps that we're either on or that are completed
     for (std::pair<ScenarioStepEntry const* const, ScenarioStepState> const& state : _stepStates)
@@ -286,14 +310,14 @@ ScenarioStepEntry const* Scenario::GetLastStep() const
     return lastStep;
 }
 
-void Scenario::SendScenarioState(Player* player)
+void Scenario::SendScenarioState(Player const* player) const
 {
     WorldPackets::Scenario::ScenarioState scenarioState;
-    BuildScenarioState(&scenarioState);
+    BuildScenarioStateFor(player, &scenarioState);
     player->SendDirectMessage(scenarioState.Write());
 }
 
-std::vector<WorldPackets::Scenario::BonusObjectiveData> Scenario::GetBonusObjectivesData()
+std::vector<WorldPackets::Scenario::BonusObjectiveData> Scenario::GetBonusObjectivesData() const
 {
     std::vector<WorldPackets::Scenario::BonusObjectiveData> bonusObjectivesData;
     for (std::pair<uint8 const, ScenarioStepEntry const*> const& scenarioStep : _data->Steps)
@@ -313,21 +337,18 @@ std::vector<WorldPackets::Scenario::BonusObjectiveData> Scenario::GetBonusObject
     return bonusObjectivesData;
 }
 
-std::vector<WorldPackets::Achievement::CriteriaProgress> Scenario::GetCriteriasProgress()
+std::vector<WorldPackets::Achievement::CriteriaProgress> Scenario::GetCriteriasProgressFor(Player const* player) const
 {
     std::vector<WorldPackets::Achievement::CriteriaProgress> criteriasProgress;
 
-    if (!_criteriaProgress.empty())
+    for (auto const& [criteriaId, progress] : _criteriaProgress)
     {
-        for (std::pair<uint32 const, CriteriaProgress> const& progressPair : _criteriaProgress)
-        {
-            WorldPackets::Achievement::CriteriaProgress criteriaProgress;
-            criteriaProgress.Id = progressPair.first;
-            criteriaProgress.Quantity = progressPair.second.Counter;
-            criteriaProgress.Date = progressPair.second.Date;
-            criteriaProgress.Player = progressPair.second.PlayerGUID;
-            criteriasProgress.push_back(criteriaProgress);
-        }
+        WorldPackets::Achievement::CriteriaProgress& criteriaProgress = criteriasProgress.emplace_back();
+        criteriaProgress.Id = criteriaId;
+        criteriaProgress.Quantity = progress.Counter;
+        criteriaProgress.Date.SetUtcTimeFromUnixTime(progress.Date);
+        criteriaProgress.Date += player->GetSession()->GetTimezoneOffset();
+        criteriaProgress.Player = progress.PlayerGUID;
     }
 
     return criteriasProgress;
@@ -338,219 +359,10 @@ CriteriaList const& Scenario::GetCriteriaByType(CriteriaType type, uint32 /*asse
     return sCriteriaMgr->GetScenarioCriteriaByTypeAndScenario(type, _data->Entry->ID);
 }
 
-void Scenario::SendBootPlayer(Player* player)
+void Scenario::SendBootPlayer(Player const* player) const
 {
     WorldPackets::Scenario::ScenarioVacate scenarioBoot;
     scenarioBoot.ScenarioGUID = _guid;
     scenarioBoot.ScenarioID = _data->Entry->ID;
     player->SendDirectMessage(scenarioBoot.Write());
 }
-
-//DekkCore
-void Scenario::CreateChallenge(Player* player) //declarar instances bfa +sl + df 
-{
-    Map* map = GetMap();
-    if (!player || !map || !map->ToInstanceMap())
-        return;
-
-    MapChallengeModeEntry const* m_challengeEntry = player->GetGroup() ? player->GetGroup()->m_challengeEntry : player->m_challengeKeyInfo.challengeEntry;
-    if (!m_challengeEntry)
-        return;
-
-    _challenge = new Challenge(map, player, GetInstanceId(), this);
-
-    if (!_challenge || !_challenge->_canRun)
-        return;
-
-
-    if (Map* map_ = GetMap())
-    {
-        if (InstanceMap* instanceMap = map_->ToInstanceMap())
-        {
-            if (InstanceScript* script = instanceMap->GetInstanceScript())
-            {
-                script->SetChallenge(_challenge);
-                _challenge->SetInstanceScript(script);
-            }
-        }
-    }
-    
-    switch (m_challengeEntry->ID)
-    {
-    case 197: // Eye of Azshara
-             scenarioId = 1169;
-        break;
-    case 198: // Darkheart Thicket
-        scenarioId = 1172;
-        break;
-    case 199: // Black Rook Hold
-        scenarioId = 1166;
-        break;
-    case 200: // Halls of Valor
-        scenarioId = 1046;
-        break;
-    case 206: // Neltharion's Lair
-        scenarioId = 1174;
-        break;
-    case 207: // Vault of the Wardens
-        scenarioId = 1173;
-        break;
-    case 208: // Maw of Souls
-        scenarioId = 1175;
-        break;
-    case 209: // The Arcway
-        scenarioId = 1177;
-        break;
-    case 210: // Court of Stars
-        scenarioId = 1178;
-        break;
-    case 227: // Return to Karazhan: Lower
-        scenarioId = 1309;
-        break;
-    case 233: // Cathedral of Eternal Night
-        scenarioId = 1335;
-        break;
-    case 234: // Return to Karazhan: Upper
-        scenarioId = 1308;
-        break;
-    default:
-        break;
-    }
-
-    _scenarioEntry = sScenarioStore.LookupEntry(scenarioId);
-    ASSERT(_scenarioEntry);
-
-   // ScenarioSteps const* _steps = sScenarioMgr->GetScenarioSteps(scenarioId, _challenge->HasAffix(Affixes::Teeming));
-  //  ASSERT(_steps); TODO THOR
-
-    currentStep = 0;
-   // steps = *_steps;
-    if (steps.size() <= currentStep)
-    {
-        TC_LOG_DEBUG("sql", "CreateChallenge steps {} currentStep {}", steps.size(), currentStep);
-        return;
-    }
-
- //   currentTree = GetScenarioCriteriaByStep(currentStep);
-    ActiveSteps.clear();
-    ActiveSteps.push_back(steps[currentStep]->ID);
-
-    for (auto const& step : steps)
-        SetStepState(step, SCENARIO_STEP_NOT_STARTED);
-
-  //  SetCurrentStep(0);
-
-    TC_LOG_ERROR("LOG_FILTER_CHALLENGE", "{} {}, mapID: {}, scenarioID: {}", __FUNCTION__, __LINE__, map->GetId(), scenarioId);
-}
-
-Challenge* Scenario::GetChallenge()
-{
-    return _challenge;
-}
-
-Map* Scenario::GetMap()
-{
-    return curMap;
-}
-
-uint32 Scenario::GetInstanceId() const
-{
-    return instanceId;
-}
-
-void Scenario::SendScenarioEvent(Player* player, uint32 eventId)
-{
-    UpdateCriteria(CriteriaType::AnyoneTriggerGameEventScenario, eventId, 0, 0, nullptr, player);
-}
-
-uint32 Scenario::GetScenarioId() const
-{
-    return scenarioId;
-}
-
-bool Scenario::IsCompleted(bool bonus) const
-{
-    return currentStep == GetStepCount(bonus);
-}
-
-uint8 Scenario::GetStepCount(bool withBonus) const
-{
-    if (withBonus)
-        return steps.size();
-
-    uint8 count = 0;
-    for (auto const& v : steps)
-        if (!v->IsBonusObjective())
-            ++count;
-
-    return count;
-}
-
-uint32 Scenario::GetCurrentStep() const
-{
-    return currentStep;
-}
-
-void Scenario::SendStepUpdate(Player* player, bool full)
-{
-    WorldPackets::Scenario::ScenarioState state;
-    state.BonusObjectives = GetBonusObjectivesData();
-    state.ScenarioID = GetScenarioId();
-    state.CurrentStep = currentStep < steps.size() ? steps[currentStep]->ID : -1;
-    state.ScenarioComplete = IsCompleted(false);
-    state.PickedSteps = ActiveSteps;
-
-    std::vector<ScenarioSpellData> const* scSpells = sObjectMgr->GetScenarioSpells(GetScenarioId());
-    if (scSpells)
-    {
-        for (std::vector<ScenarioSpellData>::const_iterator itr = scSpells->begin(); itr != scSpells->end(); ++itr)
-        {
-            // if ((*itr).StepId == state.ActiveSteps)
-            if ((*itr).StepId == GetCurrentStep())
-            {
-                WorldPackets::Scenario::ScenarioSpellUpdate spellUpdate;
-                spellUpdate.Usable = true;
-                spellUpdate.SpellID = (*itr).Spells;
-                state.Spells.emplace_back(spellUpdate);
-            }
-        }
-    }
-
-    //if (full)
-    //{
-      //  CriteriaProgressMap const* progressMap = GetAchievementMgr().GetCriteriaProgressMap();
-      //  if (!progressMap->empty())
-      //  {
-            //for (CriteriaProgressMap::const_iterator itr = progressMap->begin(); itr != progressMap->end(); ++itr)
-          //  {
-            //    CriteriaProgress const& treeProgress = itr->second;
-            //    CriteriaTreeEntry const* criteriaTreeEntry = sCriteriaTreeStore.LookupEntry(itr->first);
-            //    if (!criteriaTreeEntry)
-            //        continue;
-
-            //    WorldPackets::Achievement::CriteriaTreeProgress progress;
-            //    progress.Id = criteriaTreeEntry->CriteriaID;
-            //    progress.Quantity = treeProgress.Counter;
-            //    progress.Player = ObjectGuid::Create<HighGuid::Scenario>(0, GetScenarioId(), 1); // whats the fuck ?
-            //    progress.Flags = 0;
-            //    progress.Date = time(nullptr) - treeProgress.date;
-            //    progress.TimeFromStart = time(nullptr) - treeProgress.date;
-            //    progress.TimeFromCreate = time(nullptr) - treeProgress.date;
-            //    state.Progress.push_back(progress);
-            //}
-     //   }
-  //  }
-
-    if (player)
-        player->SendDirectMessage(state.Write());
- //   else
-   //     BroadCastPacket(state.Write());
-
-    if (full && _challenge)
-    {
-        _challenge->SendChallengeModeStart(player);
-        _challenge->SendStartElapsedTimer(player);
-    }
-}
-
-//DekkCore

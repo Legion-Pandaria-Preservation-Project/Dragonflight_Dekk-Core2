@@ -61,9 +61,10 @@ namespace WorldPackets
             void Read() override;
 
             int32 Language = LANG_UNIVERSAL;
-            std::string Text;
+            ObjectGuid TargetGUID;
+            uint32 TargetVirtualRealmAddress = 0;
             std::string Target;
-            Optional<bool> IsSecure;
+            std::string Text;
         };
 
         // CMSG_CHAT_MESSAGE_CHANNEL
@@ -78,6 +79,7 @@ namespace WorldPackets
             ObjectGuid ChannelGUID;
             std::string Text;
             std::string Target;
+            Optional<bool> IsSecure;
         };
 
         struct ChatAddonMessageParams
@@ -105,14 +107,16 @@ namespace WorldPackets
         public:
             ChatAddonMessageTargeted(WorldPacket&& packet) : ClientPacket(CMSG_CHAT_ADDON_MESSAGE_TARGETED, std::move(packet))
             {
-                ChannelGUID.emplace();
             }
 
             void Read() override;
 
-            std::string Target;
             ChatAddonMessageParams Params;
-            Optional<ObjectGuid> ChannelGUID; // not optional in the packet. Optional for api reasons
+            std::string PlayerName;
+            ObjectGuid PlayerGUID;
+            uint32 PlayerVirtualRealmAddress = 0;
+            std::string ChannelName;
+            ObjectGuid ChannelGUID;
         };
 
         class ChatMessageDND final : public ClientPacket
@@ -223,6 +227,14 @@ namespace WorldPackets
             int32 EmoteID = 0;
         };
 
+        class ClearBossEmotes final : public ServerPacket
+        {
+        public:
+            ClearBossEmotes() : ServerPacket(SMSG_CLEAR_BOSS_EMOTES, 0) { }
+
+            WorldPacket const* Write() override { return &_worldPacket; }
+        };
+
         class TC_GAME_API PrintNotification final : public ServerPacket
         {
         public:
@@ -259,7 +271,7 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             int32 MessageID = 0;
-            std::string StringParam;
+            std::string_view StringParam;
         };
 
         class ChatRegisterAddonPrefixes final : public ClientPacket
@@ -320,11 +332,11 @@ namespace WorldPackets
         class ChatRestricted final : public ServerPacket
         {
         public:
-            ChatRestricted() : ServerPacket(SMSG_CHAT_RESTRICTED, 1) { }
+            ChatRestricted() : ServerPacket(SMSG_CHAT_RESTRICTED, 4) { }
 
             WorldPacket const* Write() override;
 
-            uint8 Reason = 0;
+            int32 Reason = 0;
         };
 
         class CanLocalWhisperTargetRequest final : public ClientPacket
@@ -348,18 +360,26 @@ namespace WorldPackets
             ChatWhisperTargetStatus Status = {};
         };
 
-        //DekkCore
-        class ChatReportFiltered final : public ClientPacket
+        class UpdateAADCStatus final : public ClientPacket
         {
         public:
-            ChatReportFiltered(WorldPacket&& packet) : ClientPacket(CMSG_CHAT_REPORT_FILTERED, std::move(packet)) { }
+            UpdateAADCStatus(WorldPacket&& packet) : ClientPacket(CMSG_UPDATE_AADC_STATUS, std::move(packet)) { }
 
             void Read() override;
 
-            ObjectGuid WhisperTarget;
+            bool ChatDisabled = false;
         };
 
-        //Dekkcore 
+        class UpdateAADCStatusResponse final : public ServerPacket
+        {
+        public:
+            UpdateAADCStatusResponse() : ServerPacket(SMSG_UPDATE_AADC_STATUS_RESPONSE, 1) { }
+
+            WorldPacket const* Write() override;
+
+            bool Success = false;
+            bool ChatDisabled = false;
+        };
     }
 }
 

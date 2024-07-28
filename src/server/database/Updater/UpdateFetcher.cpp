@@ -16,13 +16,13 @@
  */
 
 #include "UpdateFetcher.h"
-#include "Common.h"
+#include "CryptoHash.h"
 #include "DBUpdater.h"
 #include "Field.h"
-#include "CryptoHash.h"
 #include "Log.h"
 #include "QueryResult.h"
 #include "Util.h"
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <fstream>
 #include <sstream>
@@ -41,8 +41,8 @@ UpdateFetcher::UpdateFetcher(Path const& sourceDirectory,
     std::function<void(std::string const&)> const& apply,
     std::function<void(Path const& path)> const& applyFile,
     std::function<QueryResult(std::string const&)> const& retrieve) :
-    _sourceDirectory(std::make_unique<Path>(sourceDirectory)), _apply(apply), _applyFile(applyFile),
-    _retrieve(retrieve)
+        _sourceDirectory(std::make_unique<Path>(sourceDirectory)), _apply(apply), _applyFile(applyFile),
+        _retrieve(retrieve)
 {
 }
 
@@ -143,7 +143,8 @@ UpdateFetcher::AppliedFileStorage UpdateFetcher::ReceiveAppliedFiles() const
             AppliedFileEntry::StateConvert(fields[2].GetString()), fields[3].GetUInt64() };
 
         map.insert(std::make_pair(entry.name, entry));
-    } while (result->NextRow());
+    }
+    while (result->NextRow());
 
     return map;
 }
@@ -154,14 +155,14 @@ std::string UpdateFetcher::ReadSQLUpdate(boost::filesystem::path const& file) co
     if (!in.is_open())
     {
         TC_LOG_FATAL("sql.updates", "Failed to open the sql update \"{}\" for reading! "
-            "Stopping the server to keep the database integrity, "
-            "try to identify and solve the issue or disable the database updater.",
-            file.generic_string());
+                     "Stopping the server to keep the database integrity, "
+                     "try to identify and solve the issue or disable the database updater.",
+                     file.generic_string());
 
         throw UpdateException("Opening the sql update failed!");
     }
 
-    auto update = [&in] {
+    auto update = [&in]  {
         std::ostringstream ss;
         ss << in.rdbuf();
         return ss.str();
@@ -172,9 +173,9 @@ std::string UpdateFetcher::ReadSQLUpdate(boost::filesystem::path const& file) co
 }
 
 UpdateResult UpdateFetcher::Update(bool const redundancyChecks,
-    bool const allowRehash,
-    bool const archivedRedundancy,
-    int32 const cleanDeadReferencesMaxCount) const
+                                   bool const allowRehash,
+                                   bool const archivedRedundancy,
+                                   int32 const cleanDeadReferencesMaxCount) const
 {
     LocaleFileStorage const available = GetFileList();
     AppliedFileStorage applied = ReceiveAppliedFiles();
@@ -243,8 +244,8 @@ UpdateResult UpdateFetcher::Update(bool const redundancyChecks,
                 {
                     TC_LOG_WARN("sql.updates", ">> It seems like the update \"{}\" \'{}\' was renamed, but the old file is still there! " \
                         "Treating it as a new file! (It is probably an unmodified copy of the file \"{}\")",
-                        availableQuery.first.filename().string(), hash.substr(0, 7),
-                        localeIter->first.filename().string());
+                            availableQuery.first.filename().string(), hash.substr(0, 7),
+                                localeIter->first.filename().string());
                 }
                 // It is safe to treat the file as renamed here
                 else
@@ -303,12 +304,12 @@ UpdateResult UpdateFetcher::Update(bool const redundancyChecks,
 
         switch (mode)
         {
-        case MODE_APPLY:
-            speed = Apply(availableQuery.first);
-            [[fallthrough]];
-        case MODE_REHASH:
-            UpdateEntry(file, speed);
-            break;
+            case MODE_APPLY:
+                speed = Apply(availableQuery.first);
+                [[fallthrough]];
+            case MODE_REHASH:
+                UpdateEntry(file, speed);
+                break;
         }
 
         if (iter != applied.end())
@@ -411,7 +412,7 @@ void UpdateFetcher::CleanUp(AppliedFileStorage const& storage) const
 
 void UpdateFetcher::UpdateState(std::string const& name, State const state) const
 {
-    std::string const update = "UPDATE `updates` SET `state`=\'" + AppliedFileEntry::StateConvert(state) + "\' WHERE `name`=\"" + name + "\"";
+    std::string const update = Trinity::StringFormat(R"(UPDATE `updates` SET `state`='{}' WHERE `name`="{}")", AppliedFileEntry::StateConvert(state), name);
 
     // Update database
     _apply(update);

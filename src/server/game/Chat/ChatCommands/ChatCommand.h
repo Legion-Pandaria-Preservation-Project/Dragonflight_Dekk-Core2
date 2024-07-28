@@ -179,34 +179,34 @@ namespace Trinity::Impl::ChatCommands
         friend struct FilteredCommandListIterator;
         using ChatCommandBuilder = Trinity::ChatCommands::ChatCommandBuilder;
 
-    public:
-        static void LoadCommandMap();
-        static void InvalidateCommandMap();
-        static bool TryExecuteCommand(ChatHandler& handler, std::string_view cmd);
-        static void SendCommandHelpFor(ChatHandler& handler, std::string_view cmd);
-        static std::vector<std::string> GetAutoCompletionsFor(ChatHandler const& handler, std::string_view cmd);
+        public:
+            static void LoadCommandMap();
+            static void InvalidateCommandMap();
+            static bool TryExecuteCommand(ChatHandler& handler, std::string_view cmd);
+            static void SendCommandHelpFor(ChatHandler& handler, std::string_view cmd);
+            static std::vector<std::string> GetAutoCompletionsFor(ChatHandler const& handler, std::string_view cmd);
 
-        ChatCommandNode() : _name{}, _invoker{}, _permission{}, _help{}, _subCommands{} {}
+            ChatCommandNode() : _name{}, _invoker {}, _permission{}, _help{}, _subCommands{} {}
 
-    private:
-        static std::map<std::string_view, ChatCommandNode, StringCompareLessI_T> const& GetTopLevelMap();
-        static void LoadCommandsIntoMap(ChatCommandNode* blank, std::map<std::string_view, ChatCommandNode, StringCompareLessI_T>& map, Trinity::ChatCommands::ChatCommandTable const& commands);
+        private:
+            static std::map<std::string_view, ChatCommandNode, StringCompareLessI_T> const& GetTopLevelMap();
+            static void LoadCommandsIntoMap(ChatCommandNode* blank, std::map<std::string_view, ChatCommandNode, StringCompareLessI_T>& map, Trinity::ChatCommands::ChatCommandTable const& commands);
 
-        void LoadFromBuilder(ChatCommandBuilder const& builder);
-        ChatCommandNode(ChatCommandNode&& other) = default;
+            void LoadFromBuilder(ChatCommandBuilder const& builder);
+            ChatCommandNode(ChatCommandNode&& other) = default;
 
-        void ResolveNames(std::string name);
-        void SendCommandHelp(ChatHandler& handler) const;
+            void ResolveNames(std::string name);
+            void SendCommandHelp(ChatHandler& handler) const;
 
-        bool IsVisible(ChatHandler const& who) const { return (IsInvokerVisible(who) || HasVisibleSubCommands(who)); }
-        bool IsInvokerVisible(ChatHandler const& who) const;
-        bool HasVisibleSubCommands(ChatHandler const& who) const;
+            bool IsVisible(ChatHandler const& who) const { return (IsInvokerVisible(who) || HasVisibleSubCommands(who)); }
+            bool IsInvokerVisible(ChatHandler const& who) const;
+            bool HasVisibleSubCommands(ChatHandler const& who) const;
 
-        std::string _name;
-        CommandInvoker _invoker;
-        CommandPermissions _permission;
-        std::variant<std::monostate, TrinityStrings, std::string> _help;
-        std::map<std::string_view, ChatCommandNode, StringCompareLessI_T> _subCommands;
+            std::string _name;
+            CommandInvoker _invoker;
+            CommandPermissions _permission;
+            std::variant<std::monostate, TrinityStrings, std::string> _help;
+            std::map<std::string_view, ChatCommandNode, StringCompareLessI_T> _subCommands;
     };
 }
 

@@ -18,21 +18,21 @@
 #ifndef TRINITY_TYPECONTAINER_H
 #define TRINITY_TYPECONTAINER_H
 
- /*
-  * Here, you'll find a series of containers that allow you to hold multiple
-  * types of object at the same time.
-  */
+/*
+ * Here, you'll find a series of containers that allow you to hold multiple
+ * types of object at the same time.
+ */
 
 #include <unordered_map>
 #include "Define.h"
 #include "Dynamic/TypeList.h"
 #include "GridRefManager.h"
 
-  /*
-   * @class ContainerMapList is a mulit-type container for map elements
-   * By itself its meaningless but collaborate along with TypeContainers,
-   * it become the most powerfully container in the whole system.
-   */
+/*
+ * @class ContainerMapList is a mulit-type container for map elements
+ * By itself its meaningless but collaborate along with TypeContainers,
+ * it become the most powerfully container in the whole system.
+ */
 template<class OBJECT>
 struct ContainerMapList
 {
@@ -94,7 +94,7 @@ public:
 
     /// inserts a specific object into the container
     template<class SPECIFIC_TYPE>
-    bool insert(SPECIFIC_TYPE* obj);
+    bool insert(SPECIFIC_TYPE *obj);
 
     ///  Removes the object from the container, and returns the removed object
     //template<class SPECIFIC_TYPE>

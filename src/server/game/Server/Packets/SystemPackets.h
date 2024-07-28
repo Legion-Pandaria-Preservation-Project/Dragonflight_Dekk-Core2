@@ -29,18 +29,18 @@ namespace WorldPackets
     {
         struct SavedThrottleObjectState
         {
-            uint32 MaxTries = 0;
-            uint32 PerMilliseconds = 0;
-            uint32 TryCount = 0;
+            uint32 MaxTries               = 0;
+            uint32 PerMilliseconds        = 0;
+            uint32 TryCount               = 0;
             uint32 LastResetTimeBeforeNow = 0;
         };
 
         struct EuropaTicketConfig
         {
-            bool TicketsEnabled = true;
-            bool BugsEnabled = false;
-            bool ComplaintsEnabled = true;
-            bool SuggestionsEnabled = true;
+            bool TicketsEnabled     = false;
+            bool BugsEnabled        = false;
+            bool ComplaintsEnabled  = false;
+            bool SuggestionsEnabled = false;
 
             SavedThrottleObjectState ThrottleState;
         };
@@ -56,8 +56,8 @@ namespace WorldPackets
         public:
             struct SessionAlertConfig
             {
-                int32 Delay = 0;
-                int32 Period = 0;
+                int32 Delay       = 0;
+                int32 Period      = 0;
                 int32 DisplayTime = 0;
             };
 
@@ -97,8 +97,8 @@ namespace WorldPackets
 
             struct RafSystemFeatureInfo
             {
-                bool Enabled = true;
-                bool RecruitingEnabled = true;
+                bool Enabled = false;
+                bool RecruitingEnabled = false;
                 uint32 MaxRecruits = 0;
                 uint32 MaxRecruitMonths = 0;
                 uint32 MaxRecruitmentUses = 0;
@@ -106,64 +106,80 @@ namespace WorldPackets
                 uint32 Unknown1007 = 0;
             };
 
+            struct AddonChatThrottleParams
+            {
+                int32 MaxTries = 0;
+                int32 TriesRestoredPerSecond = 0;
+                int32 UsedTriesPerMessage = 0;
+            };
+
             FeatureSystemStatus() : ServerPacket(SMSG_FEATURE_SYSTEM_STATUS, 200) { }
 
             WorldPacket const* Write() override;
 
-            bool VoiceEnabled = false;
-            bool BrowserEnabled = false;
-            bool BpayStoreAvailable = false;
-            bool BpayStoreEnabled = false;
+            bool VoiceEnabled                        = false;
+            bool BrowserEnabled                      = false;
+            bool BpayStoreAvailable                  = false;
+            bool BpayStoreEnabled                    = false;
             Optional<SessionAlertConfig> SessionAlert;
             Optional<EuropaTicketConfig> EuropaTicketSystemStatus;
-            uint32 CfgRealmID = 0;
-            uint8 ComplaintStatus = 0;
-            int32 CfgRealmRecID = 0;
-            uint32 TokenPollTimeSeconds = 0;
-            int64 TokenBalanceAmount = 0;
-            uint32 BpayStoreProductDeliveryDelay = 0;
-            uint32 ClubsPresenceUpdateTimer = 0;
-            uint32 HiddenUIClubsPresenceUpdateTimer = 0; ///< Timer for updating club presence when communities ui frame is hidden
-            uint32 KioskSessionMinutes = 0;
-            int32 ActiveSeason = 0; ///< Currently active Classic season
-            int16 MaxPlayerNameQueriesPerPacket = 50;
-            int16 PlayerNameQueryTelemetryInterval = 600;
+            uint32 CfgRealmID                            = 0;
+            uint8 ComplaintStatus                        = 0;
+            int32 CfgRealmRecID                          = 0;
+            uint32 TokenPollTimeSeconds                  = 0;
+            int64 TokenBalanceAmount                     = 0;
+            uint32 BpayStoreProductDeliveryDelay         = 0;
+            uint32 ClubsPresenceUpdateTimer              = 0;
+            uint32 HiddenUIClubsPresenceUpdateTimer      = 0; ///< Timer for updating club presence when communities ui frame is hidden
+            uint32 KioskSessionMinutes                   = 0;
+            int32 ActiveSeason                           = 0; ///< Currently active Classic season
+            int16 MaxPlayerNameQueriesPerPacket          = 50;
+            int16 PlayerNameQueryTelemetryInterval       = 600;
             Duration<Seconds, uint32> PlayerNameQueryInterval = 10s;
-            bool ItemRestorationButtonEnabled = false;
-            bool CharUndeleteEnabled = false; ///< Implemented
+            bool ItemRestorationButtonEnabled        = false;
+            bool CharUndeleteEnabled                 = false; ///< Implemented
             bool BpayStoreDisabledByParentalControls = false;
-            bool CommerceSystemEnabled = false;
-            bool Unk67 = false;
-            bool WillKickFromWorld = false;
-            bool RestrictedAccount = false;
-            bool TutorialsEnabled = false;
-            bool NPETutorialsEnabled = false;
-            bool KioskModeEnabled = false;
-            bool CompetitiveModeEnabled = false;
-            bool TokenBalanceEnabled = false;
-            bool WarModeFeatureEnabled = true;
-            bool ClubsEnabled = false;
-            bool ClubsBattleNetClubTypeAllowed = false;
-            bool ClubsCharacterClubTypeAllowed = false;
-            bool ClubsPresenceUpdateEnabled = false;
-            bool VoiceChatDisabledByParentalControl = false;
-            bool VoiceChatMutedByParentalControl = false;
-            bool QuestSessionEnabled = false;
-            bool IsMuted = false;
-            bool ClubFinderEnabled = false;
-            bool Unknown901CheckoutRelated = false;
-            bool TextToSpeechFeatureEnabled = false;
-            bool ChatDisabledByDefault = false;
-            bool ChatDisabledByPlayer = false;
-            bool LFGListCustomRequiresAuthenticator = false;
-            bool AddonsDisabled = false;
-            bool Unused1000 = false;
-            bool ContentTrackingEnabled = true;
+            bool CommerceSystemEnabled               = false;
+            bool Unk67                               = false;
+            bool WillKickFromWorld                   = false;
+            bool RestrictedAccount                   = false;
+            bool TutorialsEnabled                    = false;
+            bool NPETutorialsEnabled                 = false;
+            bool KioskModeEnabled                    = false;
+            bool CompetitiveModeEnabled              = false;
+            bool TokenBalanceEnabled                 = false;
+            bool WarModeFeatureEnabled               = true;
+            bool ClubsEnabled                        = false;
+            bool ClubsBattleNetClubTypeAllowed       = false;
+            bool ClubsCharacterClubTypeAllowed       = false;
+            bool ClubsPresenceUpdateEnabled          = false;
+            bool VoiceChatDisabledByParentalControl  = false;
+            bool VoiceChatMutedByParentalControl     = false;
+            bool QuestSessionEnabled                 = false;
+            bool IsMuted                             = false;
+            bool ClubFinderEnabled                   = false;
+            bool CommunityFinderEnabled              = false;
+            bool Unknown901CheckoutRelated           = false;
+            bool TextToSpeechFeatureEnabled          = false;
+            bool ChatDisabledByDefault               = false;
+            bool ChatDisabledByPlayer                = false;
+            bool LFGListCustomRequiresAuthenticator  = false;
+            bool AddonsDisabled                      = false;
+            bool WarGamesEnabled                     = false; // classic only
+            bool ContentTrackingEnabled              = false;
+            bool IsSellAllJunkEnabled                = false;
+            bool IsGroupFinderEnabled                = true;  // classic only
+            bool IsLFDEnabled                        = true;  // classic only
+            bool IsLFREnabled                        = true;  // classic only
+            bool IsPremadeGroupEnabled               = true;  // classic only
+            bool CanShowSetRoleButton                = true;
 
             SocialQueueConfig QuickJoinConfig;
             SquelchInfo Squelch;
             RafSystemFeatureInfo RAFSystem;
             std::vector<GameRuleValuePair> GameRuleValues;
+            std::string Unknown1027;                          // related to movement lua functions used by keybinds
+            AddonChatThrottleParams AddonChatThrottle;
         };
 
         struct DebugTimeEventInfo
@@ -179,56 +195,53 @@ namespace WorldPackets
 
             WorldPacket const* Write() override;
 
-            bool BpayStoreAvailable = false; // NYI
+            bool BpayStoreAvailable                  = false; // NYI
             bool BpayStoreDisabledByParentalControls = false; // NYI
-            bool CharUndeleteEnabled = false;
-            bool BpayStoreEnabled = false; // NYI
-            bool CommerceSystemEnabled = false; // NYI
-            bool Unk14 = false; // NYI
-            bool WillKickFromWorld = false; // NYI
-            bool IsExpansionPreorderInStore = false; // NYI
-            bool KioskModeEnabled = false; // NYI
-            bool CompetitiveModeEnabled = false; // NYI
-            bool TrialBoostEnabled = false; // NYI
-            bool TokenBalanceEnabled = false; // NYI
-            bool LiveRegionCharacterListEnabled = false; // NYI
-            bool LiveRegionCharacterCopyEnabled = false; // NYI
-            bool LiveRegionAccountCopyEnabled = false; // NYI
-            bool LiveRegionKeyBindingsCopyEnabled = false;
-            bool Unknown901CheckoutRelated = false; // NYI
-            bool AddonsDisabled = false;
-            bool Unused1000 = false;
-            bool AccountSaveDataExportEnabled = false;
-            bool AccountLockedByExport = false;
+            bool CharUndeleteEnabled                 = false;
+            bool BpayStoreEnabled                    = false; // NYI
+            bool CommerceSystemEnabled               = false; // NYI
+            bool Unk14                               = false; // NYI
+            bool WillKickFromWorld                   = false; // NYI
+            bool IsExpansionPreorderInStore          = false; // NYI
+            bool KioskModeEnabled                    = false; // NYI
+            bool CompetitiveModeEnabled              = false; // NYI
+            bool IsBoostEnabled                      = false; // classic only
+            bool TrialBoostEnabled                   = false; // NYI
+            bool TokenBalanceEnabled                 = false; // NYI
+            bool LiveRegionCharacterListEnabled      = false; // NYI
+            bool LiveRegionCharacterCopyEnabled      = false; // NYI
+            bool LiveRegionAccountCopyEnabled        = false; // NYI
+            bool LiveRegionKeyBindingsCopyEnabled    = false;
+            bool Unknown901CheckoutRelated           = false; // NYI
+            bool IsNameReservationEnabled            = false; // classic only
+            bool TimerunningEnabled                  = false; // NYI
+            bool AddonsDisabled                      = false;
+            bool Unused1000                          = false;
+            bool AccountSaveDataExportEnabled        = false;
+            bool AccountLockedByExport               = false;
             Optional<EuropaTicketConfig> EuropaTicketSystemStatus;
             std::vector<int32> LiveRegionCharacterCopySourceRegions;
-            uint32 TokenPollTimeSeconds = 0;     // NYI
-            int64 TokenBalanceAmount = 0;     // NYI
-            int32 MaxCharactersPerRealm = 0;
-            uint32 BpayStoreProductDeliveryDelay = 0;     // NYI
-            int32 ActiveCharacterUpgradeBoostType = 0;     // NYI
-            int32 ActiveClassTrialBoostType = 0;     // NYI
-            int32 MinimumExpansionLevel = 0;
-            int32 MaximumExpansionLevel = 0;
-            uint32 KioskSessionMinutes = 0;
-            int32 ActiveSeason = 0;     // Currently active Classic season
+            uint32 TokenPollTimeSeconds              = 0;     // NYI
+            int64 TokenBalanceAmount                 = 0;     // NYI
+            int32 MaxCharactersPerRealm              = 0;
+            uint32 BpayStoreProductDeliveryDelay     = 0;     // NYI
+            int32 ActiveCharacterUpgradeBoostType    = 0;     // NYI
+            int32 ActiveClassTrialBoostType          = 0;     // NYI
+            int32 MinimumExpansionLevel              = 0;
+            int32 MaximumExpansionLevel              = 0;
+            uint32 KioskSessionMinutes               = 0;
+            int32 ActiveSeason                       = 0;     // Currently active Classic season
             std::vector<GameRuleValuePair> GameRuleValues;
-            int16 MaxPlayerNameQueriesPerPacket = 50;
-            int16 PlayerNameQueryTelemetryInterval = 600;
+            int32 ActiveTimerunningSeasonID          = 0;
+            int32 RemainingTimerunningSeasonSeconds  = 0;
+            int16 MaxPlayerNameQueriesPerPacket      = 50;
+            int16 PlayerNameQueryTelemetryInterval   = 600;
             Duration<Seconds, uint32> PlayerNameQueryInterval = 10s;
             Optional<int32> LaunchETA;
             std::vector<DebugTimeEventInfo> DebugTimeEvents;
-            int32 Unused1007 = 0;
-        };
-
-        class MOTD final : public ServerPacket
-        {
-        public:
-            MOTD() : ServerPacket(SMSG_MOTD) { }
-
-            WorldPacket const* Write() override;
-
-            std::vector<std::string> const* Text = nullptr;
+            int32 Unused1007                         = 0;
+            uint32 EventRealmQueues                  = 0;
+            std::string RealmHiddenAlert;
         };
 
         class SetTimeZoneInformation final : public ServerPacket
@@ -238,9 +251,9 @@ namespace WorldPackets
 
             WorldPacket const* Write() override;
 
-            std::string ServerTimeTZ;
-            std::string GameTimeTZ;
-            std::string ServerRegionalTZ;
+            std::string_view ServerTimeTZ;
+            std::string_view GameTimeTZ;
+            std::string_view ServerRegionalTZ;
         };
     }
 }

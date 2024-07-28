@@ -114,20 +114,20 @@ void Corpse::SaveToDB()
     uint16 index = 0;
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CORPSE);
     stmt->setUInt64(index++, GetOwnerGUID().GetCounter());                            // guid
-    stmt->setFloat(index++, GetPositionX());                                         // posX
-    stmt->setFloat(index++, GetPositionY());                                         // posY
-    stmt->setFloat(index++, GetPositionZ());                                         // posZ
-    stmt->setFloat(index++, GetOrientation());                                       // orientation
+    stmt->setFloat (index++, GetPositionX());                                         // posX
+    stmt->setFloat (index++, GetPositionY());                                         // posY
+    stmt->setFloat (index++, GetPositionZ());                                         // posZ
+    stmt->setFloat (index++, GetOrientation());                                       // orientation
     stmt->setUInt16(index++, GetMapId());                                             // mapId
     stmt->setUInt32(index++, m_corpseData->DisplayID);                                // displayId
     stmt->setString(index++, items.str());                                            // itemCache
-    stmt->setUInt8(index++, m_corpseData->RaceID);                                   // race
-    stmt->setUInt8(index++, m_corpseData->Class);                                    // class
-    stmt->setUInt8(index++, m_corpseData->Sex);                                      // gender
-    stmt->setUInt8(index++, m_corpseData->Flags);                                    // flags
-    stmt->setUInt8(index++, m_corpseData->DynamicFlags);                             // dynFlags
+    stmt->setUInt8 (index++, m_corpseData->RaceID);                                   // race
+    stmt->setUInt8 (index++, m_corpseData->Class);                                    // class
+    stmt->setUInt8 (index++, m_corpseData->Sex);                                      // gender
+    stmt->setUInt8 (index++, m_corpseData->Flags);                                    // flags
+    stmt->setUInt8 (index++, m_corpseData->DynamicFlags);                             // dynFlags
     stmt->setUInt32(index++, uint32(m_time));                                         // time
-    stmt->setUInt8(index++, GetType());                                              // corpseType
+    stmt->setUInt8 (index++, GetType());                                              // corpseType
     stmt->setUInt32(index++, GetInstanceId());                                        // instanceId
     trans->Append(stmt);
 
@@ -183,10 +183,10 @@ bool Corpse::LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields)
     //        0     1     2     3            4      5          6          7     8      9       10     11        12    13          14          15
     // SELECT posX, posY, posZ, orientation, mapId, displayId, itemCache, race, class, gender, flags, dynFlags, time, corpseType, instanceId, guid FROM corpse WHERE mapId = ? AND instanceId = ?
 
-    float posX = fields[0].GetFloat();
-    float posY = fields[1].GetFloat();
-    float posZ = fields[2].GetFloat();
-    float o = fields[3].GetFloat();
+    float posX   = fields[0].GetFloat();
+    float posY   = fields[1].GetFloat();
+    float posZ   = fields[2].GetFloat();
+    float o      = fields[3].GetFloat();
     uint32 mapId = fields[4].GetUInt16();
 
     Object::_Create(ObjectGuid::Create<HighGuid::Corpse>(mapId, 0, guid));
@@ -208,7 +208,7 @@ bool Corpse::LoadCorpseFromDB(ObjectGuid::LowType guid, Field* fields)
 
     m_time = time_t(fields[12].GetUInt32());
 
-    uint32 instanceId = fields[14].GetUInt32();
+    uint32 instanceId  = fields[14].GetUInt32();
 
     // place
     SetLocationInstanceId(instanceId);

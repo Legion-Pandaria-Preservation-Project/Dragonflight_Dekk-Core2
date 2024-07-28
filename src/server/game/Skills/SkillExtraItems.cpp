@@ -22,11 +22,11 @@
 #include "Player.h"
 #include "SpellMgr.h"
 
- // some type definitions
- // no use putting them in the header file, they're only used in this .cpp
+// some type definitions
+// no use putting them in the header file, they're only used in this .cpp
 
- // struct to store information about perfection procs
- // one entry per spell
+// struct to store information about perfection procs
+// one entry per spell
 struct SkillPerfectItemEntry
 {
     // the spell id of the spell required - it's named "specialization" to conform with SkillExtraItemEntry
@@ -105,7 +105,8 @@ void LoadSkillPerfectItemTable()
         skillPerfectItemEntry.perfectItemType = perfectItemType;
 
         ++count;
-    } while (result->NextRow());
+    }
+    while (result->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded {} spell perfection definitions in {} ms.", count, GetMSTimeDiffToNow(oldMSTime));
 }
@@ -188,15 +189,16 @@ void LoadSkillExtraItemTable()
 
         skillExtraItemEntry.requiredSpecialization = requiredSpecialization;
         skillExtraItemEntry.additionalCreateChance = additionalCreateChance;
-        skillExtraItemEntry.additionalMaxNum = additionalMaxNum;
+        skillExtraItemEntry.additionalMaxNum       = additionalMaxNum;
 
         ++count;
-    } while (result->NextRow());
+    }
+    while (result->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded {} spell specialization definitions in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
 }
 
-bool CanCreatePerfectItem(Player* player, uint32 spellId, float& perfectCreateChance, uint32& perfectItemType)
+bool CanCreatePerfectItem(Player* player, uint32 spellId, float &perfectCreateChance, uint32 &perfectItemType)
 {
     SkillPerfectItemMap::const_iterator ret = SkillPerfectItemStore.find(spellId);
     // no entry in DB means no perfection proc possible
@@ -217,7 +219,7 @@ bool CanCreatePerfectItem(Player* player, uint32 spellId, float& perfectCreateCh
     return true;
 }
 
-bool CanCreateExtraItems(Player* player, uint32 spellId, float& additionalChance, uint8& additionalMax)
+bool CanCreateExtraItems(Player* player, uint32 spellId, float &additionalChance, uint8 &additionalMax)
 {
     // get the info for the specified spell
     SkillExtraItemMap::const_iterator ret = SkillExtraItemStore.find(spellId);

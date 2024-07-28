@@ -25,9 +25,6 @@
 #include "Map.h"
 #include "Player.h"
 #include "ScriptMgr.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 #include "WorldSession.h"
 
 using ChatSubCommandMap = std::map<std::string_view, Trinity::Impl::ChatCommands::ChatCommandNode, StringCompareLessI_T>;
@@ -101,7 +98,7 @@ static ChatSubCommandMap COMMAND_MAP;
                 }
                 else
                 {
-                    TC_LOG_DEBUG("sql.sql", "Table `command` contains data for non-existant command '{}'. Skipped.", name);
+                    TC_LOG_ERROR("sql.sql", "Table `command` contains data for non-existant command '{}'. Skipped.", name);
                     cmd = nullptr;
                     break;
                 }
@@ -111,12 +108,12 @@ static ChatSubCommandMap COMMAND_MAP;
                 continue;
 
             if (std::holds_alternative<std::string>(cmd->_help))
-                TC_LOG_DEBUG("sql.sql", "Table `command` contains duplicate data for command '{}'. Skipped.", name);
+                TC_LOG_ERROR("sql.sql", "Table `command` contains duplicate data for command '{}'. Skipped.", name);
 
             if (std::holds_alternative<std::monostate>(cmd->_help))
                 cmd->_help.emplace<std::string>(help);
             else
-                TC_LOG_DEBUG("sql.sql", "Table `command` contains legacy help text for command '{}', which uses `trinity_string`. Skipped.", name);
+                TC_LOG_ERROR("sql.sql", "Table `command` contains legacy help text for command '{}', which uses `trinity_string`. Skipped.", name);
         } while (result->NextRow());
     }
 
@@ -156,8 +153,9 @@ static void LogCommandUsage(WorldSession const& session, uint32 permission, std:
     {
         LocaleConstant locale = session.GetSessionDbcLocale();
         areaName = area->AreaName[locale];
-        if (AreaTableEntry const* zone = sAreaTableStore.LookupEntry(area->ParentAreaID))
-            zoneName = zone->AreaName[locale];
+        if (area->GetFlags().HasFlag(AreaFlags::IsSubzone))
+            if (AreaTableEntry const* zone = sAreaTableStore.LookupEntry(area->ParentAreaID))
+                zoneName = zone->AreaName[locale];
     }
 
     sLog->OutCommand(session.GetAccountId(), "Command: {} [Player: {} ({}) (Account: {}) X: {} Y: {} Z: {} Map: {} ({}) Area: {} ({}) Zone: {} Selected: {} ({})]",
@@ -207,39 +205,39 @@ namespace Trinity::Impl::ChatCommands
 {
     struct FilteredCommandListIterator
     {
-    public:
-        FilteredCommandListIterator(ChatSubCommandMap const& map, ChatHandler const& handler, std::string_view token)
-            : _handler{ handler }, _token{ token }, _it{ map.lower_bound(token) }, _end{ map.end() }
-        {
-            _skip();
-        }
+        public:
+            FilteredCommandListIterator(ChatSubCommandMap const& map, ChatHandler const& handler, std::string_view token)
+                : _handler{ handler }, _token{ token }, _it{ map.lower_bound(token) }, _end{ map.end() }
+            {
+                _skip();
+            }
 
-        decltype(auto) operator*() const { return _it.operator*(); }
-        decltype(auto) operator->() const { return _it.operator->(); }
-        FilteredCommandListIterator& operator++()
-        {
-            ++_it;
-            _skip();
-            return *this;
-        }
-        explicit operator bool() const { return (_it != _end); }
-        bool operator!() const { return !static_cast<bool>(*this); }
-
-    private:
-        void _skip()
-        {
-            if ((_it != _end) && !StringStartsWithI(_it->first, _token))
-                _it = _end;
-            while ((_it != _end) && !_it->second.IsVisible(_handler))
+            decltype(auto) operator*() const { return _it.operator*(); }
+            decltype(auto) operator->() const { return _it.operator->(); }
+            FilteredCommandListIterator& operator++()
             {
                 ++_it;
+                _skip();
+                return *this;
+            }
+            explicit operator bool() const { return (_it != _end); }
+            bool operator!() const { return !static_cast<bool>(*this); }
+
+        private:
+            void _skip()
+            {
                 if ((_it != _end) && !StringStartsWithI(_it->first, _token))
                     _it = _end;
+                while ((_it != _end) && !_it->second.IsVisible(_handler))
+                {
+                    ++_it;
+                    if ((_it != _end) && !StringStartsWithI(_it->first, _token))
+                        _it = _end;
+                }
             }
-        }
-        ChatHandler const& _handler;
-        std::string_view const _token;
-        ChatSubCommandMap::const_iterator _it, _end;
+            ChatHandler const& _handler;
+            std::string_view const _token;
+            ChatSubCommandMap::const_iterator _it, _end;
 
     };
 }
@@ -302,19 +300,12 @@ namespace Trinity::Impl::ChatCommands
         }
         else if (!handler.HasSentErrorMessage())
         { /* invocation failed, we should show usage */
-#ifdef ELUNA
-            if (!sEluna->OnCommand(handler.IsConsole() ? NULL : handler.GetSession()->GetPlayer(), std::string(cmdStr).c_str()))
-                return true;
-#endif
             cmd->SendCommandHelp(handler);
             handler.SetSentErrorMessage(true);
         }
         return true;
     }
-#ifdef ELUNA
-    if (!sEluna->OnCommand(handler.IsConsole() ? NULL : handler.GetSession()->GetPlayer(), std::string(cmdStr).c_str()))
-        return true;
-#endif
+
     return false;
 }
 
@@ -409,12 +400,12 @@ namespace Trinity::Impl::ChatCommands
             { /* there are multiple matching subcommands - terminate here and show possibilities */
                 std::vector<std::string> vec;
                 auto possibility = ([prefix = std::string_view(path), suffix = std::string_view(newTail)](std::string_view match)
-                    {
-                        if (prefix.empty())
+                {
+                    if (prefix.empty())
                         return Trinity::StringFormat("{}{}{}", match, COMMAND_DELIMITER, suffix);
-                        else
-                            return Trinity::StringFormat("{}{}{}{}", prefix, COMMAND_DELIMITER, match, COMMAND_DELIMITER, suffix);
-                    });
+                    else
+                        return Trinity::StringFormat("{}{}{}{}{}", prefix, COMMAND_DELIMITER, match, COMMAND_DELIMITER, suffix);
+                });
 
                 vec.emplace_back(possibility(it1->first));
 
@@ -451,14 +442,14 @@ namespace Trinity::Impl::ChatCommands
     else
     { /* offer all subcommands */
         auto possibility = ([prefix = std::string_view(path)](std::string_view match)
-            {
-                if (prefix.empty())
+        {
+            if (prefix.empty())
                 return std::string(match);
-                else
-                {
-                    return Trinity::StringFormat("{}{}{}", prefix, COMMAND_DELIMITER, match);
-                }
-            });
+            else
+            {
+                return Trinity::StringFormat("{}{}{}", prefix, COMMAND_DELIMITER, match);
+            }
+        });
 
         std::vector<std::string> vec;
         for (FilteredCommandListIterator it(*map, handler, ""); it; ++it)

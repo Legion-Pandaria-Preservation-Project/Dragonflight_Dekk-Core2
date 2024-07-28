@@ -16,15 +16,9 @@
  */
 
 // This is where scripts' loading functions should be declared:
-void AddLfgSoloScripts();
-void AddSC_bot_commandscript();
-// void AddSC_Custom_Commands();
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
 void AddCustomScripts()
 {
-    AddLfgSoloScripts();
-    AddSC_bot_commandscript();
-    // AddSC_Custom_Commands();
 }

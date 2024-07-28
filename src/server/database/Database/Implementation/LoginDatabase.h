@@ -129,8 +129,9 @@ enum LoginDatabaseStatements : uint32
     LOGIN_INS_BNET_ACCOUNT,
     LOGIN_SEL_BNET_ACCOUNT_EMAIL_BY_ID,
     LOGIN_SEL_BNET_ACCOUNT_ID_BY_EMAIL,
-    LOGIN_UPD_BNET_PASSWORD,
+    LOGIN_UPD_BNET_LOGON,
     LOGIN_SEL_BNET_CHECK_PASSWORD,
+    LOGIN_SEL_BNET_CHECK_PASSWORD_BY_EMAIL,
     LOGIN_UPD_BNET_ACCOUNT_LOCK,
     LOGIN_UPD_BNET_ACCOUNT_LOCK_CONTRY,
     LOGIN_SEL_BNET_ACCOUNT_ID_BY_GAME_ACCOUNT,
@@ -150,6 +151,18 @@ enum LoginDatabaseStatements : uint32
     LOGIN_SEL_ACCOUNT_TOYS,
     LOGIN_REP_ACCOUNT_TOYS,
 
+    LOGIN_SEL_BATTLE_PETS,
+    LOGIN_INS_BATTLE_PETS,
+    LOGIN_DEL_BATTLE_PETS,
+    LOGIN_DEL_BATTLE_PETS_BY_OWNER,
+    LOGIN_UPD_BATTLE_PETS,
+    LOGIN_SEL_BATTLE_PET_SLOTS,
+    LOGIN_INS_BATTLE_PET_SLOTS,
+    LOGIN_DEL_BATTLE_PET_SLOTS,
+    LOGIN_INS_BATTLE_PET_DECLINED_NAME,
+    LOGIN_DEL_BATTLE_PET_DECLINED_NAME,
+    LOGIN_DEL_BATTLE_PET_DECLINED_NAME_BY_OWNER,
+
     LOGIN_SEL_ACCOUNT_HEIRLOOMS,
     LOGIN_REP_ACCOUNT_HEIRLOOMS,
 
@@ -164,19 +177,6 @@ enum LoginDatabaseStatements : uint32
     LOGIN_SEL_BNET_TRANSMOG_ILLUSIONS,
     LOGIN_INS_BNET_TRANSMOG_ILLUSIONS,
 
-// DekkCore >
-    /// Seraphim
-    LOGIN_SEL_BNET_RUNEFORGE_MEMORIES,
-    LOGIN_INS_BNET_RUNEFORGE_MEMORIES,
-    // Fluxurion >
-    LOGIN_SEL_BATTLE_PAY_ACCOUNT_CREDITS,
-    LOGIN_UPD_BATTLE_PAY_ACCOUNT_CREDITS,
-    LOGIN_INS_PURCHASE,
-    // < Fluxurion
-    LOGIN_SEL_ALLRANDOM_NAME,
-    LOGIN_SEL_ALLARENA_NAME,
-// < DekkCore
-
     MAX_LOGINDATABASE_STATEMENTS
 };
 
@@ -185,9 +185,7 @@ class TC_DATABASE_API LoginDatabaseConnection : public MySQLConnection
 public:
     typedef LoginDatabaseStatements Statements;
 
-    //- Constructors for sync and async connections
-    LoginDatabaseConnection(MySQLConnectionInfo& connInfo);
-    LoginDatabaseConnection(ProducerConsumerQueue<SQLOperation*>* q, MySQLConnectionInfo& connInfo);
+    LoginDatabaseConnection(MySQLConnectionInfo& connInfo, ConnectionFlags connectionFlags);
     ~LoginDatabaseConnection();
 
     //- Loads database type specific prepared statements

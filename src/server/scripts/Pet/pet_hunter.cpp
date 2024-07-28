@@ -21,10 +21,10 @@
  */
 
 #include "ScriptMgr.h"
+#include "Containers.h"
 #include "CreatureAIImpl.h"
 #include "ScriptedCreature.h"
 #include "TemporarySummon.h"
-#include "PetAI.h"
 
 enum HunterSpells
 {
@@ -115,8 +115,6 @@ struct npc_pet_hunter_snake_trap : public ScriptedAI
             else
                 _spellTimer -= diff;
         }
-
-        DoMeleeAttackIfReady();
     }
 
 private:
@@ -124,33 +122,7 @@ private:
     uint32 _spellTimer;
 };
 
-//104493
-struct npc_hun_spitting_cobra : public PetAI
-{
-    npc_hun_spitting_cobra(Creature* creature) : PetAI(creature) { }
-
-    bool CanAIAttack(Unit const* target) const override
-    {
-        if (!target)
-            return false;
-        Unit* owner = me->GetOwner();
-        if (owner && !target->IsInCombatWith(owner))
-            return false;
-
-        return PetAI::CanAIAttack(target);
-    }
-
-    void IsSummonedBy(WorldObject* summoner) override
-    {
-        me->InitCharmInfo();
-        me->SetReactState(REACT_DEFENSIVE);
-        if (Unit* target = summoner->ToPlayer()->GetSelectedUnit())
-            me->AI()->AttackStart(target);
-    }
-};
-
 void AddSC_hunter_pet_scripts()
 {
     RegisterCreatureAI(npc_pet_hunter_snake_trap);
-    RegisterCreatureAI(npc_hun_spitting_cobra);
 }

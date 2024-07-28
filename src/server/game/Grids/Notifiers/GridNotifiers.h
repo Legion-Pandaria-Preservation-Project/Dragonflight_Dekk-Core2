@@ -49,7 +49,7 @@ namespace Trinity
     {
         Player &i_player;
         UpdateData i_data;
-        std::set<Unit*> i_visibleNow;
+        std::set<WorldObject*> i_visibleNow;
         GuidUnorderedSet vis_guids;
 
         VisibleNotifier(Player &player) : i_player(player), i_data(player.GetMapId()), vis_guids(player.m_clientGUIDs) { }
@@ -615,12 +615,21 @@ namespace Trinity
     // CHECKS && DO classes
 
     // CHECK modifiers
-    class NoopCheckCustomizer
+    class InRangeCheckCustomizer
     {
     public:
-        bool Test(WorldObject const* /*o*/) const { return true; }
+        explicit InRangeCheckCustomizer(WorldObject const& obj, float range) : i_obj(obj), i_range(range) { }
+
+        bool Test(WorldObject const* o) const
+        {
+            return i_obj.IsWithinDist(o, i_range);
+        }
 
         void Update(WorldObject const* /*o*/) { }
+
+    private:
+        WorldObject const& i_obj;
+        float i_range;
     };
 
     class NearestCheckCustomizer
@@ -1001,7 +1010,7 @@ namespace Trinity
                 if (i_incTargetRadius)
                     searchRadius += u->GetCombatReach();
 
-                if (!u->IsInMap(i_obj) || !u->InSamePhase(i_obj) || !u->IsWithinDoubleVerticalCylinder(i_obj, searchRadius, searchRadius))
+                if (!u->IsInMap(i_obj) || !u->InSamePhase(i_obj) || !u->IsWithinVerticalCylinder(*i_obj, searchRadius, searchRadius, true))
                     return false;
 
                 if (!i_funit->IsFriendlyTo(u))
@@ -1050,7 +1059,7 @@ namespace Trinity
                 if (i_incTargetRadius)
                     searchRadius += u->GetCombatReach();
 
-                return u->IsInMap(_source) && u->InSamePhase(_source) && u->IsWithinDoubleVerticalCylinder(_source, searchRadius, searchRadius);
+                return u->IsInMap(_source) && u->InSamePhase(_source) && u->IsWithinVerticalCylinder(*_source, searchRadius, searchRadius, true);
             }
 
         private:
@@ -1066,20 +1075,24 @@ namespace Trinity
     class AnyUnitInObjectRangeCheck
     {
         public:
-            AnyUnitInObjectRangeCheck(WorldObject const* obj, float range, bool check3D = true) : i_obj(obj), i_range(range), i_check3D(check3D) { }
+            AnyUnitInObjectRangeCheck(WorldObject const* obj, float range, bool check3D = true, bool reqAlive = true) : i_obj(obj), i_range(range), i_check3D(check3D), i_reqAlive(reqAlive) { }
 
             bool operator()(Unit* u) const
             {
-                if (u->IsAlive() && i_obj->IsWithinDist(u, i_range, i_check3D))
-                    return true;
+                if (i_reqAlive && !u->IsAlive())
+                    return false;
 
-                return false;
+                if (!i_obj->IsWithinDist(u, i_range, i_check3D))
+                    return false;
+
+                return true;
             }
 
         private:
             WorldObject const* i_obj;
             float i_range;
             bool i_check3D;
+            bool i_reqAlive;
     };
 
     // Success at unit in range, range update for next check (this can be use with UnitLastSearcher to find nearest unit)
@@ -1146,7 +1159,7 @@ namespace Trinity
                 if (i_incTargetRadius)
                     searchRadius += u->GetCombatReach();
 
-                return u->IsInMap(i_obj) && u->InSamePhase(i_obj) && u->IsWithinDoubleVerticalCylinder(i_obj, searchRadius, searchRadius);
+                return u->IsInMap(i_obj) && u->InSamePhase(i_obj) && u->IsWithinVerticalCylinder(*i_obj, searchRadius, searchRadius, true);
             }
 
         private:
@@ -1398,14 +1411,14 @@ namespace Trinity
             NearestCreatureEntryWithLiveStateInObjectRangeCheck(NearestCreatureEntryWithLiveStateInObjectRangeCheck const&) = delete;
     };
 
-    template <typename Customizer = NoopCheckCustomizer>
+    template <typename Customizer = InRangeCheckCustomizer>
     class CreatureWithOptionsInObjectRangeCheck
     {
         public:
             CreatureWithOptionsInObjectRangeCheck(WorldObject const& obj, Customizer& customizer, FindCreatureOptions const& args)
                 : i_obj(obj), i_args(args), i_customizer(customizer) { }
 
-            bool operator()(Creature* u) const
+            bool operator()(Creature const* u) const
             {
                 if (u->getDeathState() == DEAD) // Despawned
                     return false;
@@ -1455,6 +1468,56 @@ namespace Trinity
             WorldObject const& i_obj;
             FindCreatureOptions const& i_args;
             Customizer& i_customizer;
+    };
+
+    template <typename Customizer = InRangeCheckCustomizer>
+    class GameObjectWithOptionsInObjectRangeCheck
+    {
+    public:
+        GameObjectWithOptionsInObjectRangeCheck(WorldObject const& obj, Customizer& customizer, FindGameObjectOptions const& args)
+            : i_obj(obj), i_args(args), i_customizer(customizer) { }
+
+        bool operator()(GameObject const* go) const
+        {
+            if (i_args.IsSpawned.has_value() && i_args.IsSpawned != go->isSpawned()) // Despawned
+                return false;
+
+            if (go->GetGUID() == i_obj.GetGUID())
+                return false;
+
+            if (!i_customizer.Test(go))
+                return false;
+
+            if (i_args.GameObjectId && go->GetEntry() != i_args.GameObjectId)
+                return false;
+
+            if (i_args.StringId && !go->HasStringId(*i_args.StringId))
+                return false;
+
+            if (i_args.IsSummon.has_value() && (go->GetSpawnId() == 0) != i_args.IsSummon)
+                return false;
+
+            if ((i_args.OwnerGuid && go->GetOwnerGUID() != i_args.OwnerGuid)
+                || (i_args.PrivateObjectOwnerGuid && go->GetPrivateObjectOwner() != i_args.PrivateObjectOwnerGuid))
+                return false;
+
+            if (i_args.IgnorePrivateObjects && go->IsPrivateObject())
+                return false;
+
+            if (i_args.IgnoreNotOwnedPrivateObjects && !go->CheckPrivateObjectOwnerVisibility(&i_obj))
+                return false;
+
+            if (i_args.GameObjectType && go->GetGoType() != i_args.GameObjectType)
+                return false;
+
+            i_customizer.Update(go);
+            return true;
+        }
+
+    private:
+        WorldObject const& i_obj;
+        FindGameObjectOptions const& i_args;
+        Customizer& i_customizer;
     };
 
     class AnyPlayerInObjectRangeCheck
@@ -1741,130 +1804,5 @@ namespace Trinity
         Localizer& _localizer;
         std::vector<std::unique_ptr<LocalizedAction>> _localizedCache;         // 0 = default, i => i-1 locale index
     };
-
-
-
-    // DekkCore >
-    // AreaTriggers searchers
-    class AnyAreatriggerInObjectRangeCheck
-    {
-    public:
-        AnyAreatriggerInObjectRangeCheck(WorldObject const* p_Object, float range) : m_Object(p_Object), m_Range(range) {}
-        bool operator()(AreaTrigger* p_AreaTrigger)
-        {
-            if (m_Object->IsWithinDistInMap(p_AreaTrigger, m_Range))
-                return true;
-
-            return false;
-        }
-    private:
-        WorldObject const* m_Object;
-        float m_Range;
-    };
-
-    class NearestAreaTriggerWithIdInObjectRangeCheck
-    {
-    public:
-        NearestAreaTriggerWithIdInObjectRangeCheck(WorldObject const* obj, uint32 spellId, float range) : i_obj(obj), i_spellId(spellId), i_range(range) {}
-        bool operator()(AreaTrigger* a)
-        {
-            if (i_obj->IsWithinDistInMap(a, i_range) && a->GetSpellId() == i_spellId)
-            {
-                i_range = i_obj->GetDistance(a);        // use found unit range as new range limit for next check
-                return true;
-            }
-
-            return false;
-        }
-    private:
-        WorldObject const* i_obj;
-        uint32 i_spellId;
-        float i_range;
-
-        // prevent clone this object
-        NearestAreaTriggerWithIdInObjectRangeCheck(NearestAreaTriggerWithIdInObjectRangeCheck const&);
-    };
-
-    template<class Check>
-    struct AreaTriggerListSearcher
-    {
-        WorldObject const* i_searcher;
-        std::list<AreaTrigger*>& m_AreaTriggers;
-        Check& i_check;
-
-        AreaTriggerListSearcher(WorldObject const* searcher, std::list<AreaTrigger*>& areaTriggers, Check& check)
-            : i_searcher(searcher), m_AreaTriggers(areaTriggers), i_check(check) {}
-
-        void Visit(AreaTriggerMapType& p_AreaTriggerMap);
-
-        template<class NOT_INTERESTED> void Visit(GridRefManager<NOT_INTERESTED>&) {}
-    };
-
-    template<class Check>
-    struct AreaTriggerSearcher
-    {
-        WorldObject const* i_searcher;
-        AreaTrigger*& i_object;
-        Check& i_check;
-
-        AreaTriggerSearcher(WorldObject const* searcher, AreaTrigger*& result, Check& check)
-            : i_searcher(searcher), i_object(result), i_check(check) {}
-
-        void Visit(AreaTriggerMapType& m);
-
-        template<class NOT_INTERESTED> void Visit(GridRefManager<NOT_INTERESTED>&) {}
-    };
-
-    template<class Check>
-    inline void AreaTriggerSearcher<Check>::Visit(AreaTriggerMapType&)
-    {
-    }
-
-    template<class Check>
-    inline void AreaTriggerListSearcher<Check>::Visit(AreaTriggerMapType&)
-    {
-    }
-
-    // AttackableUnitInObjectRangeCheck
-    class AttackableUnitInObjectRangeCheck
-    {
-    public:
-        AttackableUnitInObjectRangeCheck(WorldObject const* obj, float range, bool check3D = true) : i_obj(obj), i_range(range), i_check3D(check3D) { }
-
-        bool operator()(Unit* u) const
-        {
-            if (i_obj->IsUnit())
-                if (u->IsAlive() && i_obj->IsWithinDistInMap(u, i_range, i_check3D) && i_obj->ToUnit()->IsValidAttackTarget(u))
-                    return true;
-
-            return false;
-        }
-
-    private:
-        WorldObject const* i_obj;
-        float i_range;
-        bool i_check3D;
-    };
-
-    // AllCreaturesInRange
-    class AllCreaturesInRange
-    {
-    public:
-        AllCreaturesInRange(const WorldObject* object, float maxRange) : m_pObject(object), m_fRange(maxRange) {}
-        bool operator() (Unit* unit)
-        {
-            if (m_pObject->IsWithinDist(unit, m_fRange, false))
-                return true;
-
-            return false;
-        }
-
-    private:
-        const WorldObject* m_pObject;
-        float m_fRange;
-    };
-    // < DekkCore
-
-
 }
 #endif

@@ -95,7 +95,8 @@ public:
         _killYellTimer.Reset(0s);
 
         DoCastSelf(SPELL_RETRIBUTION_AURA, true);
-        me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE | UNIT_FLAG_NON_ATTACKABLE);
+        me->RemoveUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+        me->SetUninteractible(false);
         me->SetStandState(UNIT_STAND_STATE_STAND);
         me->SetReactState(REACT_AGGRESSIVE);
 
@@ -168,7 +169,8 @@ public:
             me->InterruptNonMeleeSpells(true);
             me->RemoveAllAuras();
             me->ClearAllReactives();
-            me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE | UNIT_FLAG_NON_ATTACKABLE);
+            me->SetUnitFlag(UNIT_FLAG_NON_ATTACKABLE);
+            me->SetUninteractible(true);
             me->SetStandState(UNIT_STAND_STATE_DEAD);
             me->SetReactState(REACT_PASSIVE); // prevent Mograine from attacking while fake death
 
@@ -190,7 +192,7 @@ public:
                 // Say text
                 Talk(SAY_MO_RESURRECTED);
 
-                me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+                me->SetUninteractible(false);
                 me->SetStandState(UNIT_STAND_STATE_STAND);
             });
 
@@ -226,8 +228,6 @@ public:
             if (me->HasUnitState(UNIT_STATE_CASTING))
                 return;
         }
-
-        DoMeleeAttackIfReady();
     }
 
 private:
@@ -273,9 +273,9 @@ public:
         // Start events after 5 seconds
         _scheduler.Schedule(5s, [this](TaskContext /*context*/)
         {
-            _events.ScheduleEvent(EVENT_HEAL, 15s);
-            _events.ScheduleEvent(EVENT_POWER_WORD_SHIELD, 20s);
-            _events.ScheduleEvent(EVENT_HOLY_SMITE, 13s);
+            _events.ScheduleEvent(EVENT_HEAL, 10s);
+            _events.ScheduleEvent(EVENT_POWER_WORD_SHIELD, 15s);
+            _events.ScheduleEvent(EVENT_HOLY_SMITE, 6s);
         });
     }
 
@@ -341,9 +341,6 @@ public:
             if (me->HasUnitState(UNIT_STATE_CASTING))
                 return;
         }
-
-        if (me->HasReactState(REACT_AGGRESSIVE))
-            DoMeleeAttackIfReady();
     }
 
     void DamageTaken(Unit* /*who*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override

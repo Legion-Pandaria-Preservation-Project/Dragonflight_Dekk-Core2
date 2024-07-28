@@ -23,10 +23,9 @@
 #include "QueryHolder.h"
 #include "AccountMgr.h"
 #include "AuthenticationPackets.h"
+#include "BattlePetMgr.h"
 #include "BattlegroundMgr.h"
 #include "BattlenetPackets.h"
-#include "BattlePet.h"
-#include "BattlePetDataStore.h"
 #include "CharacterPackets.h"
 #include "ChatPackets.h"
 #include "ClientConfigPackets.h"
@@ -44,7 +43,6 @@
 #include "ObjectMgr.h"
 #include "OutdoorPvPMgr.h"
 #include "PacketUtilities.h"
-#include "PetBattle.h"
 #include "Player.h"
 #include "QueryHolder.h"
 #include "Random.h"
@@ -55,11 +53,7 @@
 #include "WardenWin.h"
 #include "World.h"
 #include "WorldSocket.h"
-#include "Config.h"
 #include <boost/circular_buffer.hpp>
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 
 namespace {
 
@@ -82,7 +76,7 @@ bool MapSessionFilter::Process(WorldPacket* packet)
     Player* player = m_pSession->GetPlayer();
     if (!player)
         return false;
-     
+
     //in Map::Update() we do not process packets where player is not in world!
     return player->IsInWorld();
 }
@@ -112,7 +106,7 @@ bool WorldSessionFilter::Process(WorldPacket* packet)
 
 /// WorldSession constructor
 WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccountId, std::shared_ptr<WorldSocket> sock, AccountTypes sec, uint8 expansion, time_t mute_time,
-    std::string os, LocaleConstant locale, uint32 recruiter, bool isARecruiter):
+    std::string os, Minutes timezoneOffset, LocaleConstant locale, uint32 recruiter, bool isARecruiter):
     m_muteTime(mute_time),
     m_timeOutTime(0),
     AntiDOS(this),
@@ -124,7 +118,7 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
     _battlenetAccountId(battlenetAccountId),
     m_accountExpansion(expansion),
     m_expansion(std::min<uint8>(expansion, sWorld->getIntConfig(CONFIG_EXPANSION))),
-    _os(os),
+    _os(std::move(os)),
     _battlenetRequestToken(0),
     _logoutTime(0),
     m_inQueue(false),
@@ -133,6 +127,7 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
     m_playerSave(false),
     m_sessionDbcLocale(sWorld->GetAvailableDbcLocale(locale)),
     m_sessionDbLocaleIndex(locale),
+    _timezoneOffset(timezoneOffset),
     m_latency(0),
     _tutorialsChanged(TUTORIALS_FLAG_NONE),
     _filterAddonMessages(false),
@@ -147,6 +142,7 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
     _timeSyncNextCounter(0),
     _timeSyncTimer(0),
     _calendarEventCreationCooldown(0),
+    _battlePetMgr(std::make_unique<BattlePets::BattlePetMgr>(this)),
     _collectionMgr(std::make_unique<CollectionMgr>(this))
 {
     memset(_tutorials, 0, sizeof(_tutorials));
@@ -158,19 +154,8 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
         LoginDatabase.PExecute("UPDATE account SET online = 1 WHERE id = {};", GetAccountId());     // One-time query
     }
 
-    // DekkCore >
-    _battlePayMgr = std::make_shared<BattlepayManager>(this);
-    // < DekkCore
-
-    m_isPetBattleJournalLocked = false;
-
-    m_Socket[CONNECTION_TYPE_REALM] = sock;
+    m_Socket[CONNECTION_TYPE_REALM] = std::move(sock);
     _instanceConnectKey.Raw = UI64LIT(0);
-}
-
-bool WorldSession::IsPetBattleJournalLocked()
-{
-    return m_isPetBattleJournalLocked;
 }
 
 /// WorldSession destructor
@@ -213,40 +198,28 @@ std::string const & WorldSession::GetPlayerName() const
 
 std::string WorldSession::GetPlayerInfo() const
 {
-    std::ostringstream ss;
+    if (_player)
+        return Trinity::StringFormat("[Player: {} {}, Account: {}]", _player->GetName(), _player->GetGUID(), GetAccountId());
 
-    ss << "[Player: ";
     if (!m_playerLoading.IsEmpty())
-        ss << "Logging in: " << m_playerLoading.ToString() << ", ";
-    else if (_player)
-        ss << _player->GetName() << ' ' << _player->GetGUID().ToString() << ", ";
+        return Trinity::StringFormat("[Player: Logging in: {}, Account: {}]", m_playerLoading, GetAccountId());
 
-    ss << "Account: " << GetAccountId() << "]";
-
-    return ss.str();
+    return Trinity::StringFormat("[Player: Account: {}]", GetAccountId());
 }
 
 /// Send a packet to the client
 void WorldSession::SendPacket(WorldPacket const* packet, bool forced /*= false*/)
 {
-    if (packet->GetOpcode() == NULL_OPCODE)
+    if (packet->GetOpcode() < MIN_SMSG_OPCODE_NUMBER || packet->GetOpcode() > MAX_SMSG_OPCODE_NUMBER)
     {
-        if (sConfigMgr->GetBoolDefault("Console.Packet.Messages.Enabled", false)) // < Fluxurion
-        TC_LOG_ERROR("network.opcode", "Prevented sending of NULL_OPCODE to {}", GetPlayerInfo());
-        return;
-    }
-    else if (packet->GetOpcode() == UNKNOWN_OPCODE)
-    {
-        if (sConfigMgr->GetBoolDefault("Console.Packet.Messages.Enabled", false)) // < Fluxurion
-        TC_LOG_ERROR("network.opcode", "Prevented sending of UNKNOWN_OPCODE to {}", GetPlayerInfo());
+        char const* specialName = packet->GetOpcode() == UNKNOWN_OPCODE ? "UNKNOWN_OPCODE" : "INVALID_OPCODE";
+        TC_LOG_ERROR("network.opcode", "Prevented sending of {} (0x{:04X}) to {}", specialName, packet->GetOpcode(), GetPlayerInfo());
         return;
     }
 
     ServerOpcodeHandler const* handler = opcodeTable[static_cast<OpcodeServer>(packet->GetOpcode())];
-
     if (!handler)
     {
-        if (sConfigMgr->GetBoolDefault("Console.Packet.Messages.Enabled", false)) // < Fluxurion
         TC_LOG_ERROR("network.opcode", "Prevented sending of opcode {} with non existing handler to {}", packet->GetOpcode(), GetPlayerInfo());
         return;
     }
@@ -259,7 +232,6 @@ void WorldSession::SendPacket(WorldPacket const* packet, bool forced /*= false*/
     {
         if (packet->GetConnection() != CONNECTION_TYPE_INSTANCE && IsInstanceOnlyOpcode(packet->GetOpcode()))
         {
-            if (sConfigMgr->GetBoolDefault("Console.Packet.Messages.Enabled", false)) // < Fluxurion
             TC_LOG_ERROR("network.opcode", "Prevented sending of instance only opcode {} with connection type {} to {}", packet->GetOpcode(), uint32(packet->GetConnection()), GetPlayerInfo());
             return;
         }
@@ -269,7 +241,6 @@ void WorldSession::SendPacket(WorldPacket const* packet, bool forced /*= false*/
 
     if (!m_Socket[conIdx])
     {
-        if (sConfigMgr->GetBoolDefault("Console.Packet.Messages.Enabled", false)) // < Fluxurion
         TC_LOG_ERROR("network.opcode", "Prevented sending of {} to non existent socket {} to {}", GetOpcodeNameForLogging(static_cast<OpcodeServer>(packet->GetOpcode())), uint32(conIdx), GetPlayerInfo());
         return;
     }
@@ -278,7 +249,6 @@ void WorldSession::SendPacket(WorldPacket const* packet, bool forced /*= false*/
     {
         if (handler->Status == STATUS_UNHANDLED)
         {
-            if (sConfigMgr->GetBoolDefault("Console.Packet.Messages.Enabled", false)) // < Fluxurion
             TC_LOG_ERROR("network.opcode", "Prevented sending disabled opcode {} to {}", GetOpcodeNameForLogging(static_cast<OpcodeServer>(packet->GetOpcode())), GetPlayerInfo());
             return;
         }
@@ -378,113 +348,87 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
         {
             switch (opHandle->Status)
             {
-            case STATUS_LOGGEDIN:
-                if (!_player)
-                {
-                    // skip STATUS_LOGGEDIN opcode unexpected errors if player logout sometime ago - this can be network lag delayed packets
-                    //! If player didn't log out a while ago, it means packets are being sent while the server does not recognize
-                    //! the client to be in world yet. We will re-add the packets to the bottom of the queue and process them later.
-                    if (!m_playerRecentlyLogout)
+                case STATUS_LOGGEDIN:
+                    if (!_player)
                     {
-                        requeuePackets.push_back(packet);
-                        deletePacket = false;
-                        TC_LOG_DEBUG("network", "Re-enqueueing packet with opcode {} with with status STATUS_LOGGEDIN. "
-                            "Player is currently not in world yet.", GetOpcodeNameForLogging(static_cast<OpcodeClient>(packet->GetOpcode())));
+                        // skip STATUS_LOGGEDIN opcode unexpected errors if player logout sometime ago - this can be network lag delayed packets
+                        //! If player didn't log out a while ago, it means packets are being sent while the server does not recognize
+                        //! the client to be in world yet. We will re-add the packets to the bottom of the queue and process them later.
+                        if (!m_playerRecentlyLogout)
+                        {
+                            requeuePackets.push_back(packet);
+                            deletePacket = false;
+                            TC_LOG_DEBUG("network", "Re-enqueueing packet with opcode {} with with status STATUS_LOGGEDIN. "
+                                "Player is currently not in world yet.", GetOpcodeNameForLogging(static_cast<OpcodeClient>(packet->GetOpcode())));
+                        }
                     }
-                }
-                else if (_player->IsInWorld())
-                {
-                    if (AntiDOS.EvaluateOpcode(*packet, currentTime))
+                    else if (_player->IsInWorld())
                     {
+                        if(AntiDOS.EvaluateOpcode(*packet, currentTime))
+                        {
+                            sScriptMgr->OnPacketReceive(this, *packet);
+                            opHandle->Call(this, *packet);
+                        }
+                        else
+                            processedPackets = MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE;   // break out of packet processing loop
+                    }
+                    // lag can cause STATUS_LOGGEDIN opcodes to arrive after the player started a transfer
+                    break;
+                case STATUS_LOGGEDIN_OR_RECENTLY_LOGGOUT:
+                    if (!_player && !m_playerRecentlyLogout && !m_playerLogout) // There's a short delay between _player = null and m_playerRecentlyLogout = true during logout
+                        LogUnexpectedOpcode(packet, "STATUS_LOGGEDIN_OR_RECENTLY_LOGGOUT",
+                            "the player has not logged in yet and not recently logout");
+                    else if (AntiDOS.EvaluateOpcode(*packet, currentTime))
+                    {
+                        // not expected _player or must checked in packet hanlder
                         sScriptMgr->OnPacketReceive(this, *packet);
-
-#ifdef ELUNA
-                        if (!sEluna->OnPacketReceive(this, *packet))
-                            break;
-#endif
-
                         opHandle->Call(this, *packet);
                     }
                     else
                         processedPackets = MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE;   // break out of packet processing loop
-                }
-                // lag can cause STATUS_LOGGEDIN opcodes to arrive after the player started a transfer
-                break;
-            case STATUS_LOGGEDIN_OR_RECENTLY_LOGGOUT:
-                if (!_player && !m_playerRecentlyLogout && !m_playerLogout) // There's a short delay between _player = null and m_playerRecentlyLogout = true during logout
-                    LogUnexpectedOpcode(packet, "STATUS_LOGGEDIN_OR_RECENTLY_LOGGOUT",
-                        "the player has not logged in yet and not recently logout");
-                else if (AntiDOS.EvaluateOpcode(*packet, currentTime))
-                {
-                    // not expected _player or must checked in packet hanlder
-                    sScriptMgr->OnPacketReceive(this, *packet);
-
-#ifdef ELUNA
-                    if (!sEluna->OnPacketReceive(this, *packet))
-                        break;
-#endif
-
-                    opHandle->Call(this, *packet);
-                }
-                else
-                    processedPackets = MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE;   // break out of packet processing loop
-                break;
-            case STATUS_TRANSFER:
-                if (!_player)
-                    LogUnexpectedOpcode(packet, "STATUS_TRANSFER", "the player has not logged in yet");
-                else if (_player->IsInWorld())
-                    LogUnexpectedOpcode(packet, "STATUS_TRANSFER", "the player is still in world");
-                else if (AntiDOS.EvaluateOpcode(*packet, currentTime))
-                {
-                    sScriptMgr->OnPacketReceive(this, *packet);
-
-#ifdef ELUNA
-                    if (!sEluna->OnPacketReceive(this, *packet))
-                        break;
-#endif
-
-                    opHandle->Call(this, *packet);
-                }
-                else
-                    processedPackets = MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE;   // break out of packet processing loop
-                break;
-            case STATUS_AUTHED:
-                // prevent cheating with skip queue wait
-                if (m_inQueue)
-                {
-                    LogUnexpectedOpcode(packet, "STATUS_AUTHED", "the player not pass queue yet");
                     break;
-                }
-
-                // some auth opcodes can be recieved before STATUS_LOGGEDIN_OR_RECENTLY_LOGGOUT opcodes
-                // however when we recieve CMSG_CHAR_ENUM we are surely no longer during the logout process.
-                if (packet->GetOpcode() == CMSG_ENUM_CHARACTERS)
-                    m_playerRecentlyLogout = false;
-
-                if (AntiDOS.EvaluateOpcode(*packet, currentTime))
-                {
-                    sScriptMgr->OnPacketReceive(this, *packet);
-
-#ifdef ELUNA
-                    if (!sEluna->OnPacketReceive(this, *packet))
+                case STATUS_TRANSFER:
+                    if (!_player)
+                        LogUnexpectedOpcode(packet, "STATUS_TRANSFER", "the player has not logged in yet");
+                    else if (_player->IsInWorld())
+                        LogUnexpectedOpcode(packet, "STATUS_TRANSFER", "the player is still in world");
+                    else if (AntiDOS.EvaluateOpcode(*packet, currentTime))
+                    {
+                        sScriptMgr->OnPacketReceive(this, *packet);
+                        opHandle->Call(this, *packet);
+                    }
+                    else
+                        processedPackets = MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE;   // break out of packet processing loop
+                    break;
+                case STATUS_AUTHED:
+                    // prevent cheating with skip queue wait
+                    if (m_inQueue)
+                    {
+                        LogUnexpectedOpcode(packet, "STATUS_AUTHED", "the player not pass queue yet");
                         break;
-#endif
+                    }
 
-                    opHandle->Call(this, *packet);
-                }
-                else
-                    processedPackets = MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE;   // break out of packet processing loop
-                break;
-            case STATUS_NEVER:
-                if (sConfigMgr->GetBoolDefault("Console.Packet.Messages.Enabled", false)) // < Fluxurion
-                TC_LOG_ERROR("network.opcode", "Received not allowed opcode {} from {}", GetOpcodeNameForLogging(static_cast<OpcodeClient>(packet->GetOpcode()))
-                    , GetPlayerInfo());
-                break;
-            case STATUS_UNHANDLED:
-                if (sConfigMgr->GetBoolDefault("Console.Packet.Messages.Enabled", false)) // < Fluxurion
-                TC_LOG_ERROR("network.opcode", "Received not handled opcode {} from {}", GetOpcodeNameForLogging(static_cast<OpcodeClient>(packet->GetOpcode()))
-                    , GetPlayerInfo());
-                break;
+                    // some auth opcodes can be recieved before STATUS_LOGGEDIN_OR_RECENTLY_LOGGOUT opcodes
+                    // however when we recieve CMSG_CHAR_ENUM we are surely no longer during the logout process.
+                    if (packet->GetOpcode() == CMSG_ENUM_CHARACTERS)
+                        m_playerRecentlyLogout = false;
+
+                    if (AntiDOS.EvaluateOpcode(*packet, currentTime))
+                    {
+                        sScriptMgr->OnPacketReceive(this, *packet);
+                        opHandle->Call(this, *packet);
+                    }
+                    else
+                        processedPackets = MAX_PROCESSED_PACKETS_IN_SAME_WORLDSESSION_UPDATE;   // break out of packet processing loop
+                    break;
+                case STATUS_NEVER:
+                    TC_LOG_ERROR("network.opcode", "Received not allowed opcode {} from {}", GetOpcodeNameForLogging(static_cast<OpcodeClient>(packet->GetOpcode()))
+                        , GetPlayerInfo());
+                    break;
+                case STATUS_UNHANDLED:
+                    TC_LOG_ERROR("network.opcode", "Received not handled opcode {} from {}", GetOpcodeNameForLogging(static_cast<OpcodeClient>(packet->GetOpcode()))
+                        , GetPlayerInfo());
+                    break;
             }
         }
         catch (WorldPackets::InvalidHyperlinkException const& ihe)
@@ -511,7 +455,7 @@ bool WorldSession::Update(uint32 diff, PacketFilter& updater)
         catch (ByteBufferException const&)
         {
             TC_LOG_ERROR("network", "WorldSession::Update ByteBufferException occured while parsing a packet (opcode: {}) from client {}, accountid={}. Skipped packet.",
-                packet->GetOpcode(), GetRemoteAddress(), GetAccountId());
+                    packet->GetOpcode(), GetRemoteAddress(), GetAccountId());
             packet->hexlike();
         }
 
@@ -656,8 +600,9 @@ void WorldSession::LogoutPlayer(bool save)
         ///- Remove pet
         _player->RemovePet(nullptr, PET_SAVE_AS_CURRENT, true);
 
-        ///- Remove battle pet
-        _player->UnsummonCurrentBattlePetIfAny(true);
+        ///- Release battle pet journal lock
+        if (_battlePetMgr->HasJournalLock())
+            _battlePetMgr->ToggleJournalLock(false);
 
         ///- Clear whisper whitelist
         _player->ClearWhisperWhiteList();
@@ -840,7 +785,6 @@ bool WorldSession::IsConnectionIdle() const
 
 void WorldSession::Handle_NULL(WorldPackets::Null& null)
 {
-    if (sConfigMgr->GetBoolDefault("Console.Packet.Messages.Enabled", false)) // < Fluxurion
     TC_LOG_ERROR("network.opcode", "Received unhandled opcode {} from {}", GetOpcodeNameForLogging(null.GetOpcode()), GetPlayerInfo());
 }
 
@@ -1050,7 +994,7 @@ SQLQueryHolderCallback& WorldSession::AddQueryHolderCallback(SQLQueryHolderCallb
 
 bool WorldSession::CanAccessAlliedRaces() const
 {
-    return true; // GetAccountExpansion() >= EXPANSION_BATTLE_FOR_AZEROTH;
+    return GetAccountExpansion() >= EXPANSION_BATTLE_FOR_AZEROTH;
 }
 
 void WorldSession::InitWarden(SessionKey const& k)
@@ -1137,8 +1081,6 @@ public:
         ITEM_APPEARANCES,
         ITEM_FAVORITE_APPEARANCES,
         TRANSMOG_ILLUSIONS,
-        /// Seraphim
-        RUNEFORGE_MEMORIES,
 
         MAX_QUERIES
     };
@@ -1152,6 +1094,15 @@ public:
         LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_TOYS);
         stmt->setUInt32(0, battlenetAccountId);
         ok = SetPreparedQuery(GLOBAL_ACCOUNT_TOYS, stmt) && ok;
+
+        stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BATTLE_PETS);
+        stmt->setUInt32(0, battlenetAccountId);
+        stmt->setInt32(1, realm.Id.Realm);
+        ok = SetPreparedQuery(BATTLE_PETS, stmt) && ok;
+
+        stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BATTLE_PET_SLOTS);
+        stmt->setUInt32(0, battlenetAccountId);
+        ok = SetPreparedQuery(BATTLE_PET_SLOTS, stmt) && ok;
 
         stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_HEIRLOOMS);
         stmt->setUInt32(0, battlenetAccountId);
@@ -1176,11 +1127,6 @@ public:
         stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BNET_TRANSMOG_ILLUSIONS);
         stmt->setUInt32(0, battlenetAccountId);
         ok = SetPreparedQuery(TRANSMOG_ILLUSIONS, stmt) && ok;
-
-        /// Seraphim
-        stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BNET_RUNEFORGE_MEMORIES);
-        stmt->setUInt32(0, battlenetAccountId);
-        ok = SetPreparedQuery(RUNEFORGE_MEMORIES, stmt) && ok;
 
         return ok;
     }
@@ -1234,8 +1180,6 @@ void WorldSession::InitializeSessionCallback(LoginDatabaseQueryHolder const& hol
     _collectionMgr->LoadAccountMounts(holder.GetPreparedResult(AccountInfoQueryHolder::MOUNTS));
     _collectionMgr->LoadAccountItemAppearances(holder.GetPreparedResult(AccountInfoQueryHolder::ITEM_APPEARANCES), holder.GetPreparedResult(AccountInfoQueryHolder::ITEM_FAVORITE_APPEARANCES));
     _collectionMgr->LoadAccountTransmogIllusions(holder.GetPreparedResult(AccountInfoQueryHolder::TRANSMOG_ILLUSIONS));
-    /// Seraphim
-    _collectionMgr->LoadAccountRuneforgeMemorys(holder.GetPreparedResult(AccountInfoQueryHolder::RUNEFORGE_MEMORIES));
 
     if (!m_inQueue)
         SendAuthResponse(ERROR_OK, false);
@@ -1252,10 +1196,6 @@ void WorldSession::InitializeSessionCallback(LoginDatabaseQueryHolder const& hol
     SendAccountDataTimes(ObjectGuid::Empty, GLOBAL_CACHE_MASK);
     SendTutorialsData();
 
-    // DekkCore >
-    SendDisplayPromo(sConfigMgr->GetIntDefault("DisplayPromotion.PromotionID", 0));
-    // < DekkCore
-
     if (PreparedQueryResult characterCountsResult = holder.GetPreparedResult(AccountInfoQueryHolder::GLOBAL_REALM_CHARACTER_COUNTS))
     {
         do
@@ -1269,6 +1209,9 @@ void WorldSession::InitializeSessionCallback(LoginDatabaseQueryHolder const& hol
     WorldPackets::Battlenet::ConnectionStatus bnetConnected;
     bnetConnected.State = 1;
     SendPacket(bnetConnected.Write());
+
+    _battlePetMgr->LoadFromDB(holder.GetPreparedResult(AccountInfoQueryHolder::BATTLE_PETS),
+                              holder.GetPreparedResult(AccountInfoQueryHolder::BATTLE_PET_SLOTS));
 }
 
 rbac::RBACData* WorldSession::GetRBACData()
@@ -1436,7 +1379,6 @@ uint32 WorldSession::DosProtection::GetMaxPacketCounterAllowed(uint16 opcode) co
         case CMSG_CHAT_MESSAGE_YELL:                    //   0               3.5
         case CMSG_INSPECT:                              //   0               3.5
         case CMSG_AREA_SPIRIT_HEALER_QUERY:             // not profiled
-        case CMSG_GET_MIRROR_IMAGE_DATA:                // not profiled
         case CMSG_STAND_STATE_CHANGE:                   // not profiled
         case CMSG_RANDOM_ROLL:                          // not profiled
         case CMSG_TIME_SYNC_RESPONSE:                   // not profiled

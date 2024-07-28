@@ -18,12 +18,20 @@
 #ifndef TRINITYCORE_STRING_FORMAT_H
 #define TRINITYCORE_STRING_FORMAT_H
 
-#include "fmt/core.h"
+#include "Optional.h"
+#include <fmt/core.h>
 
 namespace Trinity
 {
     template<typename... Args>
     using FormatString = fmt::format_string<Args...>;
+
+    using FormatStringView = fmt::string_view;
+
+    using FormatArgs = fmt::format_args;
+
+    template<typename... Args>
+    constexpr auto MakeFormatArgs(Args&&... args) { return fmt::make_format_args(args...); }
 
     /// Default TC string format function.
     template<typename... Args>
@@ -35,7 +43,7 @@ namespace Trinity
         }
         catch (std::exception const& formatError)
         {
-            return fmt::format("An error occurred formatting string \"{}\" : {}", fmt, formatError.what());
+            return fmt::format("An error occurred formatting string \"{}\" : {}", FormatStringView(fmt), formatError.what());
         }
     }
 
@@ -45,6 +53,31 @@ namespace Trinity
         try
         {
             return fmt::format_to(out, fmt, std::forward<Args>(args)...);
+        }
+        catch (std::exception const& formatError)
+        {
+            return fmt::format_to(out, "An error occurred formatting string \"{}\" : {}", FormatStringView(fmt), formatError.what());
+        }
+    }
+
+    inline std::string StringVFormat(FormatStringView fmt, FormatArgs args)
+    {
+        try
+        {
+            return fmt::vformat(fmt, args);
+        }
+        catch (std::exception const& formatError)
+        {
+            return fmt::format("An error occurred formatting string \"{}\" : {}", fmt, formatError.what());
+        }
+    }
+
+    template<typename OutputIt>
+    inline OutputIt StringVFormatTo(OutputIt out, FormatStringView fmt, FormatArgs args)
+    {
+        try
+        {
+            return fmt::vformat_to(out, fmt, args);
         }
         catch (std::exception const& formatError)
         {
@@ -75,5 +108,22 @@ namespace Trinity
         return fmt.size() == 0;
     }
 }
+
+template<typename T, typename Char>
+struct fmt::formatter<Optional<T>, Char> : formatter<T, Char>
+{
+    template<typename FormatContext>
+    auto format(Optional<T> const& value, FormatContext& ctx) const -> decltype(ctx.out())
+    {
+        if (value.has_value())
+            return formatter<T, Char>::format(*value, ctx);
+
+        return formatter<string_view, Char>().format("(nullopt)", ctx);
+    }
+};
+
+// allow implicit enum to int conversions for formatting
+template <typename E, std::enable_if_t<std::is_enum_v<E>, std::nullptr_t> = nullptr>
+auto format_as(E e) { return std::underlying_type_t<E>(e); }
 
 #endif

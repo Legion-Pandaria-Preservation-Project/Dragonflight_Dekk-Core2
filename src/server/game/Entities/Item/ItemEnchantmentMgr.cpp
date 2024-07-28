@@ -110,47 +110,47 @@ TC_GAME_API float GetRandomPropertyPoints(uint32 itemLevel, uint32 quality, uint
 
     switch (inventoryType)
     {
-    case INVTYPE_HEAD:
-    case INVTYPE_BODY:
-    case INVTYPE_CHEST:
-    case INVTYPE_LEGS:
-    case INVTYPE_RANGED:
-    case INVTYPE_2HWEAPON:
-    case INVTYPE_ROBE:
-    case INVTYPE_THROWN:
-        propIndex = 0;
-        break;
-    case INVTYPE_RANGEDRIGHT:
-        if (subClass == ITEM_SUBCLASS_WEAPON_WAND)
-            propIndex = 3;
-        else
+        case INVTYPE_HEAD:
+        case INVTYPE_BODY:
+        case INVTYPE_CHEST:
+        case INVTYPE_LEGS:
+        case INVTYPE_RANGED:
+        case INVTYPE_2HWEAPON:
+        case INVTYPE_ROBE:
+        case INVTYPE_THROWN:
             propIndex = 0;
-        break;
-    case INVTYPE_WEAPON:
-    case INVTYPE_WEAPONMAINHAND:
-    case INVTYPE_WEAPONOFFHAND:
-        propIndex = 3;
-        break;
-    case INVTYPE_SHOULDERS:
-    case INVTYPE_WAIST:
-    case INVTYPE_FEET:
-    case INVTYPE_HANDS:
-    case INVTYPE_TRINKET:
-        propIndex = 1;
-        break;
-    case INVTYPE_NECK:
-    case INVTYPE_WRISTS:
-    case INVTYPE_FINGER:
-    case INVTYPE_SHIELD:
-    case INVTYPE_CLOAK:
-    case INVTYPE_HOLDABLE:
-        propIndex = 2;
-        break;
-    case INVTYPE_RELIC:
-        propIndex = 4;
-        break;
-    default:
-        return 0;
+            break;
+        case INVTYPE_RANGEDRIGHT:
+            if (subClass == ITEM_SUBCLASS_WEAPON_WAND)
+                propIndex = 3;
+            else
+                propIndex = 0;
+            break;
+        case INVTYPE_WEAPON:
+        case INVTYPE_WEAPONMAINHAND:
+        case INVTYPE_WEAPONOFFHAND:
+            propIndex = 3;
+            break;
+        case INVTYPE_SHOULDERS:
+        case INVTYPE_WAIST:
+        case INVTYPE_FEET:
+        case INVTYPE_HANDS:
+        case INVTYPE_TRINKET:
+            propIndex = 1;
+            break;
+        case INVTYPE_NECK:
+        case INVTYPE_WRISTS:
+        case INVTYPE_FINGER:
+        case INVTYPE_SHIELD:
+        case INVTYPE_CLOAK:
+        case INVTYPE_HOLDABLE:
+            propIndex = 2;
+            break;
+        case INVTYPE_RELIC:
+            propIndex = 4;
+            break;
+        default:
+            return 0;
     }
 
     RandPropPointsEntry const* randPropPointsEntry = sRandPropPointsStore.LookupEntry(itemLevel);
@@ -159,15 +159,15 @@ TC_GAME_API float GetRandomPropertyPoints(uint32 itemLevel, uint32 quality, uint
 
     switch (quality)
     {
-    case ITEM_QUALITY_UNCOMMON:
-        return randPropPointsEntry->GoodF[propIndex];
-    case ITEM_QUALITY_RARE:
-    case ITEM_QUALITY_HEIRLOOM:
-        return randPropPointsEntry->SuperiorF[propIndex];
-    case ITEM_QUALITY_EPIC:
-    case ITEM_QUALITY_LEGENDARY:
-    case ITEM_QUALITY_ARTIFACT:
-        return randPropPointsEntry->EpicF[propIndex];
+        case ITEM_QUALITY_UNCOMMON:
+            return randPropPointsEntry->GoodF[propIndex];
+        case ITEM_QUALITY_RARE:
+        case ITEM_QUALITY_HEIRLOOM:
+            return randPropPointsEntry->SuperiorF[propIndex];
+        case ITEM_QUALITY_EPIC:
+        case ITEM_QUALITY_LEGENDARY:
+        case ITEM_QUALITY_ARTIFACT:
+            return randPropPointsEntry->EpicF[propIndex];
     }
 
     return 0;

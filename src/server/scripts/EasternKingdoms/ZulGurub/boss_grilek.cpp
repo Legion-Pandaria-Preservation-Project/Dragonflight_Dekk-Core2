@@ -25,8 +25,6 @@ enum Yells
 
 enum Spells
 {
-    SPELL_AVARTAR                = 24646,                  //The Enrage Spell
-    SPELL_GROUNDTREMOR           = 6524,
 };
 
 enum Events
@@ -36,16 +34,11 @@ enum Events
 struct boss_grilek : public BossAI
 {
     boss_grilek(Creature* creature) : BossAI(creature, DATA_GRILEK)
-    {   
+    {
     }
-
-    uint32 Avartar_Timer;
-    uint32 GroundTremor_Timer;
 
     void Reset() override
     {
-        Avartar_Timer = 15000 + rand() % 10000;
-        GroundTremor_Timer = 8000 + rand() % 8000;
     }
 
     void JustDied(Unit* /*killer*/) override
@@ -66,32 +59,19 @@ struct boss_grilek : public BossAI
 
         if (me->HasUnitState(UNIT_STATE_CASTING))
             return;
-        //Avartar_Timer
-        if (Avartar_Timer <= diff)
+        /*
+        while (uint32 eventId = events.ExecuteEvent())
         {
-            DoCast(me, SPELL_AVARTAR);
-            Unit* pTarget = NULL;
+            switch (eventId)
+            {
+                default:
+                    break;
+            }
 
-            pTarget = SelectTarget(SelectTargetMethod::Random, 1);
-
-            if (GetThreat(me->GetVictim()))
-                ModifyThreatByPercent(me->GetVictim(), -50);
-            if (pTarget)
-                AttackStart(pTarget);
-
-            Avartar_Timer = 25000 + rand() % 10000;
+            if (me->HasUnitState(UNIT_STATE_CASTING))
+                return;
         }
-        else Avartar_Timer -= diff;
-
-        //GroundTremor_Timer
-        if (GroundTremor_Timer <= diff)
-        {
-            DoCast(me->GetVictim(), SPELL_GROUNDTREMOR);
-            GroundTremor_Timer = 12000 + rand() % 4000;
-        }
-        else GroundTremor_Timer -= diff;
-
-        DoMeleeAttackIfReady();
+        */
     }
 };
 

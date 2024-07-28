@@ -167,7 +167,7 @@ namespace WorldPackets
         class InstanceEncounterEngageUnit final : public ServerPacket
         {
         public:
-            InstanceEncounterEngageUnit() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_ENGAGE_UNIT, 15) { }
+            InstanceEncounterEngageUnit() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_ENGAGE_UNIT, 16 + 1) { }
 
             WorldPacket const* Write() override;
 
@@ -178,7 +178,7 @@ namespace WorldPackets
         class InstanceEncounterDisengageUnit final : public ServerPacket
         {
         public:
-            InstanceEncounterDisengageUnit() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_DISENGAGE_UNIT, 15) { }
+            InstanceEncounterDisengageUnit() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_DISENGAGE_UNIT, 16) { }
 
             WorldPacket const* Write() override;
 
@@ -188,12 +188,61 @@ namespace WorldPackets
         class InstanceEncounterChangePriority final : public ServerPacket
         {
         public:
-            InstanceEncounterChangePriority() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_CHANGE_PRIORITY, 15) { }
+            InstanceEncounterChangePriority() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_CHANGE_PRIORITY, 16 + 1) { }
 
             WorldPacket const* Write() override;
 
             ObjectGuid Unit;
             uint8 TargetFramePriority = 0; // used to update the position of the unit's current frame
+        };
+
+        class InstanceEncounterTimerStart final : public ServerPacket
+        {
+        public:
+            InstanceEncounterTimerStart() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_TIMER_START, 4) { }
+
+            WorldPacket const* Write() override;
+
+            int32 TimeRemaining = 0;
+        };
+
+        class InstanceEncounterObjectiveStart final : public ServerPacket
+        {
+        public:
+            InstanceEncounterObjectiveStart() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_OBJECTIVE_START, 4) { }
+
+            WorldPacket const* Write() override;
+
+            int32 ObjectiveID = 0;
+        };
+
+        class InstanceEncounterObjectiveUpdate final : public ServerPacket
+        {
+        public:
+            InstanceEncounterObjectiveUpdate() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_OBJECTIVE_UPDATE, 4 + 4) { }
+
+            WorldPacket const* Write() override;
+
+            int32 ObjectiveID = 0;
+            int32 ProgressAmount = 0;
+        };
+
+        class InstanceEncounterObjectiveComplete final : public ServerPacket
+        {
+        public:
+            InstanceEncounterObjectiveComplete() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_OBJECTIVE_COMPLETE, 4) { }
+
+            WorldPacket const* Write() override;
+
+            int32 ObjectiveID = 0;
+        };
+
+        class InstanceEncounterPhaseShiftChanged final : public ServerPacket
+        {
+        public:
+            InstanceEncounterPhaseShiftChanged() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_PHASE_SHIFT_CHANGED, 0) { }
+
+            WorldPacket const* Write() override { return &_worldPacket; }
         };
 
         class InstanceEncounterStart final : public ServerPacket
@@ -245,91 +294,6 @@ namespace WorldPackets
             WorldPacket const* Write() override;
             uint32 DungeonEncounterID = 0;
         };
-
-        class InstanceGroupSizeChanged final : public ServerPacket
-        {
-        public:
-            InstanceGroupSizeChanged(uint32 groupSize) : ServerPacket(SMSG_INSTANCE_GROUP_SIZE_CHANGED, 4), GroupSize(groupSize) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 GroupSize = 0;
-        };
-
-        //DekkCore
-        class EncounterStart final : public ServerPacket
-        {
-        public:
-            EncounterStart() : ServerPacket(SMSG_ENCOUNTER_START, 4) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 EncounterID = 0;
-            uint32 DifficultyID = 0;
-            uint32 GroupSize = 0;
-            uint32 UnkEncounterDataSize = 0;
-        };
-
-        class EncounterEnd final : public ServerPacket
-        {
-        public:
-            EncounterEnd() : ServerPacket(SMSG_ENCOUNTER_END, 13) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 EncounterID = 0;
-            uint32 DifficultyID = 0;
-            uint32 GroupSize = 0;
-            bool Success = false;
-        };
-
-        class QueryWorldCountwodnTimer final : public ClientPacket
-        {
-        public:
-            QueryWorldCountwodnTimer(WorldPacket&& packet) : ClientPacket(CMSG_QUERY_COUNTDOWN_TIMER, std::move(packet)) { }
-
-            void Read() override;
-
-            TimerType Type = WORLD_TIMER_TYPE_PVP;
-        };
-
-        class SummonRaidMemberValidateFailed final : public ServerPacket
-        {
-        public:
-            SummonRaidMemberValidateFailed() : ServerPacket(SMSG_SUMMON_RAID_MEMBER_VALIDATE_FAILED, 4) { }
-
-            WorldPacket const* Write() override;
-
-            struct ClientSummonRaidMemberValidateReason
-            {
-                ObjectGuid Member;
-                int32 ReasonCode = 0;
-            };
-
-            std::vector<ClientSummonRaidMemberValidateReason> Members;
-        };
-
-        class InstanceEncounterUpdateSuppressingRelease final : public ServerPacket
-        {
-        public:
-            InstanceEncounterUpdateSuppressingRelease() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_UPDATE_SUPPRESS_RELEASE, 1) { }
-
-            WorldPacket const* Write() override;
-
-            bool ReleaseDisabled = false;
-        };
-
-        class InstanceEncounterUpdateAllowingRelease final : public ServerPacket
-        {
-        public:
-            InstanceEncounterUpdateAllowingRelease() : ServerPacket(SMSG_INSTANCE_ENCOUNTER_UPDATE_ALLOW_RELEASE_IN_PROGRESS, 1) { }
-
-            WorldPacket const* Write() override;
-
-            bool ReleaseAllowed = false;
-        };
-
-//DekkCore
     }
 }
 

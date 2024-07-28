@@ -15,12 +15,12 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
- /* ScriptData
- Name: gobject_commandscript
- %Complete: 100
- Comment: All gobject related commands
- Category: commandscripts
- EndScriptData */
+/* ScriptData
+Name: gobject_commandscript
+%Complete: 100
+Comment: All gobject related commands
+Category: commandscripts
+EndScriptData */
 
 #include "ScriptMgr.h"
 #include "Chat.h"
@@ -113,7 +113,7 @@ public:
         GameObjectTemplate const* objectInfo = sObjectMgr->GetGameObjectTemplate(objectId);
         if (!objectInfo)
         {
-            handler->PSendSysMessage(LANG_GAMEOBJECT_NOT_EXIST, objectId);
+            handler->PSendSysMessage(LANG_GAMEOBJECT_NOT_EXIST, *objectId);
             handler->SetSentErrorMessage(true);
             return false;
         }
@@ -122,7 +122,7 @@ public:
         {
             // report to DB errors log as in loading case
             TC_LOG_ERROR("sql.sql", "Gameobject (Entry {} GoType: {}) have invalid displayId ({}), not spawned.", *objectId, objectInfo->type, objectInfo->displayId);
-            handler->PSendSysMessage(LANG_GAMEOBJECT_HAVE_INVALID_DATA, objectId);
+            handler->PSendSysMessage(LANG_GAMEOBJECT_HAVE_INVALID_DATA, *objectId);
             handler->SetSentErrorMessage(true);
             return false;
         }
@@ -155,7 +155,7 @@ public:
         /// @todo is it really necessary to add both the real and DB table guid here ?
         sObjectMgr->AddGameobjectToGrid(ASSERT_NOTNULL(sObjectMgr->GetGameObjectData(spawnId)));
 
-        handler->PSendSysMessage(LANG_GAMEOBJECT_ADD, objectId, objectInfo->name.c_str(), std::to_string(spawnId).c_str(), player->GetPositionX(), player->GetPositionY(), player->GetPositionZ());
+        handler->PSendSysMessage(LANG_GAMEOBJECT_ADD, *objectId, objectInfo->name.c_str(), std::to_string(spawnId).c_str(), player->GetPositionX(), player->GetPositionY(), player->GetPositionZ());
         return true;
     }
 
@@ -167,7 +167,7 @@ public:
 
         if (!sObjectMgr->GetGameObjectTemplate(objectId))
         {
-            handler->PSendSysMessage(LANG_GAMEOBJECT_NOT_EXIST, objectId);
+            handler->PSendSysMessage(LANG_GAMEOBJECT_NOT_EXIST, *objectId);
             handler->SetSentErrorMessage(true);
             return false;
         }
@@ -210,7 +210,7 @@ public:
             {
                 if (initString)
                 {
-                    eventFilter << "OR eventEntry IN (" << *itr;
+                    eventFilter  <<  "OR eventEntry IN (" << *itr;
                     initString = false;
                 }
                 else
@@ -245,16 +245,16 @@ public:
         do
         {
             Field* fields = result->Fetch();
-            guidLow = fields[0].GetUInt64();
-            id = fields[1].GetUInt32();
-            x = fields[2].GetFloat();
-            y = fields[3].GetFloat();
-            z = fields[4].GetFloat();
-            o = fields[5].GetFloat();
-            mapId = fields[6].GetUInt16();
-            phaseId = fields[7].GetUInt32();
-            phaseGroup = fields[8].GetUInt32();
-            poolId = sPoolMgr->IsPartOfAPool<GameObject>(guidLow);
+            guidLow =       fields[0].GetUInt64();
+            id =            fields[1].GetUInt32();
+            x =             fields[2].GetFloat();
+            y =             fields[3].GetFloat();
+            z =             fields[4].GetFloat();
+            o =             fields[5].GetFloat();
+            mapId =         fields[6].GetUInt16();
+            phaseId =       fields[7].GetUInt32();
+            phaseGroup =    fields[8].GetUInt32();
+            poolId =  sPoolMgr->IsPartOfAPool<GameObject>(guidLow);
             if (!poolId || sPoolMgr->IsSpawnedObject<GameObject>(player->GetMap()->GetPoolData(), guidLow))
                 found = true;
         } while (result->NextRow() && !found);
@@ -303,7 +303,7 @@ public:
                 Unit* owner = ObjectAccessor::GetUnit(*player, ownerGuid);
                 if (!owner || !ownerGuid.IsPlayer())
                 {
-                    handler->PSendSysMessage(LANG_COMMAND_DELOBJREFERCREATURE, ownerGuid.GetCounter(), spawnId);
+                    handler->PSendSysMessage(LANG_COMMAND_DELOBJREFERCREATURE, std::to_string(*spawnId).c_str(), ownerGuid.ToString().c_str());
                     handler->SetSentErrorMessage(true);
                     return false;
                 }
@@ -361,7 +361,7 @@ public:
     }
 
     //move selected object
-    static bool HandleGameObjectMoveCommand(ChatHandler* handler, GameObjectSpawnId guidLow, Optional<std::array<float, 3>> xyz)
+    static bool HandleGameObjectMoveCommand(ChatHandler* handler, GameObjectSpawnId guidLow, Optional<std::array<float,3>> xyz)
     {
         if (!guidLow)
             return false;
@@ -475,7 +475,7 @@ public:
                 if (!gameObjectInfo)
                     continue;
 
-                handler->PSendSysMessage(LANG_GO_LIST_CHAT, std::to_string(guid).c_str(), entry, gameObjectInfo->name.c_str(), x, y, z, mapId, "", "");
+                handler->PSendSysMessage(LANG_GO_LIST_CHAT, std::to_string(guid).c_str(), entry, std::to_string(guid).c_str(), gameObjectInfo->name.c_str(), x, y, z, mapId, "", "");
 
                 ++count;
             } while (result->NextRow());
@@ -601,29 +601,29 @@ public:
 
         switch (objectType)
         {
-        case 0:
-            object->SetGoState(GOState(*objectState));
-            break;
-        case 1:
-            object->SetGoType(GameobjectTypes(*objectState));
-            break;
-        case 2:
-            object->SetGoArtKit(*objectState);
-            break;
-        case 3:
-            object->SetGoAnimProgress(*objectState);
-            break;
-        case 4:
-            object->SendCustomAnim(*objectState);
-            break;
-        case 5:
-            if (*objectState > GO_DESTRUCTIBLE_REBUILDING)
-                return false;
+            case 0:
+                object->SetGoState(GOState(*objectState));
+                break;
+            case 1:
+                object->SetGoType(GameobjectTypes(*objectState));
+                break;
+            case 2:
+                object->SetGoArtKit(*objectState);
+                break;
+            case 3:
+                object->SetGoAnimProgress(*objectState);
+                break;
+            case 4:
+                object->SendCustomAnim(*objectState);
+                break;
+            case 5:
+                if (*objectState > GO_DESTRUCTIBLE_REBUILDING)
+                    return false;
 
-            object->SetDestructibleState(GameObjectDestructibleState(*objectState));
-            break;
-        default:
-            break;
+                object->SetDestructibleState(GameObjectDestructibleState(*objectState));
+                break;
+            default:
+                break;
         }
         handler->PSendSysMessage("Set gobject type %d state %u", objectType, *objectState);
         return true;

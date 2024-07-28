@@ -329,10 +329,7 @@ struct boss_gothik : public BossAI
     {
         summons.Summon(summon);
         if (me->IsInCombat())
-        {
             summon->AI()->DoAction(_gateIsOpen ? ACTION_GATE_OPENED : ACTION_ACQUIRE_TARGET);
-            summon->SetCombatPulseDelay(5);
-        }
         else
             summon->DespawnOrUnsummon();
     }
@@ -385,7 +382,7 @@ struct boss_gothik : public BossAI
         {
             case ACTION_MINION_EVADE:
                 if (_gateIsOpen || me->GetThreatManager().IsThreatListEmpty())
-                    return EnterEvadeMode(EVADE_REASON_NO_HOSTILES);
+                    return EnterEvadeMode(EvadeReason::NoHostiles);
                 if (_gateCanOpen)
                     OpenGate();
                 break;
@@ -582,7 +579,7 @@ struct npc_gothik_minion_baseAI : public ScriptedAI
                         AttackStart(target);
                     }
                     else
-                        EnterEvadeMode(EVADE_REASON_NO_HOSTILES);
+                        EnterEvadeMode(EvadeReason::NoHostiles);
                     break;
             }
         }
@@ -611,7 +608,7 @@ struct npc_gothik_minion_baseAI : public ScriptedAI
                     AttackStart(newTarget);
                 }
                 else
-                    EnterEvadeMode(EVADE_REASON_NO_HOSTILES);
+                    EnterEvadeMode(EvadeReason::NoHostiles);
             }
 
             _UpdateAI(diff);
@@ -637,7 +634,6 @@ struct npc_gothik_minion_livingtrainee : public npc_gothik_minion_baseAI
             DoCastAOE(SPELL_DEATH_PLAGUE);
             _deathPlagueTimer = urandms(5, 20);
         }
-        DoMeleeAttackIfReady();
     }
     uint32 _deathPlagueTimer;
 };
@@ -655,7 +651,6 @@ struct npc_gothik_minion_livingknight : public npc_gothik_minion_baseAI
             DoCastAOE(SPELL_SHADOW_MARK);
             _whirlwindTimer = urandms(15, 20);
         }
-        DoMeleeAttackIfReady();
     }
     uint32 _whirlwindTimer;
 };
@@ -685,8 +680,6 @@ struct npc_gothik_minion_livingrider : public npc_gothik_minion_baseAI
             DoCastAOE(SPELL_SHADOW_BOLT_VOLLEY);
             _boltVolleyTimer = urandms(10, 15);
         }
-        if (!me->HasUnitState(UNIT_STATE_CASTING))
-            DoMeleeAttackIfReady();
 
         npc_gothik_minion_baseAI::_UpdateAI(diff);
     }
@@ -706,7 +699,6 @@ struct npc_gothik_minion_spectraltrainee : public npc_gothik_minion_baseAI
             DoCastAOE(SPELL_ARCANE_EXPLOSION);
             _explosionTimer = 2 * IN_MILLISECONDS;
         }
-        DoMeleeAttackIfReady();
     }
     uint32 _explosionTimer;
 };
@@ -724,7 +716,6 @@ struct npc_gothik_minion_spectralknight : public npc_gothik_minion_baseAI
             DoCastAOE(SPELL_WHIRLWIND);
             _whirlwindTimer = urandms(20, 25);
         }
-        DoMeleeAttackIfReady();
     }
     uint32 _whirlwindTimer;
 };
@@ -789,9 +780,6 @@ struct npc_gothik_minion_spectralrider : public npc_gothik_minion_baseAI
             _drainTimer = urandms(10,15);
         }
 
-        if (!me->HasUnitState(UNIT_STATE_CASTING))
-            DoMeleeAttackIfReady();
-
         npc_gothik_minion_baseAI::_UpdateAI(diff);
     }
     uint32 _frenzyTimer, _drainTimer;
@@ -810,7 +798,6 @@ struct npc_gothik_minion_spectralhorse : public npc_gothik_minion_baseAI
             DoCastAOE(SPELL_STOMP);
             _stompTimer = urandms(14, 18);
         }
-        DoMeleeAttackIfReady();
     }
     uint32 _stompTimer;
 };
@@ -890,8 +877,6 @@ struct npc_gothik_trigger : public ScriptedAI
 // 27831, 55638 - Shadow Bolt Volley
 class spell_gothik_shadow_bolt_volley : public SpellScript
 {
-    PrepareSpellScript(spell_gothik_shadow_bolt_volley);
-
     void FilterTargets(std::list<WorldObject*>& targets)
     {
         targets.remove_if(Trinity::UnitAuraCheck(false, SPELL_SHADOW_MARK));

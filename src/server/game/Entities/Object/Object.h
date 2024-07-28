@@ -22,6 +22,7 @@
 #include "Duration.h"
 #include "Errors.h"
 #include "EventProcessor.h"
+#include "MapDefines.h"
 #include "ModelIgnoreFlags.h"
 #include "MovementInfo.h"
 #include "ObjectDefines.h"
@@ -31,6 +32,7 @@
 #include "Position.h"
 #include "SharedDefines.h"
 #include "SpellDefines.h"
+#include "UniqueTrackablePtr.h"
 #include "UpdateFields.h"
 #include <list>
 #include <unordered_map>
@@ -43,6 +45,7 @@ class CreatureAI;
 class DynamicObject;
 class GameObject;
 class InstanceScript;
+class Item;
 class Map;
 class Object;
 class Player;
@@ -60,14 +63,10 @@ class UpdateData;
 class WorldObject;
 class WorldPacket;
 class ZoneScript;
-#ifdef ELUNA
-class ElunaEventProcessor;
-#endif
 struct FactionTemplateEntry;
 struct Loot;
-struct PositionFullTerrainStatus;
 struct QuaternionData;
-enum ZLiquidStatus : uint32;
+struct SpellPowerCost;
 
 namespace WorldPackets
 {
@@ -146,11 +145,11 @@ namespace UF
 }
 
 float const DEFAULT_COLLISION_HEIGHT = 2.03128f; // Most common value in dbc
+static constexpr Milliseconds const HEARTBEAT_INTERVAL = 5s + 200ms;
 
 class TC_GAME_API Object
 {
     public:
-        DEKKCORE::CustomData Variables;
         virtual ~Object();
 
         bool IsInWorld() const { return m_inWorld; }
@@ -198,6 +197,18 @@ class TC_GAME_API Object
         void SetDestroyedObject(bool destroyed) { m_isDestroyedObject = destroyed; }
         virtual void BuildUpdate(UpdateDataMapType&) { }
         void BuildFieldsUpdate(Player*, UpdateDataMapType &) const;
+
+        inline bool IsWorldObject() const { return isType(TYPEMASK_WORLDOBJECT); }
+        static WorldObject* ToWorldObject(Object* o) { return o ? o->ToWorldObject() : nullptr; }
+        static WorldObject const* ToWorldObject(Object const* o) { return o ? o->ToWorldObject() : nullptr; }
+        WorldObject* ToWorldObject() { if (IsWorldObject()) return reinterpret_cast<WorldObject*>(this); else return nullptr; }
+        WorldObject const* ToWorldObject() const { if (IsWorldObject()) return reinterpret_cast<WorldObject const*>(this); else return nullptr; }
+
+        inline bool IsItem() const { return isType(TYPEMASK_ITEM); }
+        static Item* ToItem(Object* o) { return o ? o->ToItem() : nullptr; }
+        static Item const* ToItem(Object const* o) { return o ? o->ToItem() : nullptr; }
+        Item* ToItem() { if (IsItem()) return reinterpret_cast<Item*>(this); else return nullptr; }
+        Item const* ToItem() const { if (IsItem()) return reinterpret_cast<Item const*>(this); else return nullptr; }
 
         inline bool IsPlayer() const { return GetTypeId() == TYPEID_PLAYER; }
         static Player* ToPlayer(Object* o) { return o ? o->ToPlayer() : nullptr; }
@@ -263,6 +274,8 @@ class TC_GAME_API Object
         }
 
         virtual std::string GetDebugInfo() const;
+
+        Trinity::unique_weak_ptr<Object> GetWeakPtr() const { return m_scriptRef; }
 
         virtual Loot* GetLootForPlayer([[maybe_unused]] Player const* player) const { return nullptr; }
 
@@ -403,6 +416,9 @@ class TC_GAME_API Object
         bool m_isNewObject;
         bool m_isDestroyedObject;
 
+        struct NoopObjectDeleter { void operator()(Object*) const { /*noop - not managed*/ } };
+        Trinity::unique_trackable_ptr<Object> m_scriptRef;
+
         Object(Object const& right) = delete;
         Object(Object&& right) = delete;
         Object& operator=(Object const& right) = delete;
@@ -436,29 +452,8 @@ class FlaggedValuesArray32
         T_FLAGS m_flags;
 };
 
-struct TC_GAME_API FindCreatureOptions
+struct FindCreatureOptions
 {
-    FindCreatureOptions();
-    ~FindCreatureOptions();
-
-    FindCreatureOptions& SetCreatureId(uint32 creatureId) { CreatureId = creatureId; return *this; }
-    FindCreatureOptions& SetStringId(std::string_view stringId) { StringId = stringId; return *this; }
-
-    FindCreatureOptions& SetIsAlive(bool isAlive) { IsAlive = isAlive; return *this; }
-    FindCreatureOptions& SetIsInCombat(bool isInCombat) { IsInCombat = isInCombat; return *this; }
-    FindCreatureOptions& SetIsSummon(bool isSummon) { IsSummon = isSummon; return *this; }
-
-    FindCreatureOptions& SetIgnorePhases(bool ignorePhases) { IgnorePhases = ignorePhases; return *this; }
-    FindCreatureOptions& SetIgnoreNotOwnedPrivateObjects(bool ignoreNotOwnedPrivateObjects) { IgnoreNotOwnedPrivateObjects = ignoreNotOwnedPrivateObjects; return *this; }
-    FindCreatureOptions& SetIgnorePrivateObjects(bool ignorePrivateObjects) { IgnorePrivateObjects = ignorePrivateObjects; return *this; }
-
-    FindCreatureOptions& SetHasAura(uint32 spellId) { AuraSpellId = spellId; return *this; }
-    FindCreatureOptions& SetOwner(ObjectGuid ownerGuid) { OwnerGuid = ownerGuid; return *this; }
-    FindCreatureOptions& SetCharmer(ObjectGuid charmerGuid) { CharmerGuid = charmerGuid; return *this; }
-    FindCreatureOptions& SetCreator(ObjectGuid creatorGuid) { CreatorGuid = creatorGuid; return *this; }
-    FindCreatureOptions& SetDemonCreator(ObjectGuid demonCreatorGuid) { DemonCreatorGuid = demonCreatorGuid; return *this; }
-    FindCreatureOptions& SetPrivateObjectOwner(ObjectGuid privateObjectOwnerGuid) { PrivateObjectOwnerGuid = privateObjectOwnerGuid; return *this; }
-
     Optional<uint32> CreatureId;
     Optional<std::string_view> StringId;
 
@@ -476,12 +471,23 @@ struct TC_GAME_API FindCreatureOptions
     Optional<ObjectGuid> CreatorGuid;
     Optional<ObjectGuid> DemonCreatorGuid;
     Optional<ObjectGuid> PrivateObjectOwnerGuid;
+};
 
-    FindCreatureOptions(FindCreatureOptions const&) = delete;
-    FindCreatureOptions(FindCreatureOptions&&) = delete;
+struct FindGameObjectOptions
+{
+    Optional<uint32> GameObjectId;
+    Optional<std::string_view> StringId;
 
-    FindCreatureOptions& operator=(FindCreatureOptions const&) = delete;
-    FindCreatureOptions& operator=(FindCreatureOptions&&) = delete;
+    Optional<bool> IsSummon;
+    Optional<bool> IsSpawned = true; // most searches should be for spawned objects only, to search for "any" just clear this field at call site
+
+    bool IgnorePhases = false;
+    bool IgnoreNotOwnedPrivateObjects = true;
+    bool IgnorePrivateObjects = false;
+
+    Optional<ObjectGuid> OwnerGuid;
+    Optional<ObjectGuid> PrivateObjectOwnerGuid;
+    Optional<GameobjectTypes> GameObjectType;
 };
 
 class TC_GAME_API WorldObject : public Object, public WorldLocation
@@ -499,9 +505,9 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         void GetNearPoint2D(WorldObject const* searcher, float& x, float& y, float distance, float absAngle) const;
         void GetNearPoint(WorldObject const* searcher, float& x, float& y, float& z, float distance2d, float absAngle) const;
         void GetClosePoint(float& x, float& y, float& z, float size, float distance2d = 0, float relAngle = 0) const;
-        void MovePosition(Position &pos, float dist, float angle);
+        void MovePosition(Position &pos, float dist, float angle) const;
         Position GetNearPosition(float dist, float angle);
-        void MovePositionToFirstCollision(Position &pos, float dist, float angle);
+        void MovePositionToFirstCollision(Position &pos, float dist, float angle) const;
         Position GetFirstCollisionPosition(float dist, float angle);
         Position GetRandomNearPosition(float radius);
         void GetContactPoint(WorldObject const* obj, float& x, float& y, float& z, float distance2d = CONTACT_DISTANCE) const;
@@ -543,6 +549,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         bool IsInWorldPvpZone() const;
         bool IsOutdoors() const { return m_outdoors; }
         ZLiquidStatus GetLiquidStatus() const { return m_liquidStatus; }
+        WmoLocation const* GetCurrentWmo() const { return m_currentWmo ? &*m_currentWmo : nullptr; }
 
         InstanceScript* GetInstanceScript() const;
 
@@ -591,9 +598,11 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
 
         virtual uint8 GetLevelForTarget(WorldObject const* /*target*/) const { return 1; }
 
-        void PlayDistanceSound(uint32 soundId, Player* target = nullptr);
-        void PlayDirectSound(uint32 soundId, Player* target = nullptr, uint32 broadcastTextId = 0);
-        void PlayDirectMusic(uint32 musicId, Player* target = nullptr);
+        void PlayDistanceSound(uint32 soundId, Player const* target = nullptr) const;
+        void StopDistanceSound(Player const* target = nullptr) const;
+        void PlayDirectSound(uint32 soundId, Player const* target = nullptr, uint32 broadcastTextId = 0) const;
+        void PlayDirectMusic(uint32 musicId, Player const* target = nullptr) const;
+        void PlayObjectSound(int32 soundKitId, ObjectGuid targetObject, Player const* target = nullptr, int32 broadcastTextId = 0) const;
 
         void AddObjectToRemoveList();
 
@@ -634,10 +643,12 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         Creature*   FindNearestCreature(uint32 entry, float range, bool alive = true) const;
         Creature*   FindNearestCreatureWithOptions(float range, FindCreatureOptions const& options) const;
         GameObject* FindNearestGameObject(uint32 entry, float range, bool spawnedOnly = true) const;
+        GameObject* FindNearestGameObjectWithOptions(float range, FindGameObjectOptions const& options) const;
         GameObject* FindNearestUnspawnedGameObject(uint32 entry, float range) const;
         GameObject* FindNearestGameObjectOfType(GameobjectTypes type, float range) const;
-        Player* SelectNearestPlayer(float distance) const;
+        Player*     SelectNearestPlayer(float range) const;
 
+        virtual ObjectGuid GetCreatorGUID() const = 0;
         virtual ObjectGuid GetOwnerGUID() const = 0;
         virtual ObjectGuid GetCharmerOrOwnerGUID() const { return GetOwnerGUID(); }
         ObjectGuid GetCharmerOrOwnerOrOwnGUID() const;
@@ -656,7 +667,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         float GetSpellMinRangeForTarget(Unit const* target, SpellInfo const* spellInfo) const;
 
         double ApplyEffectModifiers(SpellInfo const* spellInfo, uint8 effIndex, double value) const;
-        int32 CalcSpellDuration(SpellInfo const* spellInfo) const;
+        int32 CalcSpellDuration(SpellInfo const* spellInfo, std::vector<SpellPowerCost> const* powerCosts) const;
         int32 ModSpellDuration(SpellInfo const* spellInfo, WorldObject const* target, int32 duration, bool positive, uint32 effectMask) const;
         void ModSpellCastTime(SpellInfo const* spellInfo, int32& castTime, Spell* spell = nullptr) const;
         void ModSpellDurationTime(SpellInfo const* spellInfo, int32& durationTime, Spell* spell = nullptr) const;
@@ -682,6 +693,8 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         // CastSpell's third arg can be a variety of things - check out CastSpellExtraArgs' constructors!
         SpellCastResult CastSpell(CastSpellTargetArg const& targets, uint32 spellId, CastSpellExtraArgs const& args = { });
 
+        void SendPlayOrphanSpellVisual(Position const& sourceLocation, ObjectGuid const& target, uint32 spellVisualId, float travelSpeed, bool speedAsTime = false, bool withSourceOrientation = false);
+        void SendPlayOrphanSpellVisual(Position const& sourceLocation, Position const& targetLocation, uint32 spellVisualId, float travelSpeed, bool speedAsTime = false, bool withSourceOrientation = false);
         void SendPlayOrphanSpellVisual(ObjectGuid const& target, uint32 spellVisualId, float travelSpeed, bool speedAsTime = false, bool withSourceOrientation = false);
         void SendPlayOrphanSpellVisual(Position const& targetLocation, uint32 spellVisualId, float travelSpeed, bool speedAsTime = false, bool withSourceOrientation = false);
         void SendCancelOrphanSpellVisual(uint32 id);
@@ -696,12 +709,11 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         template <typename Container>
         void GetGameObjectListWithEntryInGrid(Container& gameObjectContainer, uint32 entry, float maxSearchRange = 250.0f) const;
 
-        void GetGameObjectListWithEntryInGridAppend(std::list<GameObject*>& lList, uint32 uiEntry, float fMaxSearchRange = 250.0f) const;
+        template <typename Container>
+        void GetGameObjectListWithOptionsInGrid(Container& gameObjectContainer, float maxSearchRange, FindGameObjectOptions const& options) const;
 
         template <typename Container>
         void GetCreatureListWithEntryInGrid(Container& creatureContainer, uint32 entry, float maxSearchRange = 250.0f) const;
-
-        void GetCreatureListWithEntryInGridAppend(std::list<Creature*>& lList, uint32 uiEntry, float fMaxSearchRange = 250.0f) const;
 
         template <typename Container>
         void GetCreatureListWithOptionsInGrid(Container& creatureContainer, float maxSearchRange, FindCreatureOptions const& options) const;
@@ -731,10 +743,9 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         void SetFarVisible(bool on);
         bool IsVisibilityOverridden() const { return m_visibilityDistanceOverride.has_value(); }
         void SetVisibilityDistanceOverride(VisibilityDistanceType type);
-        void SetVisibilityDistanceOverride(float distance);
-        void SetWorldObject(bool apply);
-        bool IsPermanentWorldObject() const { return m_isWorldObject; }
-        bool IsWorldObject() const;
+        void SetIsStoredInWorldObjectGridContainer(bool apply);
+        bool IsAlwaysStoredInWorldObjectGridContainer() const { return m_isStoredInWorldObjectGridContainer; }
+        bool IsStoredInWorldObjectGridContainer() const;
 
         uint32  LastUsedScriptID;
 
@@ -772,10 +783,6 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         virtual uint16 GetMovementAnimKitId() const { return 0; }
         virtual uint16 GetMeleeAnimKitId() const { return 0; }
 
-#ifdef ELUNA
-        ElunaEventProcessor* ElunaEvents;
-#endif
-
         // Watcher
         bool IsPrivateObject() const { return !_privateObjectOwner.IsEmpty(); }
         ObjectGuid GetPrivateObjectOwner() const { return _privateObjectOwner; }
@@ -787,17 +794,12 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         SmoothPhasing* GetSmoothPhasing() { return _smoothPhasing.get(); }
         SmoothPhasing const* GetSmoothPhasing() const { return _smoothPhasing.get(); }
 
-        //DekkCore
-        Player* FindNearestPlayer(float range, bool alive = true);
-        std::list<Creature*> FindNearestCreatures(std::list<uint32> entrys, float range) const;
-        template<class NOTIFIER> void VisitNearbyGridObject(const float& radius, NOTIFIER& notifier) const;
-        //DekkCore
     protected:
         std::string m_name;
         bool m_isActive;
         bool m_isFarVisible;
         Optional<float> m_visibilityDistanceOverride;
-        bool const m_isWorldObject;
+        bool const m_isStoredInWorldObjectGridContainer;
         ZoneScript* m_zoneScript;
 
         // transports (gameobjects only)
@@ -809,6 +811,7 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         float m_staticFloorZ;
         bool m_outdoors;
         ZLiquidStatus m_liquidStatus;
+        Optional<WmoLocation> m_currentWmo;
 
         //these functions are used mostly for Relocate() and Corpse/Player specific stuff...
         //use them ONLY in LoadFromDB()/Create() funcs and nowhere else!
@@ -823,6 +826,8 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
         virtual bool IsInvisibleDueToDespawn([[maybe_unused]] WorldObject const* seer) const { return false; }
         //difference from IsAlwaysVisibleFor: 1. after distance check; 2. use owner or charmer as seer
         virtual bool IsAlwaysDetectableFor([[maybe_unused]] WorldObject const* seer) const { return false; }
+
+        virtual void Heartbeat() { }
     private:
         Map* m_currMap;                                   // current object's Map location
 
@@ -837,28 +842,13 @@ class TC_GAME_API WorldObject : public Object, public WorldLocation
 
         std::unique_ptr<SmoothPhasing> _smoothPhasing;
 
+        Milliseconds _heartbeatTimer;
+
         virtual bool _IsWithinDist(WorldObject const* obj, float dist2compare, bool is3D, bool incOwnRadius = true, bool incTargetRadius = true) const;
 
         bool CanDetect(WorldObject const* obj, bool ignoreStealth, bool checkAlert = false) const;
         bool CanDetectInvisibilityOf(WorldObject const* obj) const;
         bool CanDetectStealthOf(WorldObject const* obj, bool checkAlert = false) const;
-
-
-    // DekkCore >
-    public:
-        std::list<Creature*> FindNearestCreatures(uint32 entry, float range) const;
-        std::list<Creature*> FindAllCreaturesInRange(float range);
-        std::list<Creature*> FindAllUnfriendlyCreaturesInRange(float range);
-        std::list<GameObject*> FindNearestGameObjects(uint32 entry, float range) const;
-        AreaTrigger* SelectNearestAreaTrigger(uint32 spellId, float distance) const;
-        std::list<AreaTrigger*> SelectNearestAreaTriggers(uint32 spellId, float range);
-        std::list<Player*> SelectNearestPlayers(float range, bool alive);
-        template <typename Container>
-        void GetCreatureListInGrid(Container& creatureContainer, float maxSearchRange = 250.0f) const;
-        DEKKCORE::CustomData VariableStorage;
-    // < DekkCore
-
-
 };
 
 namespace Trinity

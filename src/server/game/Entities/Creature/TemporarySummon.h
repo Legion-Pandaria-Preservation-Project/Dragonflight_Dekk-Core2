@@ -30,10 +30,9 @@ enum PetEntry
     PET_DOOMGUARD       = 18540,
     PET_FELGUARD        = 30146,
     PET_INCUBUS         = 184600,
-     
+
     // Death Knight pets
     PET_GHOUL           = 26125,
-    PET_ABOMINATION     = 106848,
 
     // Shaman pet
     PET_SPIRIT_WOLF     = 29264
@@ -45,9 +44,9 @@ class TC_GAME_API TempSummon : public Creature
 {
     public:
         explicit TempSummon(SummonPropertiesEntry const* properties, WorldObject* owner, bool isWorldObject);
-        virtual ~TempSummon() { }
-        void Update(uint32 time) override;
-        virtual void InitStats(WorldObject* summoner, uint32 lifetime);
+        virtual ~TempSummon();
+        void Update(uint32 diff) override;
+        virtual void InitStats(WorldObject* summoner, Milliseconds duration);
         virtual void InitSummon(WorldObject* summoner);
         void UpdateObjectVisibilityOnCreate() override;
         void UpdateObjectVisibilityOnDestroy() override;
@@ -61,43 +60,48 @@ class TC_GAME_API TempSummon : public Creature
         GameObject* GetSummonerGameObject() const;
         ObjectGuid GetSummonerGUID() const { return m_summonerGUID; }
         TempSummonType GetSummonType() const { return m_type; }
-        uint32 GetTimer() const { return m_timer; }
+        Milliseconds GetTimer() const { return m_timer; }
+        void RefreshTimer() { m_timer = m_lifetime; }
+        void ModifyTimer(Milliseconds mod) { m_timer += mod; m_lifetime += mod; }
         Optional<uint32> GetCreatureIdVisibleToSummoner() const { return m_creatureIdVisibleToSummoner; }
         Optional<uint32> GetDisplayIdVisibleToSummoner() const { return m_displayIdVisibleToSummoner; }
         bool CanFollowOwner() const { return m_canFollowOwner; }
         void SetCanFollowOwner(bool can) { m_canFollowOwner = can; }
 
+        bool IsDismissedOnFlyingMount() const { return !HasFlag(CREATURE_STATIC_FLAG_5_DONT_DISMISS_ON_FLYING_MOUNT); }
+        void SetDontDismissOnFlyingMount(bool dontDismissOnFlyingMount) { _staticFlags.ApplyFlag(CREATURE_STATIC_FLAG_5_DONT_DISMISS_ON_FLYING_MOUNT, dontDismissOnFlyingMount); }
+
+        bool IsAutoResummoned() const { return !HasFlag(CREATURE_STATIC_FLAG_6_DO_NOT_AUTO_RESUMMON); }
+        void SetDontAutoResummon(bool dontAutoResummon) { _staticFlags.ApplyFlag(CREATURE_STATIC_FLAG_6_DO_NOT_AUTO_RESUMMON, dontAutoResummon); }
+
         SummonPropertiesEntry const* const m_Properties;
 
         std::string GetDebugInfo() const override;
+
+    protected:
+        std::ptrdiff_t FindUsableTotemSlot(Unit const* summoner) const;
+
     private:
+        bool IsSharingTotemSlotWith(ObjectGuid objectGuid) const;
         TempSummonType m_type;
-        uint32 m_timer;
-        uint32 m_lifetime;
+        Milliseconds m_timer;
+        Milliseconds m_lifetime;
         ObjectGuid m_summonerGUID;
         Optional<uint32> m_creatureIdVisibleToSummoner;
         Optional<uint32> m_displayIdVisibleToSummoner;
         bool m_canFollowOwner;
-
-
-    // DekkCore >
-    public:
-        void SetSummonerGUID(ObjectGuid summonerGUID) { m_summonerGUID = summonerGUID; }
-    // < DekkCore
 };
 
 class TC_GAME_API Minion : public TempSummon
 {
     public:
         Minion(SummonPropertiesEntry const* properties, Unit* owner, bool isWorldObject);
-        void InitStats(WorldObject* summoner, uint32 duration) override;
+        void InitStats(WorldObject* summoner, Milliseconds duration) override;
         void RemoveFromWorld() override;
         void setDeathState(DeathState s) override;
         Unit* GetOwner() const { return m_owner; }
-        /* Fluxurion > - No need leave it commented
         float GetFollowAngle() const override { return m_followAngle; }
         void SetFollowAngle(float angle) { m_followAngle = angle; }
-        */
 
         // Warlock pets
         bool IsPetImp() const { return GetEntry() == PET_IMP; }
@@ -110,7 +114,6 @@ class TC_GAME_API Minion : public TempSummon
 
         // Death Knight pets
         bool IsPetGhoul() const { return GetEntry() == PET_GHOUL; } // Ghoul may be guardian or pet
-        bool IsPetAbomination() const { return GetEntry() == PET_ABOMINATION; } // Sludge Belcher dk talent
 
         // Shaman pet
         bool IsSpiritWolf() const { return GetEntry() == PET_SPIRIT_WOLF; } // Spirit wolf from feral spirits
@@ -120,14 +123,14 @@ class TC_GAME_API Minion : public TempSummon
         std::string GetDebugInfo() const override;
     protected:
         Unit* const m_owner;
-        // float m_followAngle; // Fluxurion > - No need leave it commentedy
+        float m_followAngle;
 };
 
 class TC_GAME_API Guardian : public Minion
 {
     public:
         Guardian(SummonPropertiesEntry const* properties, Unit* owner, bool isWorldObject);
-        void InitStats(WorldObject* summoner, uint32 duration) override;
+        void InitStats(WorldObject* summoner, Milliseconds duration) override;
         bool InitStatsForLevel(uint8 level);
         void InitSummon(WorldObject* summoner) override;
 
@@ -153,7 +156,7 @@ class TC_GAME_API Puppet : public Minion
 {
     public:
         Puppet(SummonPropertiesEntry const* properties, Unit* owner);
-        void InitStats(WorldObject* summoner, uint32 duration) override;
+        void InitStats(WorldObject* summoner, Milliseconds duration) override;
         void InitSummon(WorldObject* summoner) override;
         void Update(uint32 time) override;
 };

@@ -20,9 +20,6 @@
 #include "Creature.h"
 #include "CreatureAI.h"
 #include "Player.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 
 /*static*/ bool CombatManager::CanBeginCombat(Unit const* a, Unit const* b)
 {
@@ -77,18 +74,6 @@ void CombatReference::EndCombat()
     bool const needSecondAI = second->GetCombatManager().UpdateOwnerCombatState();
 
     // ...and if that happened, also notify the AI of it...
-#ifdef ELUNA
-    if (needFirstAI)
-    {
-        if (Player* player = first->ToPlayer())
-            sEluna->OnPlayerLeaveCombat(player);
-    }
-    if (needSecondAI)
-    {
-        if (Player* player = second->ToPlayer())
-            sEluna->OnPlayerLeaveCombat(player);
-    }
-#endif
     if (needFirstAI)
         if (UnitAI* firstAI = first->GetAI())
             firstAI->JustExitedCombat();
@@ -124,14 +109,8 @@ void CombatReference::SuppressFor(Unit* who)
 {
     Suppress(who);
     if (who->GetCombatManager().UpdateOwnerCombatState())
-    {
-#ifdef ELUNA
-        if (Player* player = who->ToPlayer())
-            sEluna->OnPlayerLeaveCombat(player);
-#endif
         if (UnitAI* ai = who->GetAI())
             ai->JustExitedCombat();
-    }
 }
 
 bool PvPCombatReference::Update(uint32 tdiff)
@@ -239,7 +218,7 @@ bool CombatManager::SetInCombatWith(Unit* who, bool addSecondUnitSuppressed)
     who->GetCombatManager().PutReference(_owner->GetGUID(), ref);
 
     // now, sequencing is important - first we update the combat state, which will set both units in combat and do non-AI combat start stuff
-    bool const needSelfAI = UpdateOwnerCombatState();
+    bool const needSelfAI  = UpdateOwnerCombatState();
     bool const needOtherAI = who->GetCombatManager().UpdateOwnerCombatState();
 
     // then, we finally notify the AI (if necessary) and let it safely do whatever it feels like
@@ -316,28 +295,31 @@ void CombatManager::EndCombatBeyondRange(float range, bool includingPvP)
     }
 }
 
-void CombatManager::SuppressPvPCombat()
+void CombatManager::SuppressPvPCombat(UnitFilter* unitFilter /*= nullptr*/)
 {
-    for (auto const& pair : _pvpRefs)
-        pair.second->Suppress(_owner);
+    for (auto const& [guid, combatRef] : _pvpRefs)
+        if (!unitFilter || unitFilter(combatRef->GetOther(_owner)))
+            combatRef->Suppress(_owner);
+
     if (UpdateOwnerCombatState())
-    {
-#ifdef ELUNA
-        if (Player* player = _owner->ToPlayer())
-            sEluna->OnPlayerLeaveCombat(player);
-#endif
         if (UnitAI* ownerAI = _owner->GetAI())
             ownerAI->JustExitedCombat();
-    }
 }
 
-void CombatManager::EndAllPvECombat()
+void CombatManager::EndAllPvECombat(UnitFilter* unitFilter /*= nullptr*/)
 {
     // cannot have threat without combat
-    _owner->GetThreatManager().RemoveMeFromThreatLists();
+    _owner->GetThreatManager().RemoveMeFromThreatLists(unitFilter);
     _owner->GetThreatManager().ClearAllThreat();
-    while (!_pveRefs.empty())
-        _pveRefs.begin()->second->EndCombat();
+
+    std::vector<CombatReference*> combatReferencesToRemove;
+    combatReferencesToRemove.reserve(_pveRefs.size());
+    for (auto const& [guid, combatRef] : _pveRefs)
+        if (!unitFilter || unitFilter(combatRef->GetOther(_owner)))
+            combatReferencesToRemove.push_back(combatRef);
+
+    for (CombatReference* combatRef : combatReferencesToRemove)
+        combatRef->EndCombat();
 }
 
 void CombatManager::RevalidateCombat()
@@ -369,18 +351,20 @@ void CombatManager::RevalidateCombat()
     }
 }
 
-void CombatManager::EndAllPvPCombat()
+void CombatManager::EndAllPvPCombat(UnitFilter* unitFilter /*= nullptr*/)
 {
-    while (!_pvpRefs.empty())
-        _pvpRefs.begin()->second->EndCombat();
+    std::vector<CombatReference*> combatReferencesToRemove;
+    combatReferencesToRemove.reserve(_pvpRefs.size());
+    for (auto const& [guid, combatRef] : _pvpRefs)
+        if (!unitFilter || unitFilter(combatRef->GetOther(_owner)))
+            combatReferencesToRemove.push_back(combatRef);
+
+    for (CombatReference* combatRef : combatReferencesToRemove)
+        combatRef->EndCombat();
 }
 
 /*static*/ void CombatManager::NotifyAICombat(Unit* me, Unit* other)
 {
-#ifdef ELUNA
-    if (Player* player = me->ToPlayer())
-        sEluna->OnPlayerEnterCombat(player, other);
-#endif
     if (UnitAI* ai = me->GetAI())
         ai->JustEnteredCombat(other);
 }

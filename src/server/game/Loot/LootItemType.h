@@ -22,8 +22,8 @@
 
 enum class LootItemType : uint8
 {
-    Item = 0,
-    Currency = 1
+    Item        = 0,
+    Currency    = 1
 };
 
 #endif // LootItemType_h__

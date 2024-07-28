@@ -67,7 +67,7 @@ ArenaTeam* ArenaTeamMgr::GetArenaTeamByCaptain(ObjectGuid guid) const
 void ArenaTeamMgr::AddArenaTeam(ArenaTeam* arenaTeam)
 {
     ArenaTeam*& team = ArenaTeamStore[arenaTeam->GetId()];
-    ASSERT((team == nullptr) || (team == arenaTeam), "Duplicate arena team with ID {}", arenaTeam->GetId());
+    ASSERT((team == nullptr) || (team == arenaTeam), "Duplicate arena team with ID %u", arenaTeam->GetId());
     team = arenaTeam;
 }
 

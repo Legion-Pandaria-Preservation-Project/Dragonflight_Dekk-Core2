@@ -46,38 +46,38 @@ void TransportBase::UpdatePassengerPosition(Map* map, WorldObject* passenger, fl
     // as if regular movement occurred
     switch (passenger->GetTypeId())
     {
-    case TYPEID_UNIT:
-    {
-        Creature* creature = passenger->ToCreature();
-        map->CreatureRelocation(creature, x, y, z, o, false);
-        if (setHomePosition)
+        case TYPEID_UNIT:
         {
-            creature->GetTransportHomePosition(x, y, z, o);
-            CalculatePassengerPosition(x, y, z, &o);
-            creature->SetHomePosition(x, y, z, o);
+            Creature* creature = passenger->ToCreature();
+            map->CreatureRelocation(creature, x, y, z, o, false);
+            if (setHomePosition)
+            {
+                creature->GetTransportHomePosition(x, y, z, o);
+                CalculatePassengerPosition(x, y, z, &o);
+                creature->SetHomePosition(x, y, z, o);
+            }
+            break;
         }
-        break;
-    }
-    case TYPEID_PLAYER:
-        //relocate only passengers in world and skip any player that might be still logging in/teleporting
-        if (passenger->IsInWorld() && !passenger->ToPlayer()->IsBeingTeleported())
-        {
-            map->PlayerRelocation(passenger->ToPlayer(), x, y, z, o);
-            passenger->ToPlayer()->SetFallInformation(0, passenger->GetPositionZ());
-        }
-        break;
-    case TYPEID_GAMEOBJECT:
-        map->GameObjectRelocation(passenger->ToGameObject(), x, y, z, o, false);
-        passenger->ToGameObject()->RelocateStationaryPosition(x, y, z, o);
-        break;
-    case TYPEID_DYNAMICOBJECT:
-        map->DynamicObjectRelocation(passenger->ToDynObject(), x, y, z, o);
-        break;
-    case TYPEID_AREATRIGGER:
-        map->AreaTriggerRelocation(passenger->ToAreaTrigger(), x, y, z, o);
-        break;
-    default:
-        break;
+        case TYPEID_PLAYER:
+            //relocate only passengers in world and skip any player that might be still logging in/teleporting
+            if (passenger->IsInWorld() && !passenger->ToPlayer()->IsBeingTeleported())
+            {
+                map->PlayerRelocation(passenger->ToPlayer(), x, y, z, o);
+                passenger->ToPlayer()->SetFallInformation(0, passenger->GetPositionZ());
+            }
+            break;
+        case TYPEID_GAMEOBJECT:
+            map->GameObjectRelocation(passenger->ToGameObject(), x, y, z, o, false);
+            passenger->ToGameObject()->RelocateStationaryPosition(x, y, z, o);
+            break;
+        case TYPEID_DYNAMICOBJECT:
+            map->DynamicObjectRelocation(passenger->ToDynObject(), x, y, z, o);
+            break;
+        case TYPEID_AREATRIGGER:
+            map->AreaTriggerRelocation(passenger->ToAreaTrigger(), x, y, z, o);
+            break;
+        default:
+            break;
     }
 
     if (Unit* unit = passenger->ToUnit())
@@ -86,8 +86,8 @@ void TransportBase::UpdatePassengerPosition(Map* map, WorldObject* passenger, fl
 }
 
 Transport::Transport() : GameObject(),
-_transportInfo(nullptr), _movementState(TransportMovementState::Moving), _eventsToTrigger(std::make_unique<boost::dynamic_bitset<uint8>>()),
-_currentPathLeg(0), _pathProgress(0), _delayedAddModel(false)
+    _transportInfo(nullptr), _movementState(TransportMovementState::Moving), _eventsToTrigger(std::make_unique<boost::dynamic_bitset<uint8>>()),
+    _currentPathLeg(0), _pathProgress(0), _delayedAddModel(false)
 {
     m_updateFlag.ServerTime = true;
     m_updateFlag.Stationary = true;
@@ -406,7 +406,7 @@ GameObject* Transport::CreateGOPassenger(ObjectGuid::LowType guid, GameObjectDat
     return go;
 }
 
-TempSummon* Transport::SummonPassenger(uint32 entry, Position const& pos, TempSummonType summonType, SummonPropertiesEntry const* properties /*= nullptr*/, uint32 duration /*= 0*/, Unit* summoner /*= nullptr*/, uint32 spellId /*= 0*/, uint32 vehId /*= 0*/)
+TempSummon* Transport::SummonPassenger(uint32 entry, Position const& pos, TempSummonType summonType, SummonPropertiesEntry const* properties /*= nullptr*/, Milliseconds duration /*= 0ms*/, Unit* summoner /*= nullptr*/, uint32 spellId /*= 0*/, uint32 vehId /*= 0*/)
 {
     Map* map = FindMap();
     if (!map)
@@ -417,67 +417,67 @@ TempSummon* Transport::SummonPassenger(uint32 entry, Position const& pos, TempSu
     {
         switch (properties->Control)
         {
-        case SUMMON_CATEGORY_PET:
-            mask = UNIT_MASK_GUARDIAN;
-            break;
-        case SUMMON_CATEGORY_PUPPET:
-            mask = UNIT_MASK_PUPPET;
-            break;
-        case SUMMON_CATEGORY_VEHICLE:
-            mask = UNIT_MASK_MINION;
-            break;
-        case SUMMON_CATEGORY_WILD:
-        case SUMMON_CATEGORY_ALLY:
-        case SUMMON_CATEGORY_UNK:
-        {
-            switch (SummonTitle(properties->Title))
-            {
-            case SummonTitle::Minion:
-            case SummonTitle::Guardian:
-            case SummonTitle::Runeblade:
+            case SUMMON_CATEGORY_PET:
                 mask = UNIT_MASK_GUARDIAN;
                 break;
-            case SummonTitle::Totem:
-            case SummonTitle::Lightwell:
-                mask = UNIT_MASK_TOTEM;
+            case SUMMON_CATEGORY_PUPPET:
+                mask = UNIT_MASK_PUPPET;
                 break;
-            case SummonTitle::Vehicle:
-            case SummonTitle::Mount:
-                mask = UNIT_MASK_SUMMON;
-                break;
-            case SummonTitle::Companion:
+            case SUMMON_CATEGORY_VEHICLE:
                 mask = UNIT_MASK_MINION;
                 break;
-            default:
-                if (properties->GetFlags().HasFlag(SummonPropertiesFlags::JoinSummonerSpawnGroup)) // Mirror Image, Summon Gargoyle
-                    mask = UNIT_MASK_GUARDIAN;
+            case SUMMON_CATEGORY_WILD:
+            case SUMMON_CATEGORY_ALLY:
+            case SUMMON_CATEGORY_UNK:
+            {
+                switch (SummonTitle(properties->Title))
+                {
+                    case SummonTitle::Minion:
+                    case SummonTitle::Guardian:
+                    case SummonTitle::Runeblade:
+                        mask = UNIT_MASK_GUARDIAN;
+                        break;
+                    case SummonTitle::Totem:
+                    case SummonTitle::Lightwell:
+                        mask = UNIT_MASK_TOTEM;
+                        break;
+                    case SummonTitle::Vehicle:
+                    case SummonTitle::Mount:
+                        mask = UNIT_MASK_SUMMON;
+                        break;
+                    case SummonTitle::Companion:
+                        mask = UNIT_MASK_MINION;
+                        break;
+                    default:
+                        if (properties->GetFlags().HasFlag(SummonPropertiesFlags::JoinSummonerSpawnGroup)) // Mirror Image, Summon Gargoyle
+                            mask = UNIT_MASK_GUARDIAN;
+                        break;
+                }
                 break;
             }
-            break;
-        }
-        default:
-            return nullptr;
+            default:
+                return nullptr;
         }
     }
 
     TempSummon* summon = nullptr;
     switch (mask)
     {
-    case UNIT_MASK_SUMMON:
-        summon = new TempSummon(properties, summoner, false);
-        break;
-    case UNIT_MASK_GUARDIAN:
-        summon = new Guardian(properties, summoner, false);
-        break;
-    case UNIT_MASK_PUPPET:
-        summon = new Puppet(properties, summoner);
-        break;
-    case UNIT_MASK_TOTEM:
-        summon = new Totem(properties, summoner);
-        break;
-    case UNIT_MASK_MINION:
-        summon = new Minion(properties, summoner, false);
-        break;
+        case UNIT_MASK_SUMMON:
+            summon = new TempSummon(properties, summoner, false);
+            break;
+        case UNIT_MASK_GUARDIAN:
+            summon = new Guardian(properties, summoner, false);
+            break;
+        case UNIT_MASK_PUPPET:
+            summon = new Puppet(properties, summoner);
+            break;
+        case UNIT_MASK_TOTEM:
+            summon = new Totem(properties, summoner);
+            break;
+        case UNIT_MASK_MINION:
+            summon = new Minion(properties, summoner, false);
+            break;
     }
 
     float x, y, z, o;
@@ -561,22 +561,23 @@ void Transport::UpdatePosition(float x, float y, float z, float o)
 
 void Transport::LoadStaticPassengers()
 {
-    if (uint32 mapId = GetGOInfo()->moTransport.SpawnMap)
-    {
-        CellObjectGuidsMap const& cells = sObjectMgr->GetMapObjectGuids(mapId, GetMap()->GetDifficultyID());
-        CellGuidSet::const_iterator guidEnd;
-        for (CellObjectGuidsMap::const_iterator cellItr = cells.begin(); cellItr != cells.end(); ++cellItr)
-        {
-            // Creatures on transport
-            guidEnd = cellItr->second.creatures.end();
-            for (CellGuidSet::const_iterator guidItr = cellItr->second.creatures.begin(); guidItr != guidEnd; ++guidItr)
-                CreateNPCPassenger(*guidItr, sObjectMgr->GetCreatureData(*guidItr));
+    uint32 mapId = GetGOInfo()->moTransport.SpawnMap;
+    if (!mapId)
+        return;
 
-            // GameObjects on transport
-            guidEnd = cellItr->second.gameobjects.end();
-            for (CellGuidSet::const_iterator guidItr = cellItr->second.gameobjects.begin(); guidItr != guidEnd; ++guidItr)
-                CreateGOPassenger(*guidItr, sObjectMgr->GetGameObjectData(*guidItr));
-        }
+    CellObjectGuidsMap const* cells = sObjectMgr->GetMapObjectGuids(mapId, GetMap()->GetDifficultyID());
+    if (!cells)
+        return;
+
+    for (auto const& [cellId, guids] : *cells)
+    {
+        // GameObjects on transport
+        for (ObjectGuid::LowType spawnId : guids.gameobjects)
+            CreateGOPassenger(spawnId, sObjectMgr->GetGameObjectData(spawnId));
+
+        // Creatures on transport
+        for (ObjectGuid::LowType spawnId : guids.creatures)
+            CreateNPCPassenger(spawnId, sObjectMgr->GetCreatureData(spawnId));
     }
 }
 
@@ -611,7 +612,7 @@ bool Transport::TeleportTransport(uint32 oldMapId, uint32 newMapId, float x, flo
     if (oldMapId != newMapId)
     {
         UnloadStaticPassengers();
-        TeleportPassengersAndHideTransport(newMapId, x, y, z, o);
+        TeleportPassengersAndHideTransport(newMapId);
         return true;
     }
     else
@@ -640,7 +641,7 @@ bool Transport::TeleportTransport(uint32 oldMapId, uint32 newMapId, float x, flo
     }
 }
 
-void Transport::TeleportPassengersAndHideTransport(uint32 newMapid, float x, float y, float z, float o)
+void Transport::TeleportPassengersAndHideTransport(uint32 newMapid)
 {
     if (newMapid == GetMapId())
     {
@@ -683,21 +684,20 @@ void Transport::TeleportPassengersAndHideTransport(uint32 newMapid, float x, flo
     {
         float destX, destY, destZ, destO;
         obj->m_movementInfo.transport.pos.GetPosition(destX, destY, destZ, destO);
-        TransportBase::CalculatePassengerPosition(destX, destY, destZ, &destO, x, y, z, o);
 
         switch (obj->GetTypeId())
         {
-        case TYPEID_PLAYER:
-            if (!obj->ToPlayer()->TeleportTo(newMapid, destX, destY, destZ, destO, TELE_TO_NOT_LEAVE_TRANSPORT))
+            case TYPEID_PLAYER:
+                if (!obj->ToPlayer()->TeleportTo({ .Location = WorldLocation(newMapid, destX, destY, destZ, destO), .TransportGuid = GetTransportGUID() }, TELE_TO_NOT_LEAVE_TRANSPORT))
+                    RemovePassenger(obj);
+                break;
+            case TYPEID_DYNAMICOBJECT:
+            case TYPEID_AREATRIGGER:
+                obj->AddObjectToRemoveList();
+                break;
+            default:
                 RemovePassenger(obj);
-            break;
-        case TYPEID_DYNAMICOBJECT:
-        case TYPEID_AREATRIGGER:
-            obj->AddObjectToRemoveList();
-            break;
-        default:
-            RemovePassenger(obj);
-            break;
+                break;
         }
     }
 }

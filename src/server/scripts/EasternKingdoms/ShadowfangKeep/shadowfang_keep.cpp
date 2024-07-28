@@ -1,59 +1,53 @@
-#include "LFGMgr.h"
-#include "Group.h"
-#include "shadowfang_keep.h"
+ /*
+ * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
-#define GOSSIP_SENDER_SHADOWFANG_PORT 33
+#include "ScriptMgr.h"
+#include "SpellAuraEffects.h"
+#include "SpellScript.h"
+#include "Unit.h"
 
-Position shadowfang_keep_locs[] = 
+// 7057 - Haunting Spirits
+class spell_shadowfang_keep_haunting_spirits : public AuraScript
 {
-    { -224.482f, 2199.782f, 79.761f, 0.376793f },
-    { -254.083f, 2283.067f, 74.9995f, 2.481768f },
-    { -249.633f, 2261.914f, 100.890f, 4.975412f },
-    { -166.63f, 2180.783f, 129.255f, 5.929675f },
-};
+    void CalcPeriodic(AuraEffect const* /*aurEff*/, bool& isPeriodic, int32& amplitude)
+    {
+        isPeriodic = true;
+        amplitude = (irand(0, 60) + 30) * IN_MILLISECONDS;
+    }
 
-//
-//class npc_haunted_stable_hand_portal : public CreatureScript
-//{
-//    public:
-//        npc_haunted_stable_hand_portal() : CreatureScript("npc_haunted_stable_hand_portal") { }
-//
-//        bool OnGossipHello(Player* player, Creature* pCreature)
-//        {
-//            bool ru = player->GetSession()->GetSessionDbLocaleIndex() == LOCALE_ruRU;
-//
-//            if (InstanceScript* instance = pCreature->GetInstanceScript())
-//            {
-//                if (instance->GetBossState(DATA_VALDEN) == DONE)
-//                    player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ru ? "??????????? ? ?????? ????????????." : "Teleport to Lower Observatory.", GOSSIP_SENDER_SHADOWFANG_PORT, 3);
-//                else if (instance->GetBossState(DATA_SPRINGVALE) == DONE)
-//                    player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ru ? "??????????? ?? ?????????? ????." : "Teleport to The Courtyard.", GOSSIP_SENDER_SHADOWFANG_PORT, 2);
-//                else if (instance->GetBossState(DATA_SILVERLAINE) == DONE)
-//                    player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ru ? "??????????? ? ????????? ???." : "Teleport to Dining Hall.", GOSSIP_SENDER_SHADOWFANG_PORT, 1);
-//                else if (instance->GetBossState(DATA_ASHBURY) == DONE)
-//                    player->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, ru ? "??????????? ?? ?????????? ????." : "Teleport to The Courtyard.", GOSSIP_SENDER_SHADOWFANG_PORT, 0);
-//            }
-//
-//            player->SEND_GOSSIP_MENU(player->GetGossipTextId(pCreature), pCreature->GetGUID());
-//            return true;
-//        }
-//
-//        bool OnGossipSelect(Player* player, Creature* /*pCreature*/, uint32 sender, uint32 action)
-//        {
-//            player->PlayerTalkClass->ClearMenus();
-//            player->CLOSE_GOSSIP_MENU();
-//
-//            if (action >= 4)
-//                return false;
-//
-//            Position loc = shadowfang_keep_locs[action];
-//            if (!player->isInCombat())
-//                player->NearTeleportTo(loc.GetPositionX(), loc.GetPositionY(), loc.GetPositionZ(), loc.GetOrientation(), false);
-//            return true;
-//        }
-//};
+    void HandleDummyTick(AuraEffect const* aurEff)
+    {
+        GetTarget()->CastSpell(nullptr, aurEff->GetAmount(), true);
+    }
+
+    void HandleUpdatePeriodic(AuraEffect* aurEff)
+    {
+        aurEff->CalculatePeriodic(GetCaster());
+    }
+
+    void Register() override
+    {
+        DoEffectCalcPeriodic += AuraEffectCalcPeriodicFn(spell_shadowfang_keep_haunting_spirits::CalcPeriodic, EFFECT_0, SPELL_AURA_DUMMY);
+        OnEffectPeriodic += AuraEffectPeriodicFn(spell_shadowfang_keep_haunting_spirits::HandleDummyTick, EFFECT_0, SPELL_AURA_DUMMY);
+        OnEffectUpdatePeriodic += AuraEffectUpdatePeriodicFn(spell_shadowfang_keep_haunting_spirits::HandleUpdatePeriodic, EFFECT_0, SPELL_AURA_DUMMY);
+    }
+};
 
 void AddSC_shadowfang_keep()
 {
-   
+    RegisterSpellScript(spell_shadowfang_keep_haunting_spirits);
 }

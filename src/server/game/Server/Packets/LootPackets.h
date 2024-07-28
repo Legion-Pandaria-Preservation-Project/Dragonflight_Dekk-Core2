@@ -226,7 +226,7 @@ namespace WorldPackets
             Duration<Milliseconds, uint32> RollTime;
             uint8 Method = 0;
             uint8 ValidRolls = 0;
-            std::array<LootRollIneligibilityReason, 4> LootRollIneligibleReason = { };
+            std::array<LootRollIneligibilityReason, 5> LootRollIneligibleReason = { };
             LootItemData Item;
             int32 DungeonEncounterID = 0;
         };
@@ -316,54 +316,6 @@ namespace WorldPackets
 
             WorldPacket const* Write() override { return &_worldPacket; }
         };
-
-
-
-        // DekkCore >
-        class LegacyLootRules final : public ServerPacket
-        {
-        public:
-            LegacyLootRules() : ServerPacket(SMSG_LEGACY_LOOT_RULES) { }
-
-            WorldPacket const* Write() override;
-
-            bool LegacyRulesActive = false;
-        };
-
-     //< SMSG_AE_LOOT_TARGET_ACK
-     //< SMSG_SET_LOOT_METHOD_FAILED
-     //< SMSG_BONUS_ROLL_EMPTY
-     //< SMSG_LOOT_RELEASE_ALL
-        class NullSMsg final : public ServerPacket
-        {
-        public:
-            NullSMsg(OpcodeServer opcode) : ServerPacket(opcode, 0) { }
-
-            WorldPacket const* Write() override { return &_worldPacket; }
-        };
-
-        class CancelMasterLootRoll final : public ClientPacket
-        {
-        public:
-            CancelMasterLootRoll(WorldPacket&& packet) : ClientPacket(CMSG_CANCEL_MASTER_LOOT_ROLL, std::move(packet)) { }
-
-            void Read() override;
-
-            ObjectGuid LootObj;
-            uint8 LootListID = 0;
-        };
-
-        class DoMasterLootRoll final : public ClientPacket
-        {
-        public:
-            DoMasterLootRoll(WorldPacket&& packet) : ClientPacket(CMSG_DO_MASTER_LOOT_ROLL, std::move(packet)) { }
-
-            void Read() override;
-
-            ObjectGuid LootObj;
-            uint8 LootListID = 0;
-        };
-        // < DekkCore
     }
 }
 

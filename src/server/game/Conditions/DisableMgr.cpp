@@ -32,69 +32,69 @@
 namespace DisableMgr
 {
 
-    char const* MapTypeNames[] =
+char const* MapTypeNames[] =
+{
+    "World",
+    "Dungeon",
+    "Raid",
+    "Battleground",
+    "Arena",
+    "Scenario"
+};
+
+namespace
+{
+    struct DisableData
     {
-        "World",
-        "Dungeon",
-        "Raid",
-        "Battleground",
-        "Arena",
-        "Scenario"
+        uint16 flags;
+        std::unordered_set<uint32> params[2];                   // params0, params1
     };
 
-    namespace
+    // single disables here with optional data
+    typedef std::unordered_map<uint32, DisableData> DisableTypeMap;
+
+    std::array<DisableTypeMap, MAX_DISABLE_TYPES> m_DisableMap;
+}
+
+void LoadDisables()
+{
+    uint32 oldMSTime = getMSTime();
+
+    // reload case
+    for (std::size_t i = 0; i < m_DisableMap.size(); ++i)
+        m_DisableMap[i].clear();
+
+    QueryResult result = WorldDatabase.Query("SELECT sourceType, entry, flags, params_0, params_1 FROM disables");
+
+    uint32 total_count = 0;
+
+    if (!result)
     {
-        struct DisableData
-        {
-            uint16 flags;
-            std::unordered_set<uint32> params[2];                   // params0, params1
-        };
-
-        // single disables here with optional data
-        typedef std::unordered_map<uint32, DisableData> DisableTypeMap;
-
-        std::array<DisableTypeMap, MAX_DISABLE_TYPES> m_DisableMap;
+        TC_LOG_INFO("server.loading", ">> Loaded 0 disables. DB table `disables` is empty!");
+        return;
     }
 
-    void LoadDisables()
+    Field* fields;
+    do
     {
-        uint32 oldMSTime = getMSTime();
-
-        // reload case
-        for (std::size_t i = 0; i < m_DisableMap.size(); ++i)
-            m_DisableMap[i].clear();
-
-        QueryResult result = WorldDatabase.Query("SELECT sourceType, entry, flags, params_0, params_1 FROM disables");
-
-        uint32 total_count = 0;
-
-        if (!result)
+        fields = result->Fetch();
+        uint32 type = fields[0].GetUInt32();
+        if (type >= MAX_DISABLE_TYPES)
         {
-            TC_LOG_INFO("server.loading", ">> Loaded 0 disables. DB table `disables` is empty!");
-            return;
+            TC_LOG_ERROR("sql.sql", "Invalid type {} specified in `disables` table, skipped.", type);
+            continue;
         }
 
-        Field* fields;
-        do
+        uint32 entry = fields[1].GetUInt32();
+        uint16 flags = fields[2].GetUInt16();
+        std::string params_0 = fields[3].GetString();
+        std::string params_1 = fields[4].GetString();
+
+        DisableData data;
+        data.flags = flags;
+
+        switch (type)
         {
-            fields = result->Fetch();
-            uint32 type = fields[0].GetUInt32();
-            if (type >= MAX_DISABLE_TYPES)
-            {
-                TC_LOG_ERROR("sql.sql", "Invalid type {} specified in `disables` table, skipped.", type);
-                continue;
-            }
-
-            uint32 entry = fields[1].GetUInt32();
-            uint16 flags = fields[2].GetUInt16();
-            std::string params_0 = fields[3].GetString();
-            std::string params_1 = fields[4].GetString();
-
-            DisableData data;
-            data.flags = flags;
-
-            switch (type)
-            {
             case DISABLE_TYPE_SPELL:
                 if (!(sSpellMgr->GetSpellInfo(entry, DIFFICULTY_NONE) || flags & SPELL_DISABLE_DEPRECATED_SPELL))
                 {
@@ -115,7 +115,7 @@ namespace DisableMgr
                         if (Optional<uint32> mapId = Trinity::StringTo<uint32>(mapStr))
                             data.params[0].insert(*mapId);
                         else
-                            TC_LOG_DEBUG("sql.sql", "Disable map '{}' for spell {} is invalid, skipped.", mapStr, entry);
+                            TC_LOG_ERROR("sql.sql", "Disable map '{}' for spell {} is invalid, skipped.", mapStr, entry);
                     }
                 }
 
@@ -131,7 +131,7 @@ namespace DisableMgr
                 }
 
                 break;
-                // checked later
+            // checked later
             case DISABLE_TYPE_QUEST:
                 break;
             case DISABLE_TYPE_MAP:
@@ -146,25 +146,25 @@ namespace DisableMgr
                 bool isFlagInvalid = false;
                 switch (mapEntry->InstanceType)
                 {
-                case MAP_COMMON:
-                    if (flags)
-                        isFlagInvalid = true;
-                    break;
-                case MAP_INSTANCE:
-                case MAP_RAID:
-                    if (flags & DUNGEON_STATUSFLAG_HEROIC && !sDB2Manager.GetMapDifficultyData(entry, DIFFICULTY_HEROIC))
-                        flags -= DUNGEON_STATUSFLAG_HEROIC;
-                    if (flags & RAID_STATUSFLAG_10MAN_HEROIC && !sDB2Manager.GetMapDifficultyData(entry, DIFFICULTY_10_HC))
-                        flags -= RAID_STATUSFLAG_10MAN_HEROIC;
-                    if (flags & RAID_STATUSFLAG_25MAN_HEROIC && !sDB2Manager.GetMapDifficultyData(entry, DIFFICULTY_25_HC))
-                        flags -= RAID_STATUSFLAG_25MAN_HEROIC;
-                    if (!flags)
-                        isFlagInvalid = true;
-                    break;
-                case MAP_BATTLEGROUND:
-                case MAP_ARENA:
-                    TC_LOG_ERROR("sql.sql", "Battleground map {} specified to be disabled in map case, skipped.", entry);
-                    continue;
+                    case MAP_COMMON:
+                        if (flags)
+                            isFlagInvalid = true;
+                        break;
+                    case MAP_INSTANCE:
+                    case MAP_RAID:
+                        if (flags & DUNGEON_STATUSFLAG_HEROIC && !sDB2Manager.GetMapDifficultyData(entry, DIFFICULTY_HEROIC))
+                            flags -= DUNGEON_STATUSFLAG_HEROIC;
+                        if (flags & RAID_STATUSFLAG_10MAN_HEROIC && !sDB2Manager.GetMapDifficultyData(entry, DIFFICULTY_10_HC))
+                            flags -= RAID_STATUSFLAG_10MAN_HEROIC;
+                        if (flags & RAID_STATUSFLAG_25MAN_HEROIC && !sDB2Manager.GetMapDifficultyData(entry, DIFFICULTY_25_HC))
+                            flags -= RAID_STATUSFLAG_25MAN_HEROIC;
+                        if (!flags)
+                            isFlagInvalid = true;
+                        break;
+                    case MAP_BATTLEGROUND:
+                    case MAP_ARENA:
+                        TC_LOG_ERROR("sql.sql", "Battleground map {} specified to be disabled in map case, skipped.", entry);
+                        continue;
                 }
                 if (isFlagInvalid)
                 {
@@ -210,22 +210,22 @@ namespace DisableMgr
                 }
                 switch (mapEntry->InstanceType)
                 {
-                case MAP_COMMON:
-                    if (flags & VMAP::VMAP_DISABLE_AREAFLAG)
-                        TC_LOG_INFO("misc", "Areaflag disabled for {} map {}.", MapTypeNames[mapEntry->InstanceType], entry);
-                    if (flags & VMAP::VMAP_DISABLE_LIQUIDSTATUS)
-                        TC_LOG_INFO("misc", "Liquid status disabled for {} map {}.", MapTypeNames[mapEntry->InstanceType], entry);
-                    break;
-                case MAP_INSTANCE:
-                case MAP_RAID:
-                case MAP_BATTLEGROUND:
-                case MAP_ARENA:
-                case MAP_SCENARIO:
-                    if (flags & VMAP::VMAP_DISABLE_HEIGHT)
-                        TC_LOG_INFO("misc", "Height disabled for {} map {}.", MapTypeNames[mapEntry->InstanceType], entry);
-                    if (flags & VMAP::VMAP_DISABLE_LOS)
-                        TC_LOG_INFO("misc", "LoS disabled for {} map {}.", MapTypeNames[mapEntry->InstanceType], entry);
-                    break;
+                    case MAP_COMMON:
+                        if (flags & VMAP::VMAP_DISABLE_AREAFLAG)
+                            TC_LOG_INFO("misc", "Areaflag disabled for {} map {}.", MapTypeNames[mapEntry->InstanceType], entry);
+                        if (flags & VMAP::VMAP_DISABLE_LIQUIDSTATUS)
+                            TC_LOG_INFO("misc", "Liquid status disabled for {} map {}.", MapTypeNames[mapEntry->InstanceType], entry);
+                        break;
+                    case MAP_INSTANCE:
+                    case MAP_RAID:
+                    case MAP_BATTLEGROUND:
+                    case MAP_ARENA:
+                    case MAP_SCENARIO:
+                        if (flags & VMAP::VMAP_DISABLE_HEIGHT)
+                            TC_LOG_INFO("misc", "Height disabled for {} map {}.", MapTypeNames[mapEntry->InstanceType], entry);
+                        if (flags & VMAP::VMAP_DISABLE_LOS)
+                            TC_LOG_INFO("misc", "LoS disabled for {} map {}.", MapTypeNames[mapEntry->InstanceType], entry);
+                        break;
                 }
                 break;
             }
@@ -241,58 +241,70 @@ namespace DisableMgr
                     TC_LOG_INFO("misc", "Pathfinding disabled for {} map {}.", MapTypeNames[mapEntry->InstanceType], entry);
                 break;
             }
-            default:
+            case DISABLE_TYPE_PHASE_AREA:
+            {
+                if (!sPhaseStore.LookupEntry(entry))
+                {
+                    TC_LOG_ERROR("sql.sql", "Phase entry {} from `disables` doesn't exist in dbc, skipped.", entry);
+                    continue;
+                }
+                if (flags)
+                    TC_LOG_ERROR("sql.sql", "Disable flags specified for phase {}, useless data.", entry);
                 break;
             }
-
-            m_DisableMap[type][entry] = std::move(data);
-            ++total_count;
-        } while (result->NextRow());
-
-        TC_LOG_INFO("server.loading", ">> Loaded {} disables in {} ms", total_count, GetMSTimeDiffToNow(oldMSTime));
-    }
-
-    void CheckQuestDisables()
-    {
-        uint32 oldMSTime = getMSTime();
-
-        std::size_t count = m_DisableMap[DISABLE_TYPE_QUEST].size();
-        if (!count)
-        {
-            TC_LOG_INFO("server.loading", ">> Checked 0 quest disables.");
-            return;
+            default:
+                break;
         }
 
-        // check only quests, rest already done at startup
-        for (auto itr = m_DisableMap[DISABLE_TYPE_QUEST].begin(); itr != m_DisableMap[DISABLE_TYPE_QUEST].end();)
-        {
-            uint32 entry = itr->first;
-            if (!sObjectMgr->GetQuestTemplate(entry))
-            {
-                TC_LOG_ERROR("sql.sql", "Quest entry {} from `disables` doesn't exist, skipped.", entry);
-                m_DisableMap[DISABLE_TYPE_QUEST].erase(itr++);
-                continue;
-            }
-            if (itr->second.flags)
-                TC_LOG_ERROR("sql.sql", "Disable flags specified for quest {}, useless data.", entry);
-            ++itr;
-        }
+        m_DisableMap[type][entry] = std::move(data);
+        ++total_count;
+    }
+    while (result->NextRow());
 
-        TC_LOG_INFO("server.loading", ">> Checked {} quest disables in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+    TC_LOG_INFO("server.loading", ">> Loaded {} disables in {} ms", total_count, GetMSTimeDiffToNow(oldMSTime));
+}
+
+void CheckQuestDisables()
+{
+    uint32 oldMSTime = getMSTime();
+
+    std::size_t count = m_DisableMap[DISABLE_TYPE_QUEST].size();
+    if (!count)
+    {
+        TC_LOG_INFO("server.loading", ">> Checked 0 quest disables.");
+        return;
     }
 
-    bool IsDisabledFor(DisableType type, uint32 entry, WorldObject const* ref, uint8 flags /*= 0*/)
+    // check only quests, rest already done at startup
+    for (auto itr = m_DisableMap[DISABLE_TYPE_QUEST].begin(); itr != m_DisableMap[DISABLE_TYPE_QUEST].end();)
     {
-        ASSERT(type < MAX_DISABLE_TYPES);
-        if (m_DisableMap[type].empty())
-            return false;
-
-        DisableTypeMap::iterator itr = m_DisableMap[type].find(entry);
-        if (itr == m_DisableMap[type].end())    // not disabled
-            return false;
-
-        switch (type)
+        uint32 entry = itr->first;
+        if (!sObjectMgr->GetQuestTemplate(entry))
         {
+            TC_LOG_ERROR("sql.sql", "Quest entry {} from `disables` doesn't exist, skipped.", entry);
+            m_DisableMap[DISABLE_TYPE_QUEST].erase(itr++);
+            continue;
+        }
+        if (itr->second.flags)
+            TC_LOG_ERROR("sql.sql", "Disable flags specified for quest {}, useless data.", entry);
+        ++itr;
+    }
+
+    TC_LOG_INFO("server.loading", ">> Checked {} quest disables in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+}
+
+bool IsDisabledFor(DisableType type, uint32 entry, WorldObject const* ref, uint8 flags /*= 0*/)
+{
+    ASSERT(type < MAX_DISABLE_TYPES);
+    if (m_DisableMap[type].empty())
+        return false;
+
+    DisableTypeMap::iterator itr = m_DisableMap[type].find(entry);
+    if (itr == m_DisableMap[type].end())    // not disabled
+        return false;
+
+    switch (type)
+    {
         case DISABLE_TYPE_SPELL:
         {
             uint16 spellFlags = itr->second.flags;
@@ -360,16 +372,16 @@ namespace DisableMgr
                     sDB2Manager.GetDownscaledMapDifficultyData(entry, targetDifficulty);
                     switch (targetDifficulty)
                     {
-                    case DIFFICULTY_NORMAL:
-                        return (disabledModes & DUNGEON_STATUSFLAG_NORMAL) != 0;
-                    case DIFFICULTY_HEROIC:
-                        return (disabledModes & DUNGEON_STATUSFLAG_HEROIC) != 0;
-                    case DIFFICULTY_10_HC:
-                        return (disabledModes & RAID_STATUSFLAG_10MAN_HEROIC) != 0;
-                    case DIFFICULTY_25_HC:
-                        return (disabledModes & RAID_STATUSFLAG_25MAN_HEROIC) != 0;
-                    default:
-                        return false;
+                        case DIFFICULTY_NORMAL:
+                            return (disabledModes & DUNGEON_STATUSFLAG_NORMAL) != 0;
+                        case DIFFICULTY_HEROIC:
+                            return (disabledModes & DUNGEON_STATUSFLAG_HEROIC) != 0;
+                        case DIFFICULTY_10_HC:
+                            return (disabledModes & RAID_STATUSFLAG_10MAN_HEROIC) != 0;
+                        case DIFFICULTY_25_HC:
+                            return (disabledModes & RAID_STATUSFLAG_25MAN_HEROIC) != 0;
+                        default:
+                            return false;
                     }
                 }
                 else if (mapEntry->InstanceType == MAP_COMMON)
@@ -382,25 +394,26 @@ namespace DisableMgr
         case DISABLE_TYPE_OUTDOORPVP:
         case DISABLE_TYPE_CRITERIA:
         case DISABLE_TYPE_MMAP:
+        case DISABLE_TYPE_PHASE_AREA:
             return true;
         case DISABLE_TYPE_VMAP:
-            return (flags & itr->second.flags) != 0;
+           return (flags & itr->second.flags) != 0;
         default:
             break;
-        }
-
-        return false;
     }
 
-    bool IsVMAPDisabledFor(uint32 entry, uint8 flags)
-    {
-        return IsDisabledFor(DISABLE_TYPE_VMAP, entry, nullptr, flags);
-    }
+    return false;
+}
 
-    bool IsPathfindingEnabled(uint32 mapId)
-    {
-        return sWorld->getBoolConfig(CONFIG_ENABLE_MMAPS)
-            && !IsDisabledFor(DISABLE_TYPE_MMAP, mapId, nullptr, MMAP_DISABLE_PATHFINDING);
-    }
+bool IsVMAPDisabledFor(uint32 entry, uint8 flags)
+{
+    return IsDisabledFor(DISABLE_TYPE_VMAP, entry, nullptr, flags);
+}
+
+bool IsPathfindingEnabled(uint32 mapId)
+{
+    return sWorld->getBoolConfig(CONFIG_ENABLE_MMAPS)
+        && !IsDisabledFor(DISABLE_TYPE_MMAP, mapId, nullptr, MMAP_DISABLE_PATHFINDING);
+}
 
 } // Namespace

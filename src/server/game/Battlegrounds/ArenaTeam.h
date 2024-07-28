@@ -107,7 +107,6 @@ struct ArenaTeamStats
 };
 
 #define MAX_ARENA_SLOT 3                                    // 0..2 slots
-#define MAX_PVP_SLOT 6
 
 class TC_GAME_API ArenaTeam
 {
@@ -152,7 +151,7 @@ class TC_GAME_API ArenaTeam
         bool LoadArenaTeamFromDB(QueryResult arenaTeamDataResult);
         bool LoadMembersFromDB(QueryResult arenaTeamMembersResult);
         void LoadStatsFromDB(uint32 ArenaTeamId);
-        void SaveToDB();
+        void SaveToDB(bool forceMemberSave = false);
 
         void BroadcastPacket(WorldPacket* packet);
         void NotifyStatsChanged();

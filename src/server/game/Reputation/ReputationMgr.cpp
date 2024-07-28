@@ -146,7 +146,7 @@ int32 ReputationMgr::GetMaxReputation(FactionEntry const* factionEntry) const
     if (ParagonReputationEntry const* paragonReputation = sDB2Manager.GetParagonReputation(factionEntry->ID))
     {
         // has reward quest, cap is just before threshold for another quest reward
-        // for example: if current reputation is 12345 and quest are given every 10000 and player has unclaimed reward
+        // for example: if current reputation is 12345 and quests are given every 10000 and player has unclaimed reward
         // then cap will be 19999
 
         // otherwise cap is one theshold level larger
@@ -341,7 +341,6 @@ void ReputationMgr::SendState(FactionState const* faction)
 {
     WorldPackets::Reputation::SetFactionStanding setFactionStanding;
     setFactionStanding.BonusFromAchievementSystem = 0.0f;
-
 
     auto getStandingForPacket = [](FactionState const* state)
     {

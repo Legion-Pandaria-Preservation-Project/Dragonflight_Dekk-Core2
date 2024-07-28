@@ -19,7 +19,6 @@
 #define TRINITYCORE_GROUP_H
 
 #include "DBCEnums.h"
-#include "DB2Stores.h"
 #include "DatabaseEnvFwd.h"
 #include "GroupInstanceRefManager.h"
 #include "GroupRefManager.h"
@@ -27,7 +26,7 @@
 #include "RaceMask.h"
 #include "SharedDefines.h"
 #include "Timer.h"
-#include "LootMgr.h"
+#include "UniqueTrackablePtr.h"
 #include <map>
 
 class Battlefield;
@@ -39,8 +38,8 @@ class Unit;
 class WorldObject;
 class WorldPacket;
 class WorldSession;
-class BotGroupAI;
 
+struct BattlegroundTemplate;
 struct ItemDisenchantLootEntry;
 struct MapEntry;
 
@@ -92,7 +91,7 @@ enum GroupType
     GROUP_TYPE_WORLD_PVP    = 4
 };
 
-enum GroupFlags
+enum GroupFlags : uint16
 {
     GROUP_FLAG_NONE                 = 0x000,
     GROUP_FLAG_FAKE_RAID            = 0x001,
@@ -104,6 +103,7 @@ enum GroupFlags
     GROUP_FLAG_EVERYONE_ASSISTANT   = 0x040, // Script_IsEveryoneAssistant()
     GROUP_FLAG_GUILD_GROUP          = 0x100,
     GROUP_FLAG_CROSS_FACTION        = 0x200,
+    GROUP_FLAG_RESTRICT_PINGS       = 0x400, // C_PartyInfo::Script_GetRestrictPings()
 
     GROUP_MASK_BGRAID                = GROUP_FLAG_FAKE_RAID | GROUP_FLAG_RAID,
 };
@@ -172,6 +172,25 @@ struct RaidMarker
     }
 };
 
+enum class CountdownTimerType : int32
+{
+    Pvp             = 0,
+    ChallengeMode   = 1,
+    PlayerCountdown = 2
+};
+
+enum class PingSubjectType : uint8
+{
+    Attack          = 0,
+    Warning         = 1,
+    Assist          = 2,
+    OnMyWay         = 3,
+    AlertThreat     = 4,
+    AlertNotThreat  = 5,
+
+    Max
+};
+
 /** request member stats checken **/
 /// @todo uninvite people that not accepted invite
 class TC_GAME_API Group
@@ -182,14 +201,34 @@ class TC_GAME_API Group
             ObjectGuid  guid;
             std::string name;
             Races       race;
-            uint8       _class = 0;
-            uint8       group = 0;
-            uint8       flags = 0;
-            uint8       roles = 0;
+            uint8       _class;
+            uint8       group;
+            uint8       flags;
+            uint8       roles;
             bool        readyChecked;
         };
         typedef std::list<MemberSlot> MemberSlotList;
         typedef MemberSlotList::const_iterator member_citerator;
+
+        class CountdownInfo
+        {
+        public:
+            CountdownInfo() : _startTime(0), _endTime(0) { }
+
+            Seconds GetTimeLeft() const;
+
+            Seconds GetTotalTime() const
+            {
+                return Seconds(_endTime - _startTime);
+            }
+
+            void StartCountdown(Seconds duration, Optional<time_t> startTime = { });
+            bool IsRunning() const;
+
+        private:
+            time_t _startTime;
+            time_t _endTime;
+        };
 
     protected:
         typedef MemberSlotList::iterator member_witerator;
@@ -211,7 +250,7 @@ class TC_GAME_API Group
         bool AddLeaderInvite(Player* player);
         bool AddMember(Player* player);
         bool RemoveMember(ObjectGuid guid, RemoveMethod method = GROUP_REMOVEMETHOD_DEFAULT, ObjectGuid kicker = ObjectGuid::Empty, const char* reason = nullptr);
-        void ChangeLeader(ObjectGuid guid, int8 partyIndex = 0);
+        void ChangeLeader(ObjectGuid guid);
         void SetLootMethod(LootMethod method);
         void SetLooterGuid(ObjectGuid guid);
         void SetMasterLooterGuid(ObjectGuid guid);
@@ -219,14 +258,16 @@ class TC_GAME_API Group
         void SetLootThreshold(ItemQualities threshold);
         void Disband(bool hideDestroy = false);
         void SetLfgRoles(ObjectGuid guid, uint8 roles);
-        uint8 GetLfgRoles(ObjectGuid guid);
+        uint8 GetLfgRoles(ObjectGuid guid) const;
         void SetEveryoneIsAssistant(bool apply);
+        bool IsRestrictPingsToAssistants() const;
+        void SetRestrictPingsToAssistants(bool restrictPingsToAssistants);
 
         // Update
         void UpdateReadyCheck(uint32 diff);
 
         // Ready check
-        void StartReadyCheck(ObjectGuid starterGuid, int8 partyIndex, Milliseconds duration = Milliseconds(READYCHECK_DURATION));
+        void StartReadyCheck(ObjectGuid starterGuid, Milliseconds duration = Milliseconds(READYCHECK_DURATION));
         void EndReadyCheck();
 
         bool IsReadyCheckStarted(void) const { return m_readyCheckStarted; }
@@ -242,7 +283,7 @@ class TC_GAME_API Group
         // Raid Markers
         void AddRaidMarker(uint8 markerId, uint32 mapId, float positionX, float positionY, float positionZ, ObjectGuid transportGuid = ObjectGuid::Empty);
         void DeleteRaidMarker(uint8 markerId);
-        void SendRaidMarkersChanged(WorldSession* session = nullptr, int8 partyIndex = 0);
+        void SendRaidMarkersChanged(WorldSession* session = nullptr) const;
 
         // properties accessories
         bool IsFull() const;
@@ -265,7 +306,7 @@ class TC_GAME_API Group
         // member manipulation methods
         bool IsMember(ObjectGuid guid) const;
         bool IsLeader(ObjectGuid guid) const;
-        ObjectGuid GetMemberGUID(const std::string& name);
+        ObjectGuid GetMemberGUID(std::string const& name) const;
         uint8 GetMemberFlags(ObjectGuid guid) const;
         bool IsAssistant(ObjectGuid guid) const
         {
@@ -295,11 +336,11 @@ class TC_GAME_API Group
 
         void SetBattlegroundGroup(Battleground* bg);
         void SetBattlefieldGroup(Battlefield* bf);
-        GroupJoinBattlegroundResult CanJoinBattlegroundQueue(Battleground const* bgOrTemplate, BattlegroundQueueTypeId bgQueueTypeId, uint32 MinPlayerCount, uint32 MaxPlayerCount, bool isRated, uint32 arenaSlot, ObjectGuid& errorGuid) const;
+        GroupJoinBattlegroundResult CanJoinBattlegroundQueue(BattlegroundTemplate const* bgOrTemplate, BattlegroundQueueTypeId bgQueueTypeId, uint32 MinPlayerCount, uint32 MaxPlayerCount, bool isRated, uint32 arenaSlot, ObjectGuid& errorGuid) const;
 
         void ChangeMembersGroup(ObjectGuid guid, uint8 group);
         void SwapMembersGroups(ObjectGuid firstGuid, ObjectGuid secondGuid);
-        void SetTargetIcon(uint8 symbol, ObjectGuid target, ObjectGuid changedBy, uint8 partyIndex);
+        void SetTargetIcon(uint8 symbol, ObjectGuid target, ObjectGuid changedBy);
         void SetGroupMemberFlag(ObjectGuid guid, bool apply, GroupMemberFlags flag);
         void RemoveUniqueGroupMemberFlag(GroupMemberFlags flag);
 
@@ -313,19 +354,11 @@ class TC_GAME_API Group
         void ResetInstances(InstanceResetMethod method, Player* notifyPlayer);
 
         // -no description-
-        //void SendInit(WorldSession* session);
-        void SendTargetIconList(WorldSession* session, int8 partyIndex = 0);
-        void SendUpdate();
-        void SendUpdateToPlayer(ObjectGuid playerGUID, MemberSlot* slot = nullptr);
+        void SendTargetIconList(WorldSession* session) const;
+        void SendUpdate() const;
+        void SendUpdateToPlayer(ObjectGuid playerGUID, MemberSlot const* slot = nullptr) const;
         void SendUpdateDestroyGroupToPlayer(Player* player) const;
-        void UpdatePlayerOutOfRange(Player* player);
-
-        template<class Worker>
-        void BroadcastWorker(Worker& worker)
-        {
-            for (GroupReference* itr = GetFirstMember(); itr != nullptr; itr = itr->next())
-                worker(itr->GetSource());
-        }
+        void UpdatePlayerOutOfRange(Player const* player) const;
 
         template<class Worker>
         void BroadcastWorker(Worker const& worker) const
@@ -366,34 +399,11 @@ class TC_GAME_API Group
         // FG: evil hacks
         void BroadcastGroupUpdate(void);
 
-        //DekkCore
-        bool InChallenge();
-        ObjectGuid m_challengeOwner;
-        ObjectGuid m_challengeItem;
-        MapChallengeModeEntry const* m_challengeEntry; 
-        uint32 m_challengeLevel;
-        uint32 m_challengeInstanceID;
-        std::array<uint32, 4> m_affixes{};
+        void StartCountdown(CountdownTimerType timerType, Seconds duration, Optional<time_t> startTime = { });
+        CountdownInfo const* GetCountdownInfo(CountdownTimerType timerType) const;
 
-        // Bot group AI
-     //   typedef std::vector<Roll*> Rolls;
-      //  Rolls& GetAllRolls() { return RollId; }
-      //  void PlayerBotRoll(Player* player, const Roll& roll);
-        bool GiveAtGroupPos(ObjectGuid& guid, uint32& index, uint32& count);
-        bool GroupExistRealPlayer();
-        bool GroupExistPlayerBot();
-        bool AllGroupNotCombat();
-        bool AllGroupIsIDLE();
-        void AllGroupBotGiveXP(uint32 XP);
-        Unit* GetGroupTankTarget();
-        std::vector<ObjectGuid> GetGroupMemberFromNeedRevivePlayer(uint32 forMap);
-        void ResetRaidDungeon();
-        void ClearAllGroupForceFleeState();
-        void ProcessGroupBotCommand(Player* srcPlayer, std::string& cmd);
-        void OnLeaderChangePhase(Player* changeTarget, uint32 newPhase);
-        Creature* SearchSeduceCreature(Player* centerPlayer);
-        BotGroupAI* SearchExecuteSeduceBotAI();
-        //DekkCore
+        Trinity::unique_weak_ptr<Group> GetWeakPtr() const { return m_scriptRef; }
+
     protected:
         bool _setMembersGroup(ObjectGuid guid, uint8 group);
         void _homebindIfInstance(Player* player);
@@ -438,5 +448,10 @@ class TC_GAME_API Group
         // Raid markers
         std::array<std::unique_ptr<RaidMarker>, RAID_MARKERS_COUNT> m_markers;
         uint32              m_activeMarkers;
+
+        std::array<std::unique_ptr<CountdownInfo>, 3> m_countdowns;
+
+        struct NoopGroupDeleter { void operator()(Group*) const { /*noop - not managed*/ } };
+        Trinity::unique_trackable_ptr<Group> m_scriptRef;
 };
 #endif

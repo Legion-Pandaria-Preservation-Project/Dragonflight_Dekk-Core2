@@ -54,37 +54,41 @@ class TC_GAME_API FormationMgr
         std::unordered_map<ObjectGuid::LowType /*spawnID*/, FormationInfo> _creatureGroupMap;
 
     public:
+        FormationMgr(FormationMgr const&) = delete;
+        FormationMgr(FormationMgr&&) = delete;
+        FormationMgr& operator=(FormationMgr const&) = delete;
+        FormationMgr& operator=(FormationMgr&&) = delete;
+
         static FormationMgr* instance();
 
-        void AddCreatureToGroup(ObjectGuid::LowType leaderSpawnId, Creature* creature);
-        void RemoveCreatureFromGroup(CreatureGroup* group, Creature* creature);
+        static void AddCreatureToGroup(ObjectGuid::LowType leaderSpawnId, Creature* creature);
+        static void RemoveCreatureFromGroup(CreatureGroup* group, Creature* member);
 
         void LoadCreatureFormations();
         FormationInfo* GetFormationInfo(ObjectGuid::LowType spawnId);
 
         void AddFormationMember(ObjectGuid::LowType spawnId, float followAng, float followDist, ObjectGuid::LowType leaderSpawnId, uint32 groupAI);
-
-        //DekkCore
-        FormationInfo* CreateCustomFormation(Creature* c);
-        //DekkCore
 };
 
 class TC_GAME_API CreatureGroup
 {
     private:
-        Creature* _leader; //Important do not forget sometimes to work with pointers instead synonims :D:D
-        std::unordered_map<Creature*, FormationInfo*> _members;
+        Creature* _leader;
+
+        using MembersMap = std::unordered_map<Creature*, FormationInfo*>;
+        MembersMap _members;
 
         ObjectGuid::LowType _leaderSpawnId;
         bool _formed;
         bool _engaging;
-        //DekkCore
-        typedef std::map<Creature*, FormationInfo*>  CreatureGroupMemberType;
-        CreatureGroupMemberType m_members;
-        //DekkCore
+
     public:
         //Group cannot be created empty
         explicit CreatureGroup(ObjectGuid::LowType leaderSpawnId);
+        CreatureGroup(CreatureGroup const&) = delete;
+        CreatureGroup(CreatureGroup&&) = delete;
+        CreatureGroup& operator=(CreatureGroup const&) = delete;
+        CreatureGroup& operator=(CreatureGroup&&) = delete;
         ~CreatureGroup();
 
         Creature* GetLeader() const { return _leader; }
@@ -93,7 +97,7 @@ class TC_GAME_API CreatureGroup
         bool IsFormed() const { return _formed; }
         bool IsLeader(Creature const* creature) const { return _leader == creature; }
 
-        bool HasMember(Creature* member) const { return _members.count(member) > 0; }
+        bool HasMember(Creature* member) const { return _members.contains(member); }
         void AddMember(Creature* member);
         void RemoveMember(Creature* member);
         void FormationReset(bool dismiss);
@@ -102,9 +106,9 @@ class TC_GAME_API CreatureGroup
         void MemberEngagingTarget(Creature* member, Unit* target);
         bool CanLeaderStartMoving() const;
 
-        //DekkCore
-        CreatureGroupMemberType& GetMembers() { return m_members; }
-        //DekkCore
+        bool HasAliveMembers() const;
+
+        bool LeaderHasStringId(std::string_view id) const;
 };
 
 #define sFormationMgr FormationMgr::instance()

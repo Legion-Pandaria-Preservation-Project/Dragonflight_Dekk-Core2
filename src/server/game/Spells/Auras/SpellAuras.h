@@ -20,6 +20,7 @@
 
 #include "SpellAuraDefines.h"
 #include "SpellInfo.h"
+#include "UniqueTrackablePtr.h"
 #include <typeinfo>
 
 class SpellInfo;
@@ -139,8 +140,6 @@ class TC_GAME_API Aura
         ObjectGuid GetCastItemGUID() const { return m_castItemGuid; }
         uint32 GetCastItemId() const { return m_castItemId; }
         int32 GetCastItemLevel() const { return m_castItemLevel; }
-        uint32 GetSpellXSpellVisualId() const { return m_spellXSpellVisualId; }
-        void SetSpellXSpellVisualId(uint32 visual) { m_spellXSpellVisualId = visual; }
         SpellCastVisual GetSpellVisual() const { return m_spellVisual; }
         Unit* GetCaster() const;
         WorldObject* GetWorldObjectCaster() const;
@@ -170,7 +169,7 @@ class TC_GAME_API Aura
         void SetMaxDuration(int32 duration) { m_maxDuration = duration; }
         int32 CalcMaxDuration() const { return CalcMaxDuration(GetCaster()); }
         int32 CalcMaxDuration(Unit* caster) const;
-        static int32 CalcMaxDuration(SpellInfo const* spellInfo, WorldObject* caster);
+        static int32 CalcMaxDuration(SpellInfo const* spellInfo, WorldObject const* caster, std::vector<SpellPowerCost> const* powerCosts);
         int32 GetDuration() const { return m_duration; }
         void SetDuration(int32 duration, bool withMods = false);
         void RefreshDuration(bool withMods = false);
@@ -258,14 +257,15 @@ class TC_GAME_API Aura
         float CalcPPMProcChance(Unit* actor) const;
         void SetLastProcAttemptTime(TimePoint lastProcAttemptTime) { m_lastProcAttemptTime = lastProcAttemptTime; }
         void SetLastProcSuccessTime(TimePoint lastProcSuccessTime) { m_lastProcSuccessTime = lastProcSuccessTime; }
+        virtual void Heartbeat() { }
 
         // AuraScript
         void LoadScripts();
         bool CallScriptCheckAreaTargetHandlers(Unit* target);
         void CallScriptDispel(DispelInfo* dispelInfo);
         void CallScriptAfterDispel(DispelInfo* dispelInfo);
+        void CallScriptOnHeartbeat();
         bool CallScriptEffectApplyHandlers(AuraEffect const* aurEff, AuraApplication const* aurApp, AuraEffectHandleModes mode);
-        bool CallScriptEffectAttemptApplyHandlers(AuraEffect const* aurEff, AuraApplication const* aurApp, AuraEffectHandleModes mode);
         bool CallScriptEffectRemoveHandlers(AuraEffect const* aurEff, AuraApplication const* aurApp, AuraEffectHandleModes mode);
         void CallScriptAfterEffectApplyHandlers(AuraEffect const* aurEff, AuraApplication const* aurApp, AuraEffectHandleModes mode);
         void CallScriptAfterEffectRemoveHandlers(AuraEffect const* aurEff, AuraApplication const* aurApp, AuraEffectHandleModes mode);
@@ -275,6 +275,7 @@ class TC_GAME_API Aura
         void CallScriptEffectCalcPeriodicHandlers(AuraEffect const* aurEff, bool& isPeriodic, int32& amplitude);
         void CallScriptEffectCalcSpellModHandlers(AuraEffect const* aurEff, SpellModifier*& spellMod);
         void CallScriptEffectCalcCritChanceHandlers(AuraEffect const* aurEff, AuraApplication const* aurApp, Unit const* victim, float& critChance);
+        void CallScriptCalcDamageAndHealingHandlers(AuraEffect const* aurEff, AuraApplication const* aurApp, Unit* victim, int32& damageOrHealing, int32& flatMod, float& pctMod);
         void CallScriptEffectAbsorbHandlers(AuraEffect* aurEff, AuraApplication const* aurApp, DamageInfo& dmgInfo, uint32& absorbAmount, bool & defaultPrevented);
         void CallScriptEffectAfterAbsorbHandlers(AuraEffect* aurEff, AuraApplication const* aurApp, DamageInfo& dmgInfo, uint32& absorbAmount);
         void CallScriptEffectAbsorbHandlers(AuraEffect* aurEff, AuraApplication const* aurApp, HealInfo& healInfo, uint32& absorbAmount, bool& defaultPrevented);
@@ -310,6 +311,8 @@ class TC_GAME_API Aura
 
         virtual std::string GetDebugInfo() const;
 
+        Trinity::unique_weak_ptr<Aura> GetWeakPtr() const { return m_scriptRef; }
+
         Aura(Aura const&) = delete;
         Aura(Aura&&) = delete;
 
@@ -328,7 +331,6 @@ class TC_GAME_API Aura
         ObjectGuid const m_castItemGuid;                    // it is NOT safe to keep a pointer to the item because it may get deleted
         uint32 m_castItemId;
         int32 m_castItemLevel;
-        uint32 m_spellXSpellVisualId;
         SpellCastVisual const m_spellVisual;
         time_t const m_applyTime;
         WorldObject* const m_owner;
@@ -360,13 +362,8 @@ class TC_GAME_API Aura
 
         AuraEffectVector _effects;
 
-
-
-    // DekkCore >
-    public:
-        uint32 GetMaxStackAmount() const;
-        void ModDuration(int32 duration, bool withMods = false) { SetDuration(GetDuration() + duration, withMods); }
-    // < DekkCore
+        struct NoopAuraDeleter { void operator()(Aura*) const { /*noop - not managed*/ } };
+        Trinity::unique_trackable_ptr<Aura> m_scriptRef;
 };
 
 class TC_GAME_API UnitAura : public Aura
@@ -387,6 +384,9 @@ class TC_GAME_API UnitAura : public Aura
         DiminishingGroup GetDiminishGroup() const { return m_AuraDRGroup; }
 
         void AddStaticApplication(Unit* target, uint32 effMask);
+
+        void Heartbeat() override;
+        void HandlePeriodicFoodSpellVisualKit();
 
     private:
         DiminishingGroup m_AuraDRGroup;                 // Diminishing

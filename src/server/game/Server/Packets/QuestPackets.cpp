@@ -485,6 +485,7 @@ WorldPacket const* QuestGiverQuestDetails::Write()
     _worldPacket.WriteBits(PortraitTurnInText.size(), 10);
     _worldPacket.WriteBits(PortraitTurnInName.size(), 8);
     _worldPacket.WriteBit(AutoLaunched);
+    _worldPacket.WriteBit(FromContentPush);
     _worldPacket.WriteBit(false);   // unused in client
     _worldPacket.WriteBit(StartCheat);
     _worldPacket.WriteBit(DisplayPopup);
@@ -682,11 +683,18 @@ WorldPacket const* DailyQuestsReset::Write()
     return &_worldPacket;
 }
 
+WorldPacket const* QuestForceRemoved::Write()
+{
+    _worldPacket << int32(QuestID);
+
+    return &_worldPacket;
+}
+
 WorldPacket const* WorldQuestUpdateResponse::Write()
 {
     _worldPacket << uint32(WorldQuestUpdates.size());
 
-    for (WorldPackets::Quest::WorldQuestUpdateInfo const& worldQuestUpdate : WorldQuestUpdates)
+    for (WorldQuestUpdateInfo const& worldQuestUpdate : WorldQuestUpdates)
     {
         _worldPacket << worldQuestUpdate.LastUpdate;
         _worldPacket << uint32(worldQuestUpdate.QuestID);
@@ -715,7 +723,6 @@ ByteBuffer& operator<<(ByteBuffer& data, PlayerChoiceResponseReward const& playe
     data << uint32(playerChoiceResponseReward.HonorPointCount);
     data << uint64(playerChoiceResponseReward.Money);
     data << uint32(playerChoiceResponseReward.Xp);
-    // data << uint32(playerChoiceResponseReward.SpellID); NOTE: don't do that it will fuck up the packet
     data << uint32(playerChoiceResponseReward.Items.size());
     data << uint32(playerChoiceResponseReward.Currencies.size());
     data << uint32(playerChoiceResponseReward.Factions.size());
@@ -829,131 +836,4 @@ void ChoiceResponse::Read()
     _worldPacket >> ResponseIdentifier;
     IsReroll = _worldPacket.ReadBit();
 }
-
-WorldPacket const* UiMapQuestLinesResponse::Write()
-{
-    _worldPacket << int32(UiMapID);
-
-    for (uint32 const& questID : QuestLineXQuestIDs)
-        _worldPacket << uint32(questID);
-
-    return &_worldPacket;
-}
-
-WorldPacket const* QueryQuestRewardResponse::Write()
-{
-    _worldPacket << QuestID;
-    _worldPacket << TreasurePickerID;
-    _worldPacket << ItemCount;
-    _worldPacket << CurrencyCount;
-    _worldPacket << uint32(ItemRewards.size());
-    _worldPacket << uint32(CurrencyRewards.size());
-    _worldPacket << Flags;
-
-    for (auto const& currency : CurrencyRewards)
-    {
-        _worldPacket << currency.CurrencyCount;
-        _worldPacket << currency.CurrencyID;
-        _worldPacket << currency.Amount;
-    }
-
-    for (auto const& item : ItemRewards)
-    {
-        _worldPacket << item.Item;
-        _worldPacket.WriteBit(item.HasItemBonus);
-        _worldPacket << item.ContentTuningID;
-        _worldPacket << item.Contex;
-    }
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Quest::IsQuestCompleteResponse::Write()
-{
-    _worldPacket << QuestID;
-    _worldPacket.WriteBit(Complete);
-    _worldPacket.FlushBits();
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Quest::AreaPoiUpdate::Write()
-{
-    _worldPacket << static_cast<uint32>(AreaPois.size());
-    for (auto const& Count : AreaPois)
-    {
-        _worldPacket << Count.StartTime;
-        _worldPacket << Count.AreaPoiID;
-        _worldPacket << Count.DurationSec;
-        _worldPacket << Count.WorldStateVariableID;
-        _worldPacket << Count.WorldStateValue;
-    }
-
-    return &_worldPacket;
-}
-
-void WorldPackets::Quest::QueryAdventureMapPOI::Read()
-{
-    _worldPacket >> AdventureMapPOIID;
-}
-
-WorldPacket const* WorldPackets::Quest::QueryAdventureMapPOIResponse::Write()
-{
-    _worldPacket << AdventureMapPOIID;
-    _worldPacket.WriteBit(Result);
-    _worldPacket.FlushBits();
-
-    return &_worldPacket;
-}
-void UiMapQuestLinesRequest::Read()
-{
-    _worldPacket >> UiMapID;
-}
-
-void QueryQuestReward::Read()
-{
-    _worldPacket >> QuestID;
-    _worldPacket >> TreasurePickerID;
-}
-
-WorldPacket const* WorldPackets::Quest::DisplayQuestPopup::Write()
-{
-    _worldPacket << QuestID;
-
-    return &_worldPacket;
-}
-WorldPacket const* QuestPOIUpdateResponse::Write()
-{
-    _worldPacket << SpawnTrackingID;
-    _worldPacket << QuestObjectID;
-
-    _worldPacket.FlushBits();
-
-    _worldPacket.WriteBit(Visible);
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Quest::QuestForceRemoved::Write()
-{
-    _worldPacket << QuestID;
-
-    return &_worldPacket;
-}
-
-WorldPacket const* ShowAdventureMap::Write()
-{
-    _worldPacket << UnitGUID;
-    _worldPacket << uint32(UiMapID);
-
-    return &_worldPacket;
-}
-
-WorldPacket const* ShowQuestCompletionText::Write()
-{
-    _worldPacket.WriteBit(ShowQuestComplete);
-
-    return &_worldPacket;
-}
-
 }

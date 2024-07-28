@@ -18,9 +18,7 @@
 #ifndef GarrisonMgr_h__
 #define GarrisonMgr_h__
 
-#include "DB2Stores.h"
 #include "Define.h"
-#include "GarrisonConstants.h"
 #include "Hash.h"
 #include "Position.h"
 #include <list>
@@ -34,9 +32,6 @@ struct GarrAbilityEntry;
 struct GarrFollowerEntry;
 struct GarrSiteLevelEntry;
 struct GarrSiteLevelPlotInstEntry;
-
-class Garrison;
-class Player;
 
 struct FinalizeGarrisonPlotGOInfo
 {
@@ -54,38 +49,6 @@ struct GarrAbilities
     std::unordered_set<GarrAbilityEntry const*> Traits;
 };
 
-struct GarrShipment
-{
-    uint32 SiteID = 0;
-    uint32 ContainerID = 0;
-    uint32 NpcEntry = 0;
-    uint32 questReq = 0;
-    uint32 ShipmentID = 0;
-    uint32 classReq = 0;
-
-    CharShipmentContainerEntry const* cEntry = nullptr;
-
-    uint32 selectShipment(Player* p) const;
-};
-
-struct GarrTradeSkill
-{
-    uint32 spellID;
-    uint32 conditionID;
-    uint16 skillID;
-    uint8  reqBuildingLvl;
-};
-
-typedef std::map<GarrisonType, std::unique_ptr<Garrison>> PlayerGarrisonMap;
-typedef std::list<GarrTradeSkill /*tradeskill*/> TradeskillList;
-typedef std::unordered_map<uint32 /*npcEntry*/, TradeskillList> NpcTradeskillList;
-
-struct GarrisonTalentNPC
-{
-    uint32 GarrTalentTreeID;
-    uint32 FriendshipFactionID;
-};
-
 class TC_GAME_API GarrisonMgr
 {
 public:
@@ -101,27 +64,14 @@ public:
     uint32 GetPreviousLevelBuildingId(uint32 buildingType, uint32 currentLevel) const;
     FinalizeGarrisonPlotGOInfo const* GetPlotFinalizeGOInfo(uint32 garrPlotInstanceID) const;
     uint64 GenerateFollowerDbId();
-    uint64 GenerateMissionDbId();
-    uint64 GenerateShipmentDbId();
     std::list<GarrAbilityEntry const*> RollFollowerAbilities(uint32 garrFollowerId, GarrFollowerEntry const* follower, uint32 quality, uint32 faction, bool initial) const;
     std::list<GarrAbilityEntry const*> GetClassSpecAbilities(GarrFollowerEntry const* follower, uint32 faction) const;
-    GarrisonTalentNPC const* GetTalentNPCEntry(int32 entry) const;
-
-    uint32 GetMissionSuccessChance(Garrison* garrison, uint32 missionId);
-    uint32 GetClassByMissionType(uint32 missionType);
-    uint32 GetFactionByMissionType(uint32 missionType);
-    GarrShipment const* GetGarrShipment(uint32 entry, ShipmentGetType type, uint8 classID) const;
-    TradeskillList const* GetTradeSkill(uint32 npcID);
 
 private:
     void InitializeDbIdSequences();
     void LoadPlotFinalizeGOInfo();
     void LoadFollowerClassSpecAbilities();
-    void LoadTalentNPCs();
 
-    NpcTradeskillList _garrNpcTradeSkill;
-    typedef std::unordered_map<uint32/*entry*/, GarrShipment> shipmentStoreMap;
-    std::map<uint8 /*ShipmentGetType*/, shipmentStoreMap> shipment;
     std::unordered_map<uint32 /*garrSiteId*/, std::vector<GarrSiteLevelPlotInstEntry const*>> _garrisonPlotInstBySiteLevel;
     std::unordered_map<uint32 /*mapId*/, std::unordered_map<uint32 /*garrPlotId*/, GameObjectsEntry const*>> _garrisonPlots;
     std::unordered_map<uint32 /*garrPlotId*/, std::unordered_set<uint32/*garrBuildingId*/>> _garrisonBuildingsByPlot;
@@ -131,11 +81,8 @@ private:
     std::unordered_map<uint32 /*garrFollowerId*/, GarrAbilities> _garrisonFollowerAbilities[2];
     std::unordered_map<uint32 /*classSpecId*/, std::list<GarrAbilityEntry const*>> _garrisonFollowerClassSpecAbilities;
     std::set<GarrAbilityEntry const*> _garrisonFollowerRandomTraits;
-    std::unordered_map<uint32 /*npcEntry*/, GarrisonTalentNPC> _garrisonTalentNPCs;
 
     uint64 _followerDbIdGenerator = UI64LIT(1);
-    uint64 _shipmentDbIdGenerator = UI64LIT(1);
-    uint64 _missionDbIdGenerator = UI64LIT(1);
 };
 
 #define sGarrisonMgr GarrisonMgr::Instance()

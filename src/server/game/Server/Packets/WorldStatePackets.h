@@ -24,18 +24,17 @@ namespace WorldPackets
 {
     namespace WorldState
     {
-        struct WorldStateInfo
-        {
-            WorldStateInfo(int32 variableID, int32 value)
-                : VariableID(variableID), Value(value) { }
-
-            int32 VariableID;
-            int32 Value;
-        };
-
         class TC_GAME_API InitWorldStates final : public ServerPacket
         {
         public:
+            struct WorldStateInfo
+            {
+                WorldStateInfo(int32 variableID, int32 value)
+                    : VariableID(variableID), Value(value) { }
+
+                int32 VariableID;
+                int32 Value;
+            };
 
             InitWorldStates();
 
@@ -56,7 +55,7 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             int32 Value       = 0;
-            bool Hidden       = false; ///< @todo: research
+            bool Hidden   = false; ///< @todo: research
             uint32 VariableID = 0;
         };
     }

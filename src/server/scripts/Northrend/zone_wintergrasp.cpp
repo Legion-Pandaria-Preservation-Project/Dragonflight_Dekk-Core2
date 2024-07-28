@@ -41,67 +41,67 @@
 
 enum WGqueuenpctext
 {
-    WG_NPCQUEUE_TEXT_H_NOWAR = 14775,
-    WG_NPCQUEUE_TEXT_H_QUEUE = 14790,
-    WG_NPCQUEUE_TEXT_H_WAR = 14777,
-    WG_NPCQUEUE_TEXT_A_NOWAR = 14782,
-    WG_NPCQUEUE_TEXT_A_QUEUE = 14791,
-    WG_NPCQUEUE_TEXT_A_WAR = 14781,
-    WG_NPCQUEUE_TEXTOPTION_JOIN = 20077,
+    WG_NPCQUEUE_TEXT_H_NOWAR            = 14775,
+    WG_NPCQUEUE_TEXT_H_QUEUE            = 14790,
+    WG_NPCQUEUE_TEXT_H_WAR              = 14777,
+    WG_NPCQUEUE_TEXT_A_NOWAR            = 14782,
+    WG_NPCQUEUE_TEXT_A_QUEUE            = 14791,
+    WG_NPCQUEUE_TEXT_A_WAR              = 14781,
+    WG_NPCQUEUE_TEXTOPTION_JOIN         = 20077,
 };
 
 enum Spells
 {
     // Demolisher engineers spells
-    SPELL_BUILD_SIEGE_VEHICLE_FORCE_HORDE = 61409,
-    SPELL_BUILD_SIEGE_VEHICLE_FORCE_ALLIANCE = 56662,
-    SPELL_BUILD_CATAPULT_FORCE = 56664,
-    SPELL_BUILD_DEMOLISHER_FORCE = 56659,
-    SPELL_ACTIVATE_CONTROL_ARMS = 49899,
-    SPELL_RIDE_WG_VEHICLE = 60968,
+    SPELL_BUILD_SIEGE_VEHICLE_FORCE_HORDE     = 61409,
+    SPELL_BUILD_SIEGE_VEHICLE_FORCE_ALLIANCE  = 56662,
+    SPELL_BUILD_CATAPULT_FORCE                = 56664,
+    SPELL_BUILD_DEMOLISHER_FORCE              = 56659,
+    SPELL_ACTIVATE_CONTROL_ARMS               = 49899,
+    SPELL_RIDE_WG_VEHICLE                     = 60968,
 
-    SPELL_VEHICLE_TELEPORT = 49759,
+    SPELL_VEHICLE_TELEPORT                    = 49759,
 };
 
 enum CreatureIds
 {
-    NPC_GOBLIN_MECHANIC = 30400,
-    NPC_GNOMISH_ENGINEER = 30499,
+    NPC_GOBLIN_MECHANIC                             = 30400,
+    NPC_GNOMISH_ENGINEER                            = 30499,
 
-    NPC_WINTERGRASP_CONTROL_ARMS = 27852,
+    NPC_WINTERGRASP_CONTROL_ARMS                    = 27852,
 
-    NPC_WORLD_TRIGGER_LARGE_AOI_NOT_IMMUNE_PC_NPC = 23472,
+    NPC_WORLD_TRIGGER_LARGE_AOI_NOT_IMMUNE_PC_NPC   = 23472,
 };
 
 enum QuestIds
 {
-    QUEST_BONES_AND_ARROWS_HORDE_ATT = 13193,
-    QUEST_JINXING_THE_WALLS_HORDE_ATT = 13202,
-    QUEST_SLAY_THEM_ALL_HORDE_ATT = 13180,
-    QUEST_FUELING_THE_DEMOLISHERS_HORDE_ATT = 13200,
-    QUEST_HEALING_WITH_ROSES_HORDE_ATT = 13201,
-    QUEST_DEFEND_THE_SIEGE_HORDE_ATT = 13223,
+    QUEST_BONES_AND_ARROWS_HORDE_ATT              = 13193,
+    QUEST_JINXING_THE_WALLS_HORDE_ATT             = 13202,
+    QUEST_SLAY_THEM_ALL_HORDE_ATT                 = 13180,
+    QUEST_FUELING_THE_DEMOLISHERS_HORDE_ATT       = 13200,
+    QUEST_HEALING_WITH_ROSES_HORDE_ATT            = 13201,
+    QUEST_DEFEND_THE_SIEGE_HORDE_ATT              = 13223,
 
-    QUEST_BONES_AND_ARROWS_HORDE_DEF = 13199,
-    QUEST_WARDING_THE_WALLS_HORDE_DEF = 13192,
-    QUEST_SLAY_THEM_ALL_HORDE_DEF = 13178,
-    QUEST_FUELING_THE_DEMOLISHERS_HORDE_DEF = 13191,
-    QUEST_HEALING_WITH_ROSES_HORDE_DEF = 13194,
-    QUEST_TOPPLING_THE_TOWERS_HORDE_DEF = 13539,
-    QUEST_STOP_THE_SIEGE_HORDE_DEF = 13185,
+    QUEST_BONES_AND_ARROWS_HORDE_DEF              = 13199,
+    QUEST_WARDING_THE_WALLS_HORDE_DEF             = 13192,
+    QUEST_SLAY_THEM_ALL_HORDE_DEF                 = 13178,
+    QUEST_FUELING_THE_DEMOLISHERS_HORDE_DEF       = 13191,
+    QUEST_HEALING_WITH_ROSES_HORDE_DEF            = 13194,
+    QUEST_TOPPLING_THE_TOWERS_HORDE_DEF           = 13539,
+    QUEST_STOP_THE_SIEGE_HORDE_DEF                = 13185,
 
-    QUEST_BONES_AND_ARROWS_ALLIANCE_ATT = 13196,
-    QUEST_WARDING_THE_WARRIORS_ALLIANCE_ATT = 13198,
+    QUEST_BONES_AND_ARROWS_ALLIANCE_ATT           = 13196,
+    QUEST_WARDING_THE_WARRIORS_ALLIANCE_ATT       = 13198,
     QUEST_NO_MERCY_FOR_THE_MERCILESS_ALLIANCE_ATT = 13179,
-    QUEST_DEFEND_THE_SIEGE_ALLIANCE_ATT = 13222,
-    QUEST_A_RARE_HERB_ALLIANCE_ATT = 13195,
+    QUEST_DEFEND_THE_SIEGE_ALLIANCE_ATT           = 13222,
+    QUEST_A_RARE_HERB_ALLIANCE_ATT                = 13195,
 
-    QUEST_BONES_AND_ARROWS_ALLIANCE_DEF = 13154,
-    QUEST_WARDING_THE_WARRIORS_ALLIANCE_DEF = 13153,
+    QUEST_BONES_AND_ARROWS_ALLIANCE_DEF           = 13154,
+    QUEST_WARDING_THE_WARRIORS_ALLIANCE_DEF       = 13153,
     QUEST_NO_MERCY_FOR_THE_MERCILESS_ALLIANCE_DEF = 13177,
-    QUEST_SHOUTHERN_SABOTAGE_ALLIANCE_DEF = 13538,
-    QUEST_STOP_THE_SIEGE_ALLIANCE_DEF = 13186,
-    QUEST_A_RARE_HERB_ALLIANCE_DEF = 13156,
+    QUEST_SHOUTHERN_SABOTAGE_ALLIANCE_DEF         = 13538,
+    QUEST_STOP_THE_SIEGE_ALLIANCE_DEF             = 13186,
+    QUEST_A_RARE_HERB_ALLIANCE_DEF                = 13156,
 };
 
 uint8 const MAX_WINTERGRASP_VEHICLES = 4;
@@ -150,15 +150,15 @@ struct npc_wg_demolisher_engineer : public ScriptedAI
         {
             switch (action - GOSSIP_ACTION_INFO_DEF)
             {
-            case 0:
-                DoCast(player, SPELL_BUILD_CATAPULT_FORCE, true);
-                break;
-            case 1:
-                DoCast(player, SPELL_BUILD_DEMOLISHER_FORCE, true);
-                break;
-            case 2:
-                DoCast(player, player->GetTeamId() == TEAM_ALLIANCE ? SPELL_BUILD_SIEGE_VEHICLE_FORCE_ALLIANCE : SPELL_BUILD_SIEGE_VEHICLE_FORCE_HORDE, true);
-                break;
+                case 0:
+                    DoCast(player, SPELL_BUILD_CATAPULT_FORCE, true);
+                    break;
+                case 1:
+                    DoCast(player, SPELL_BUILD_DEMOLISHER_FORCE, true);
+                    break;
+                case 2:
+                    DoCast(player, player->GetTeamId() == TEAM_ALLIANCE ? SPELL_BUILD_SIEGE_VEHICLE_FORCE_ALLIANCE : SPELL_BUILD_SIEGE_VEHICLE_FORCE_HORDE, true);
+                    break;
             }
             if (Creature* controlArms = me->FindNearestCreature(NPC_WINTERGRASP_CONTROL_ARMS, 30.0f, true))
                 DoCast(controlArms, SPELL_ACTIVATE_CONTROL_ARMS, true);
@@ -175,12 +175,12 @@ private:
 
         switch (me->GetEntry())
         {
-        case NPC_GOBLIN_MECHANIC:
-            return (wintergrasp->GetData(BATTLEFIELD_WG_DATA_MAX_VEHICLE_H) > wintergrasp->GetData(BATTLEFIELD_WG_DATA_VEHICLE_H));
-        case NPC_GNOMISH_ENGINEER:
-            return (wintergrasp->GetData(BATTLEFIELD_WG_DATA_MAX_VEHICLE_A) > wintergrasp->GetData(BATTLEFIELD_WG_DATA_VEHICLE_A));
-        default:
-            return false;
+            case NPC_GOBLIN_MECHANIC:
+                return (wintergrasp->GetData(BATTLEFIELD_WG_DATA_MAX_VEHICLE_H) > wintergrasp->GetData(BATTLEFIELD_WG_DATA_VEHICLE_H));
+            case NPC_GNOMISH_ENGINEER:
+                return (wintergrasp->GetData(BATTLEFIELD_WG_DATA_MAX_VEHICLE_A) > wintergrasp->GetData(BATTLEFIELD_WG_DATA_VEHICLE_A));
+            default:
+                return false;
         }
     }
 };
@@ -227,7 +227,7 @@ struct npc_wg_spirit_guide : public ScriptedAI
 
 enum WGQueue
 {
-    SPELL_FROST_ARMOR = 12544
+    SPELL_FROST_ARMOR                               = 12544
 };
 
 struct npc_wg_queue : public ScriptedAI
@@ -254,8 +254,6 @@ struct npc_wg_queue : public ScriptedAI
             FrostArmor_Timer = 180000;
         }
         else FrostArmor_Timer -= diff;
-
-        DoMeleeAttackIfReady();
     }
 
     bool OnGossipHello(Player* player) override
@@ -314,7 +312,7 @@ struct go_wg_vehicle_teleporter : public GameObjectAI
     bool IsFriendly(Unit* passenger)
     {
         return ((me->GetFaction() == FACTION_HORDE_GENERIC_WG && passenger->GetFaction() == HORDE) ||
-            (me->GetFaction() == FACTION_ALLIANCE_GENERIC_WG && passenger->GetFaction() == ALLIANCE));
+                (me->GetFaction() == FACTION_ALLIANCE_GENERIC_WG && passenger->GetFaction() == ALLIANCE));
     }
 
     Creature* GetValidVehicle(Creature* cVeh)
@@ -323,7 +321,7 @@ struct go_wg_vehicle_teleporter : public GameObjectAI
             if (Vehicle* vehicle = cVeh->GetVehicleKit())
                 if (Unit* passenger = vehicle->GetPassenger(0))
                     if (IsFriendly(passenger))
-                        if (Creature* teleportTrigger = passenger->SummonTrigger(me->GetPositionX() - 60.0f, me->GetPositionY(), me->GetPositionZ() + 1.0f, cVeh->GetOrientation(), 1s))
+                        if (Creature* teleportTrigger = passenger->SummonTrigger(me->GetPositionX()-60.0f, me->GetPositionY(), me->GetPositionZ()+1.0f, cVeh->GetOrientation(), 1s))
                             return teleportTrigger;
 
         return nullptr;
@@ -354,17 +352,15 @@ private:
    61409 - Build Siege Vehicle (Force) */
 class spell_wintergrasp_force_building : public SpellScript
 {
-    PrepareSpellScript(spell_wintergrasp_force_building);
-
     bool Validate(SpellInfo const* /*spell*/) override
     {
         return ValidateSpellInfo(
-            {
-                SPELL_BUILD_CATAPULT_FORCE,
-                SPELL_BUILD_DEMOLISHER_FORCE,
-                SPELL_BUILD_SIEGE_VEHICLE_FORCE_HORDE,
-                SPELL_BUILD_SIEGE_VEHICLE_FORCE_ALLIANCE
-            });
+        {
+            SPELL_BUILD_CATAPULT_FORCE,
+            SPELL_BUILD_DEMOLISHER_FORCE,
+            SPELL_BUILD_SIEGE_VEHICLE_FORCE_HORDE,
+            SPELL_BUILD_SIEGE_VEHICLE_FORCE_ALLIANCE
+        });
     }
 
     void HandleScript(SpellEffIndex effIndex)
@@ -382,8 +378,6 @@ class spell_wintergrasp_force_building : public SpellScript
 // 61178 - Grab Passenger
 class spell_wintergrasp_grab_passenger : public SpellScript
 {
-    PrepareSpellScript(spell_wintergrasp_grab_passenger);
-
     void HandleScript(SpellEffIndex /*effIndex*/)
     {
         if (Player* target = GetHitPlayer())
@@ -428,8 +422,6 @@ enum WgTeleport
 // 54640 - Teleport
 class spell_wintergrasp_defender_teleport : public SpellScript
 {
-    PrepareSpellScript(spell_wintergrasp_defender_teleport);
-
     SpellCastResult CheckCast()
     {
         if (Player* target = GetExplTargetUnit()->ToPlayer())
@@ -449,8 +441,6 @@ class spell_wintergrasp_defender_teleport : public SpellScript
 // 54643 - Teleport
 class spell_wintergrasp_defender_teleport_trigger : public SpellScript
 {
-    PrepareSpellScript(spell_wintergrasp_defender_teleport_trigger);
-
     void HandleDummy(SpellEffIndex /*effindex*/)
     {
         if (Unit* target = GetHitUnit())
@@ -471,11 +461,9 @@ class spell_wintergrasp_defender_teleport_trigger : public SpellScript
 // 59911 - Tenacity
 class spell_wintergrasp_tenacity_refresh : public AuraScript
 {
-    PrepareAuraScript(spell_wintergrasp_tenacity_refresh);
-
     bool Validate(SpellInfo const* spellInfo) override
     {
-        if (spellInfo->GetEffects().size() <= EFFECT_2)
+        if (!ValidateSpellEffect({ { spellInfo->Id, EFFECT_2 } }))
             return false;
         uint32 triggeredSpellId = spellInfo->GetEffect(EFFECT_2).CalcValue();
         return !triggeredSpellId || ValidateSpellInfo({ triggeredSpellId });

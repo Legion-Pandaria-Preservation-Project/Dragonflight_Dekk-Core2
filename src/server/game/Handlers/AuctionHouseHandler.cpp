@@ -139,18 +139,18 @@ void WorldSession::HandleAuctionConfirmCommoditiesPurchase(WorldPackets::Auction
     if (auctionHouse->BuyCommodity(trans, _player, confirmCommoditiesPurchase.ItemID, confirmCommoditiesPurchase.Quantity, throttle.DelayUntilNext))
     {
         AddTransactionCallback(CharacterDatabase.AsyncCommitTransaction(trans)).AfterComplete([this, buyerGuid = _player->GetGUID(), throttle](bool success)
+        {
+            if (GetPlayer() && GetPlayer()->GetGUID() == buyerGuid)
             {
-                if (GetPlayer() && GetPlayer()->GetGUID() == buyerGuid)
+                if (success)
                 {
-                    if (success)
-                    {
-                        GetPlayer()->UpdateCriteria(CriteriaType::AuctionsWon, 1);
-                        SendAuctionCommandResult(0, AuctionCommand::PlaceBid, AuctionResult::Ok, throttle.DelayUntilNext);
-                    }
-                    else
-                        SendAuctionCommandResult(0, AuctionCommand::PlaceBid, AuctionResult::CommodityPurchaseFailed, throttle.DelayUntilNext);
+                    GetPlayer()->UpdateCriteria(CriteriaType::AuctionsWon, 1);
+                    SendAuctionCommandResult(0, AuctionCommand::PlaceBid, AuctionResult::Ok, throttle.DelayUntilNext);
                 }
-            });
+                else
+                    SendAuctionCommandResult(0, AuctionCommand::PlaceBid, AuctionResult::CommodityPurchaseFailed, throttle.DelayUntilNext);
+            }
+        });
     }
 }
 
@@ -438,8 +438,8 @@ void WorldSession::HandleAuctionPlaceBid(WorldPackets::AuctionHouse::AuctionPlac
     if (canBuyout && placeBid.BidAmount == auction->BuyoutOrUnitPrice)
     {
         // buyout
-        auctionHouse->SendAuctionWon(auction, player, trans);
         auctionHouse->SendAuctionSold(auction, nullptr, trans);
+        auctionHouse->SendAuctionWon(auction, player, trans);
 
         auctionHouse->RemoveAuction(trans, auction);
     }
@@ -469,18 +469,18 @@ void WorldSession::HandleAuctionPlaceBid(WorldPackets::AuctionHouse::AuctionPlac
     player->SaveInventoryAndGoldToDB(trans);
     AddTransactionCallback(CharacterDatabase.AsyncCommitTransaction(trans)).AfterComplete(
         [this, auctionId = placeBid.AuctionID, bidAmount = placeBid.BidAmount, auctionPlayerGuid = _player->GetGUID(), throttle](bool success)
+    {
+        if (GetPlayer() && GetPlayer()->GetGUID() == auctionPlayerGuid)
         {
-            if (GetPlayer() && GetPlayer()->GetGUID() == auctionPlayerGuid)
+            if (success)
             {
-                if (success)
-                {
-                    GetPlayer()->UpdateCriteria(CriteriaType::HighestAuctionBid, bidAmount);
-                    SendAuctionCommandResult(auctionId, AuctionCommand::PlaceBid, AuctionResult::Ok, throttle.DelayUntilNext);
-                }
-                else
-                    SendAuctionCommandResult(auctionId, AuctionCommand::PlaceBid, AuctionResult::DatabaseError, throttle.DelayUntilNext);
+                GetPlayer()->UpdateCriteria(CriteriaType::HighestAuctionBid, bidAmount);
+                SendAuctionCommandResult(auctionId, AuctionCommand::PlaceBid, AuctionResult::Ok, throttle.DelayUntilNext);
             }
-        });
+            else
+                SendAuctionCommandResult(auctionId, AuctionCommand::PlaceBid, AuctionResult::DatabaseError, throttle.DelayUntilNext);
+        }
+    });
 }
 
 void WorldSession::HandleAuctionRemoveItem(WorldPackets::AuctionHouse::AuctionRemoveItem& removeItem)
@@ -538,15 +538,15 @@ void WorldSession::HandleAuctionRemoveItem(WorldPackets::AuctionHouse::AuctionRe
     auctionHouse->RemoveAuction(trans, auction);
     AddTransactionCallback(CharacterDatabase.AsyncCommitTransaction(trans)).AfterComplete(
         [this, auctionIdForClient, auctionPlayerGuid = _player->GetGUID(), throttle](bool success)
+    {
+        if (GetPlayer() && GetPlayer()->GetGUID() == auctionPlayerGuid)
         {
-            if (GetPlayer() && GetPlayer()->GetGUID() == auctionPlayerGuid)
-            {
-                if (success)
-                    SendAuctionCommandResult(auctionIdForClient, AuctionCommand::Cancel, AuctionResult::Ok, throttle.DelayUntilNext);        //inform player, that auction is removed
-                else
-                    SendAuctionCommandResult(0, AuctionCommand::Cancel, AuctionResult::DatabaseError, throttle.DelayUntilNext);
-            }
-        });
+            if (success)
+                SendAuctionCommandResult(auctionIdForClient, AuctionCommand::Cancel, AuctionResult::Ok, throttle.DelayUntilNext);        //inform player, that auction is removed
+            else
+                SendAuctionCommandResult(0, AuctionCommand::Cancel, AuctionResult::DatabaseError, throttle.DelayUntilNext);
+        }
+    });
 }
 
 void WorldSession::HandleAuctionReplicateItems(WorldPackets::AuctionHouse::AuctionReplicateItems& replicateItems)
@@ -579,28 +579,28 @@ void WorldSession::HandleAuctionRequestFavoriteList(WorldPackets::AuctionHouse::
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SEL_CHARACTER_FAVORITE_AUCTIONS);
     stmt->setUInt64(0, _player->GetGUID().GetCounter());
     GetQueryProcessor().AddCallback(CharacterDatabase.AsyncQuery(stmt)).WithPreparedCallback([this](PreparedQueryResult favoriteAuctionResult)
+    {
+        WorldPackets::AuctionHouse::AuctionFavoriteList favoriteItems;
+        if (favoriteAuctionResult)
         {
-            WorldPackets::AuctionHouse::AuctionFavoriteList favoriteItems;
-            if (favoriteAuctionResult)
+            favoriteItems.Items.reserve(favoriteAuctionResult->GetRowCount());
+
+            do
             {
-                favoriteItems.Items.reserve(favoriteAuctionResult->GetRowCount());
+                Field* fields = favoriteAuctionResult->Fetch();
 
-                do
-                {
-                    Field* fields = favoriteAuctionResult->Fetch();
+                WorldPackets::AuctionHouse::AuctionFavoriteInfo& item = favoriteItems.Items.emplace_back();
+                item.Order = fields[0].GetUInt32();
+                item.ItemID = fields[1].GetUInt32();
+                item.ItemLevel = fields[2].GetUInt32();
+                item.BattlePetSpeciesID = fields[3].GetUInt32();
+                item.SuffixItemNameDescriptionID = fields[4].GetUInt32();
 
-                    WorldPackets::AuctionHouse::AuctionFavoriteInfo& item = favoriteItems.Items.emplace_back();
-                    item.Order = fields[0].GetUInt32();
-                    item.ItemID = fields[1].GetUInt32();
-                    item.ItemLevel = fields[2].GetUInt32();
-                    item.BattlePetSpeciesID = fields[3].GetUInt32();
-                    item.SuffixItemNameDescriptionID = fields[4].GetUInt32();
+            } while (favoriteAuctionResult->NextRow());
 
-                } while (favoriteAuctionResult->NextRow());
-
-            }
-            SendPacket(favoriteItems.Write());
-        });
+        }
+        SendPacket(favoriteItems.Write());
+    });
 }
 
 void WorldSession::HandleAuctionSellCommodity(WorldPackets::AuctionHouse::AuctionSellCommodity& sellCommodity)
@@ -640,13 +640,13 @@ void WorldSession::HandleAuctionSellCommodity(WorldPackets::AuctionHouse::Auctio
 
     switch (sellCommodity.RunTime)
     {
-    case 1 * MIN_AUCTION_TIME / MINUTE:
-    case 2 * MIN_AUCTION_TIME / MINUTE:
-    case 4 * MIN_AUCTION_TIME / MINUTE:
-        break;
-    default:
-        SendAuctionCommandResult(0, AuctionCommand::SellItem, AuctionResult::AuctionHouseBusy, throttle.DelayUntilNext);
-        return;
+        case 1 * MIN_AUCTION_TIME / MINUTE:
+        case 2 * MIN_AUCTION_TIME / MINUTE:
+        case 4 * MIN_AUCTION_TIME / MINUTE:
+            break;
+        default:
+            SendAuctionCommandResult(0, AuctionCommand::SellItem, AuctionResult::AuctionHouseBusy, throttle.DelayUntilNext);
+            return;
     }
 
     if (GetPlayer()->HasUnitState(UNIT_STATE_DIED))
@@ -754,15 +754,15 @@ void WorldSession::HandleAuctionSellCommodity(WorldPackets::AuctionHouse::Auctio
     TC_LOG_INFO("network", "CMSG_AUCTION_SELL_COMMODITY: {} {} is selling item {} {} to auctioneer {} with count {} with with unit price {} and with time {} (in sec) in auctionhouse {}",
         _player->GetGUID().ToString(), _player->GetName(), items2.begin()->second.first->GetNameForLocaleIdx(sWorld->GetDefaultDbcLocale()),
         ([&items2]()
-            {
-                std::stringstream ss;
-                auto itr = items2.begin();
-                ss << (itr++)->first.ToString();
-                for (; itr != items2.end(); ++itr)
-                    ss << ',' << itr->first.ToString();
-                return ss.str();
-            }()).c_str(),
-                creature->GetGUID().ToString().c_str(), totalCount, sellCommodity.UnitPrice, uint32(auctionTime.count()), auctionHouse->GetAuctionHouseId());
+        {
+            std::stringstream ss;
+            auto itr = items2.begin();
+            ss << (itr++)->first.ToString();
+            for (; itr != items2.end(); ++itr)
+                ss << ',' << itr->first.ToString();
+            return ss.str();
+        }()).c_str(),
+        creature->GetGUID().ToString().c_str(), totalCount, sellCommodity.UnitPrice, uint32(auctionTime.count()), auctionHouse->GetAuctionHouseId());
 
     if (HasPermission(rbac::RBAC_PERM_LOG_GM_TRADE))
     {
@@ -801,18 +801,18 @@ void WorldSession::HandleAuctionSellCommodity(WorldPackets::AuctionHouse::Auctio
     _player->SaveInventoryAndGoldToDB(trans);
 
     AddTransactionCallback(CharacterDatabase.AsyncCommitTransaction(trans)).AfterComplete([this, auctionId, auctionPlayerGuid = _player->GetGUID(), throttle](bool success)
+    {
+        if (GetPlayer() && GetPlayer()->GetGUID() == auctionPlayerGuid)
         {
-            if (GetPlayer() && GetPlayer()->GetGUID() == auctionPlayerGuid)
+            if (success)
             {
-                if (success)
-                {
-                    GetPlayer()->UpdateCriteria(CriteriaType::ItemsPostedAtAuction, 1);
-                    SendAuctionCommandResult(auctionId, AuctionCommand::SellItem, AuctionResult::Ok, throttle.DelayUntilNext);
-                }
-                else
-                    SendAuctionCommandResult(0, AuctionCommand::SellItem, AuctionResult::DatabaseError, throttle.DelayUntilNext);
+                GetPlayer()->UpdateCriteria(CriteriaType::ItemsPostedAtAuction, 1);
+                SendAuctionCommandResult(auctionId, AuctionCommand::SellItem, AuctionResult::Ok, throttle.DelayUntilNext);
             }
-        });
+            else
+                SendAuctionCommandResult(0, AuctionCommand::SellItem, AuctionResult::DatabaseError, throttle.DelayUntilNext);
+        }
+    });
 }
 
 void WorldSession::HandleAuctionSellItem(WorldPackets::AuctionHouse::AuctionSellItem& sellItem)
@@ -864,13 +864,13 @@ void WorldSession::HandleAuctionSellItem(WorldPackets::AuctionHouse::AuctionSell
 
     switch (sellItem.RunTime)
     {
-    case 1 * MIN_AUCTION_TIME / MINUTE:
-    case 2 * MIN_AUCTION_TIME / MINUTE:
-    case 4 * MIN_AUCTION_TIME / MINUTE:
-        break;
-    default:
-        SendAuctionCommandResult(0, AuctionCommand::SellItem, AuctionResult::AuctionHouseBusy, throttle.DelayUntilNext);
-        return;
+        case 1 * MIN_AUCTION_TIME / MINUTE:
+        case 2 * MIN_AUCTION_TIME / MINUTE:
+        case 4 * MIN_AUCTION_TIME / MINUTE:
+            break;
+        default:
+            SendAuctionCommandResult(0, AuctionCommand::SellItem, AuctionResult::AuctionHouseBusy, throttle.DelayUntilNext);
+            return;
     }
 
     if (GetPlayer()->HasUnitState(UNIT_STATE_DIED))
@@ -949,18 +949,18 @@ void WorldSession::HandleAuctionSellItem(WorldPackets::AuctionHouse::AuctionSell
     auctionHouse->AddAuction(trans, std::move(auction));
     _player->SaveInventoryAndGoldToDB(trans);
     AddTransactionCallback(CharacterDatabase.AsyncCommitTransaction(trans)).AfterComplete([this, auctionId, auctionPlayerGuid = _player->GetGUID(), throttle](bool success)
+    {
+        if (GetPlayer() && GetPlayer()->GetGUID() == auctionPlayerGuid)
         {
-            if (GetPlayer() && GetPlayer()->GetGUID() == auctionPlayerGuid)
+            if (success)
             {
-                if (success)
-                {
-                    GetPlayer()->UpdateCriteria(CriteriaType::ItemsPostedAtAuction, 1);
-                    SendAuctionCommandResult(auctionId, AuctionCommand::SellItem, AuctionResult::Ok, throttle.DelayUntilNext);
-                }
-                else
-                    SendAuctionCommandResult(0, AuctionCommand::SellItem, AuctionResult::DatabaseError, throttle.DelayUntilNext);
+                GetPlayer()->UpdateCriteria(CriteriaType::ItemsPostedAtAuction, 1);
+                SendAuctionCommandResult(auctionId, AuctionCommand::SellItem, AuctionResult::Ok, throttle.DelayUntilNext);
             }
-        });
+            else
+                SendAuctionCommandResult(0, AuctionCommand::SellItem, AuctionResult::DatabaseError, throttle.DelayUntilNext);
+        }
+    });
 }
 
 void WorldSession::HandleAuctionSetFavoriteItem(WorldPackets::AuctionHouse::AuctionSetFavoriteItem& setFavoriteItem)
@@ -992,7 +992,7 @@ void WorldSession::HandleAuctionSetFavoriteItem(WorldPackets::AuctionHouse::Auct
 }
 
 //this void causes that auction window is opened
-void WorldSession::SendAuctionHello(ObjectGuid guid, Creature* unit)
+void WorldSession::SendAuctionHello(ObjectGuid guid, Unit const* unit)
 {
     if (GetPlayer()->GetLevel() < sWorld->getIntConfig(CONFIG_AUCTION_LEVEL_REQ))
     {

@@ -27,18 +27,11 @@
 #include "ObjectMgr.h"
 #include "Player.h"
 
-//DekkCore
-#include <Chat.h>
-#include <LFGListMgr.h>
-//DekkCore
-
-#include "Flux.h" // < Fluxurion
-
 void WorldSession::HandleLfgJoinOpcode(WorldPackets::LFG::DFJoin& dfJoin)
 {
     if (!sLFGMgr->isOptionEnabled(lfg::LFG_OPTION_ENABLE_DUNGEON_FINDER | lfg::LFG_OPTION_ENABLE_RAID_BROWSER) ||
         (GetPlayer()->GetGroup() && GetPlayer()->GetGroup()->GetLeaderGUID() != GetPlayer()->GetGUID() &&
-            (GetPlayer()->GetGroup()->GetMembersCount() == MAX_GROUP_SIZE || !GetPlayer()->GetGroup()->isLFGGroup())))
+        (GetPlayer()->GetGroup()->GetMembersCount() == MAX_GROUP_SIZE || !GetPlayer()->GetGroup()->isLFGGroup())))
         return;
 
     if (dfJoin.Slots.empty())
@@ -151,15 +144,13 @@ void WorldSession::SendLfgPlayerLockInfo()
     // Get Random dungeons that can be done at a certain level and expansion
     uint8 level = GetPlayer()->GetLevel();
     uint32 contentTuningReplacementConditionMask = GetPlayer()->m_playerData->CtrOptions->ContentTuningConditionMask;
-    // Fluxurion >
-    lfg::LfgDungeonSet const& randomDungeons = sLFGMgr->GetRandomAndSeasonalDungeons(GetPlayer(), Fluxurion::GetChromieTimeExpansionLevel(Fluxurion::GetChromieTime(GetPlayer())), contentTuningReplacementConditionMask);
+    lfg::LfgDungeonSet const& randomDungeons = sLFGMgr->GetRandomAndSeasonalDungeons(level, GetExpansion(), contentTuningReplacementConditionMask);
 
     WorldPackets::LFG::LfgPlayerInfo lfgPlayerInfo;
 
     // Get player locked Dungeons
-    for (auto const& lock : Fluxurion::GetLockedDungeons(_player->GetGUID()))
-        lfgPlayerInfo.BlackList.Slot.emplace_back(lock.first, lock.second.lockStatus, lock.second.requiredItemLevel, lock.second.currentItemLevel, lock.second.softLock);
-    // < Fluxurion
+    for (auto const& lock : sLFGMgr->GetLockedDungeons(_player->GetGUID()))
+        lfgPlayerInfo.BlackList.Slot.emplace_back(lock.first, lock.second.lockStatus, lock.second.requiredItemLevel, lock.second.currentItemLevel, 0);
 
     for (uint32 slot : randomDungeons)
     {
@@ -231,7 +222,7 @@ void WorldSession::SendLfgPartyLockInfo()
         lfgPartyInfo.Player.emplace_back();
         WorldPackets::LFG::LFGBlackList& lfgBlackList = lfgPartyInfo.Player.back();
         lfgBlackList.PlayerGuid = pguid;
-        for (auto const& lock : Fluxurion::GetLockedDungeons(pguid))
+        for (auto const& lock : sLFGMgr->GetLockedDungeons(pguid))
             lfgBlackList.Slot.emplace_back(lock.first, lock.second.lockStatus, lock.second.requiredItemLevel, lock.second.currentItemLevel, 0);
     }
 
@@ -246,23 +237,23 @@ void WorldSession::SendLfgUpdateStatus(lfg::LfgUpdateData const& updateData, boo
 
     switch (updateData.updateType)
     {
-    case lfg::LFG_UPDATETYPE_JOIN_QUEUE_INITIAL:            // Joined queue outside the dungeon
-        join = true;
-        break;
-    case lfg::LFG_UPDATETYPE_JOIN_QUEUE:
-    case lfg::LFG_UPDATETYPE_ADDED_TO_QUEUE:                // Rolecheck Success
-        join = true;
-        queued = true;
-        break;
-    case lfg::LFG_UPDATETYPE_PROPOSAL_BEGIN:
-        join = true;
-        break;
-    case lfg::LFG_UPDATETYPE_UPDATE_STATUS:
-        join = updateData.state != lfg::LFG_STATE_ROLECHECK && updateData.state != lfg::LFG_STATE_NONE;
-        queued = updateData.state == lfg::LFG_STATE_QUEUED;
-        break;
-    default:
-        break;
+        case lfg::LFG_UPDATETYPE_JOIN_QUEUE_INITIAL:            // Joined queue outside the dungeon
+            join = true;
+            break;
+        case lfg::LFG_UPDATETYPE_JOIN_QUEUE:
+        case lfg::LFG_UPDATETYPE_ADDED_TO_QUEUE:                // Rolecheck Success
+            join = true;
+            queued = true;
+            break;
+        case lfg::LFG_UPDATETYPE_PROPOSAL_BEGIN:
+            join = true;
+            break;
+        case lfg::LFG_UPDATETYPE_UPDATE_STATUS:
+            join = updateData.state != lfg::LFG_STATE_ROLECHECK && updateData.state != lfg::LFG_STATE_NONE;
+            queued = updateData.state == lfg::LFG_STATE_QUEUED;
+            break;
+        default:
+            break;
     }
 
     TC_LOG_DEBUG("lfg", "SMSG_LFG_UPDATE_STATUS {} updatetype: {}, party {}",
@@ -275,9 +266,9 @@ void WorldSession::SendLfgUpdateStatus(lfg::LfgUpdateData const& updateData, boo
     lfgUpdateStatus.SubType = lfg::LFG_QUEUE_DUNGEON; // other types not implemented
     lfgUpdateStatus.Reason = updateData.updateType;
     std::transform(updateData.dungeons.begin(), updateData.dungeons.end(), std::back_inserter(lfgUpdateStatus.Slots), [](uint32 dungeonId)
-        {
-            return sLFGMgr->GetLFGDungeonEntry(dungeonId);
-        });
+    {
+        return sLFGMgr->GetLFGDungeonEntry(dungeonId);
+    });
     lfgUpdateStatus.RequestedRoles = sLFGMgr->GetRoles(_player->GetGUID());
     //lfgUpdateStatus.SuspendedPlayers;
     lfgUpdateStatus.IsParty = party;
@@ -315,9 +306,9 @@ void WorldSession::SendLfgRoleCheckUpdate(lfg::LfgRoleCheck const& roleCheck)
     lfgRoleCheckUpdate.PartyIndex = 127;
     lfgRoleCheckUpdate.RoleCheckStatus = roleCheck.state;
     std::transform(dungeons.begin(), dungeons.end(), std::back_inserter(lfgRoleCheckUpdate.JoinSlots), [](uint32 dungeonId)
-        {
-            return sLFGMgr->GetLFGDungeonEntry(dungeonId);
-        });
+    {
+        return sLFGMgr->GetLFGDungeonEntry(dungeonId);
+    });
     lfgRoleCheckUpdate.GroupFinderActivityID = 0;
     if (!roleCheck.roles.empty())
     {
@@ -519,206 +510,4 @@ void WorldSession::SendLfgTeleportError(lfg::LfgTeleportResult err)
     TC_LOG_DEBUG("lfg", "SMSG_LFG_TELEPORT_DENIED {} reason: {}",
         GetPlayerInfo(), err);
     SendPacket(WorldPackets::LFG::LFGTeleportDenied(err).Write());
-}
-
-void WorldSession::HandleLFGListGetStatus(WorldPackets::LFGList::LFGListGetStatus& packet)
-{
-    WorldPackets::LFGList::LFGListUpdateStatus status;
-    SendPacket(status.Write());
-}
-
-void WorldSession::HandleLFGListApplyToGroup(WorldPackets::LFGList::LFGListApplyToGroup& packet)
-{
-    if (GetPlayer()->GetGroup()) // need for rolecheck and result
-        ChatHandler(GetPlayer()->GetSession()).PSendSysMessage("You can't join it while you in group!");
-    else
-        sLFGListMgr->OnPlayerApplyForGroup(GetPlayer(), &packet.application.ApplicationTicket, packet.application.ActivityID, packet.application.Comment, packet.application.Role);
-
-}
-
-void WorldSession::HandleLFGListCancelApplication(WorldPackets::LFGList::LFGListCancelApplication& packet)
-{
-    if (auto entry = sLFGListMgr->GetEntryByApplicant(packet.ApplicantTicket))
-        sLFGListMgr->ChangeApplicantStatus(entry->GetApplicant(packet.ApplicantTicket.Id), LFGListApplicationStatus::Cancelled);
-}
-
-void WorldSession::HandleLFGListDeclineApplicant(WorldPackets::LFGList::LFGListDeclineApplicant& packet)
-{
-    if (!_player->GetGroup()->GetMemberFlags(_player->GetGUID()) && !_player->GetGroup()->IsLeader(_player->GetGUID()))
-        return;
-
-    if (auto entry = sLFGListMgr->GetEntrybyGuid(packet.ApplicantTicket.Id))
-        sLFGListMgr->ChangeApplicantStatus(entry->GetApplicant(packet.ApplicationTicket.Id), LFGListApplicationStatus::Declined);
-}
-
-void WorldSession::HandleLFGListInviteApplicant(WorldPackets::LFGList::LFGListInviteApplicant& packet)
-{
-    if (!_player->GetGroup()->GetMemberFlags(_player->GetGUID()) && !_player->GetGroup()->IsLeader(_player->GetGUID()))
-        return;
-
-    if (auto entry = sLFGListMgr->GetEntrybyGuid(packet.ApplicantTicket.Id))
-    {
-        auto applicant = entry->GetApplicant(packet.ApplicationTicket.Id);
-        applicant->RoleMask = (*packet.Applicant.begin()).Role;
-
-        sLFGListMgr->ChangeApplicantStatus(applicant, LFGListApplicationStatus::Invited);
-    }
-}
-
-void WorldSession::HandleLFGListInviteResponse(WorldPackets::LFGList::LFGListInviteResponse& packet)
-{
-    sLFGListMgr->ChangeApplicantStatus(sLFGListMgr->GetApplicationByID(packet.ApplicantTicket.Id), packet.Accept ? LFGListApplicationStatus::InviteAccepted : LFGListApplicationStatus::InviteDeclined);
-}
-
-void WorldSession::HandleLFGListJoin(WorldPackets::LFGList::LFGListJoin& packet)
-{
-    auto list = new LFGListEntry;
-    list->GroupFinderActivityData = sGroupFinderActivityStore.LookupEntry(packet.Request.ActivityID);
-    list->ItemLevel = packet.Request.ItemLevel;
-    list->HonorLevel = packet.Request.HonorLevel;
-    list->GroupName = packet.Request.GroupName;
-    list->Comment = packet.Request.Comment;
-    list->VoiceChat = packet.Request.VoiceChat;
-    list->TypeActivity = packet.Request.TypeActivity;
-    list->PrivateGroup = packet.Request.PrivateGroup;
-    list->HasQuest = packet.Request.HasQuest;
-    list->AutoAccept = packet.Request.AutoAccept;
-    if (packet.Request.HasQuest)
-        list->QuestID = *packet.Request.QuestID;
-    list->minChallege = packet.Request.minChallege;
-    if (list->minChallege)
-        packet.Request.MinMyticPlusRating;
-    list->ApplicationGroup = nullptr;
-    ChatHandler(GetPlayer()->GetSession()).PSendSysMessage("GroupFinder Join");
-    sLFGListMgr->Insert(list, GetPlayer());
-}
-
-void WorldSession::HandleLFGListLeave(WorldPackets::LFGList::LFGListLeave& packet)
-{
-    auto entry = sLFGListMgr->GetEntrybyGuid(packet.ApplicationTicket.Id);
-    if (!entry || !entry->ApplicationGroup->IsLeader(GetPlayer()->GetGUID()))
-        return;
-
-    sLFGListMgr->Remove(packet.ApplicationTicket.Id, GetPlayer());
-}
-
-void WorldSession::HandleLFGListSearch(WorldPackets::LFGList::LFGListSearch& packet)
-{
-    WorldPackets::LFGList::LFGListSearchResults results;
-    /*if (!sGroupFinderCategoryStore.LookupEntry(packet.CategoryID))
-    {
-        SendPacket(results.Write()); TOODO AD DB2
-        return;
-    }*/
-
-    auto list = sLFGListMgr->GetFilteredList(packet.CategoryID, packet.SearchTerms, packet.LanguageSearchFilter, GetPlayer());
-    results.AppicationsCount = list.size();
-
-    for (auto& lfgEntry : list)
-    {
-        WorldPackets::LFGList::ListSearchResult result;
-        auto group = lfgEntry->ApplicationGroup;
-        if (!group)
-            continue;
-
-        auto leader = ObjectAccessor::FindPlayer(group->GetLeaderGUID());
-        if (!leader)
-            continue;
-
-        if (lfgEntry->PrivateGroup)
-            if (GetPlayer()->GetGuildId() == 0 || GetPlayer()->GetGuildId() != leader->GetGuildId())
-                continue;
-
-        auto activityID = lfgEntry->GroupFinderActivityData->ID;
-
-        result.ApplicationTicket.RequesterGuid = group->GetGUID();
-        result.ApplicationTicket.Id = group->GetGUID().GetCounter();
-        result.ApplicationTicket.Type = WorldPackets::LFG::RideType::LfgListApplication;
-        result.ApplicationTicket.Time = lfgEntry->CreationTime;
-        result.LastTouchedVoiceChat = group->GetLeaderGUID();
-        result.PartyGUID = group->GetLeaderGUID();
-        result.BNetFriends = group->GetLeaderGUID();
-        result.GuildMates = group->GetLeaderGUID();
-        result.VirtualRealmAddress = GetVirtualRealmAddress();
-        result.CompletedEncounters = 0;
-        result.Age = lfgEntry->CreationTime;
-        result.ResultID = 3;
-        result.ApplicationStatus = AsUnderlyingType(LFGListApplicationStatus::None);
-
-        for (auto const& member : group->GetMemberSlots())
-        {
-            uint8 role = member.roles >= 2 ? std::log2(member.roles) - 1 : member.roles;
-            result.Members.emplace_back(member._class, role);
-        }
-        for (auto const& member : lfgEntry->ApplicationsContainer)
-            if (auto applicant = member.second.GetPlayer())
-                result.Members.emplace_back(applicant->GetClass(), member.second.RoleMask);
-
-        result.JoinRequest.ActivityID = activityID;
-        result.JoinRequest.ItemLevel = lfgEntry->ItemLevel;
-        result.JoinRequest.AutoAccept = lfgEntry->AutoAccept;
-        result.JoinRequest.TypeActivity = lfgEntry->TypeActivity;
-
-        result.JoinRequest.HasQuest = lfgEntry->HasQuest;
-        result.JoinRequest.GroupName = lfgEntry->GroupName;
-        result.JoinRequest.Comment = lfgEntry->Comment;
-        result.JoinRequest.VoiceChat = lfgEntry->VoiceChat;
-        result.JoinRequest.minChallege = lfgEntry->minChallege;
-        result.JoinRequest.PrivateGroup = lfgEntry->PrivateGroup;
-
-        if (result.JoinRequest.HasQuest = true)
-            result.JoinRequest.QuestID = lfgEntry->QuestID;
-
-        if (result.JoinRequest.minChallege)
-            result.JoinRequest.MinMyticPlusRating;
-
-
-        results.SearchResults.emplace_back(result);
-    }
-
-    SendPacket(results.Write());
-}
-
-void WorldSession::HandleLFGListUpdateRequest(WorldPackets::LFGList::LFGListUpdateRequest& packet)
-{
-    auto entry = sLFGListMgr->GetEntrybyGuid(packet.Ticket.Id);
-    if (!entry || !entry->ApplicationGroup->IsLeader(_player->GetGUID()))
-        return;
-
-    entry->AutoAccept = packet.UpdateRequest.AutoAccept;
-    entry->GroupName = packet.UpdateRequest.GroupName;
-    entry->Comment = packet.UpdateRequest.Comment;
-    entry->VoiceChat = packet.UpdateRequest.VoiceChat;
-    entry->HonorLevel = packet.UpdateRequest.HonorLevel;
-    if (packet.UpdateRequest.HasQuest)
-        entry->QuestID = *packet.UpdateRequest.QuestID;
-
-    if (packet.UpdateRequest.ItemLevel < sLFGListMgr->GetPlayerItemLevelForActivity(entry->GroupFinderActivityData, _player))
-        entry->ItemLevel = packet.UpdateRequest.ItemLevel;
-    entry->PrivateGroup = packet.UpdateRequest.PrivateGroup;
-
-    sLFGListMgr->AutoInviteApplicantsIfPossible(entry);
-    sLFGListMgr->SendLFGListStatusUpdate(entry);
-}
-
-void WorldSession::HandleLfgCompleteReadyCheck(WorldPackets::LFG::CompleteReadyCheck& /*packet*/)
-{
-}
-
-void WorldSession::HandleMythicPlusRequestWeeklyRewards(WorldPackets::MythicPlus::MythicPlusRequestWeeklyRewards& /*packet*/)
-{
-    WorldPackets::MythicPlus::Rewards weeklyResult;
-
-    SendPacket(weeklyResult.Write());
-}
-
-void WorldSession::HandleLFGListClubFinderRequestPendingClubList(WorldPackets::LFGList::LFGListClubFinderRequestPendingClubList& /*packet*/)
-{
-//    packet.Queued;
-}
-
-void WorldSession::HandleRequestLFGListBlackList(WorldPackets::LFGList::RequestLFGListBlacklist& /*packet*/)
-{
-    WorldPackets::LFGList::LFGListUpdateBlacklist blacklist;
-    SendPacket(blacklist.Write()); /// Activity and Reason loop - We dont need it
 }

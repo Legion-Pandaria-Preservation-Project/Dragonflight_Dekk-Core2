@@ -88,12 +88,6 @@ class TC_GAME_API PlayerTaxi
         TaxiMask m_taximask;
         std::deque<uint32> m_TaxiDestinations;
         uint32 m_flightMasterFactionId;
-
-
-        // DekkCore >
-public:
-        void SetTaxiDestination(std::vector<uint32>& nodes) { m_TaxiDestinations.clear(); m_TaxiDestinations.insert(m_TaxiDestinations.begin(), nodes.begin(), nodes.end()); }
-        // < DekkCore
 };
 
 std::ostringstream& operator <<(std::ostringstream& ss, PlayerTaxi const& taxi);

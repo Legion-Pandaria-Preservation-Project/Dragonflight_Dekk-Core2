@@ -17,6 +17,7 @@
 
 #include "icecrown_citadel.h"
 #include "CellImpl.h"
+#include "Containers.h"
 #include "CreatureTextMgr.h"
 #include "GridNotifiersImpl.h"
 #include "InstanceScript.h"
@@ -41,188 +42,188 @@
 enum Texts
 {
     // High Overlord Saurfang
-    SAY_SAURFANG_INTRO_1 = 0,
-    SAY_SAURFANG_INTRO_2 = 1,
-    SAY_SAURFANG_INTRO_3 = 2,
-    SAY_SAURFANG_INTRO_4 = 3,
-    SAY_SAURFANG_INTRO_5 = 4,
-    SAY_SAURFANG_INTRO_6 = 5,
-    SAY_SAURFANG_INTRO_A = 6,
-    SAY_SAURFANG_BOARD = 7,
-    SAY_SAURFANG_ENTER_SKYBREAKER = 8,
-    SAY_SAURFANG_AXETHROWERS = 9,
-    SAY_SAURFANG_ROCKETEERS = 10,
-    SAY_SAURFANG_MAGES = 11,
-    SAY_SAURFANG_VICTORY = 12,
-    SAY_SAURFANG_WIPE = 13,
+    SAY_SAURFANG_INTRO_1                = 0,
+    SAY_SAURFANG_INTRO_2                = 1,
+    SAY_SAURFANG_INTRO_3                = 2,
+    SAY_SAURFANG_INTRO_4                = 3,
+    SAY_SAURFANG_INTRO_5                = 4,
+    SAY_SAURFANG_INTRO_6                = 5,
+    SAY_SAURFANG_INTRO_A                = 6,
+    SAY_SAURFANG_BOARD                  = 7,
+    SAY_SAURFANG_ENTER_SKYBREAKER       = 8,
+    SAY_SAURFANG_AXETHROWERS            = 9,
+    SAY_SAURFANG_ROCKETEERS             = 10,
+    SAY_SAURFANG_MAGES                  = 11,
+    SAY_SAURFANG_VICTORY                = 12,
+    SAY_SAURFANG_WIPE                   = 13,
 
     // Muradin Bronzebeard
-    SAY_MURADIN_INTRO_1 = 0,
-    SAY_MURADIN_INTRO_2 = 1,
-    SAY_MURADIN_INTRO_3 = 2,
-    SAY_MURADIN_INTRO_4 = 3,
-    SAY_MURADIN_INTRO_5 = 4,
-    SAY_MURADIN_INTRO_6 = 5,
-    SAY_MURADIN_INTRO_7 = 6,
-    SAY_MURADIN_INTRO_H = 7,
-    SAY_MURADIN_BOARD = 8,
-    SAY_MURADIN_ENTER_ORGRIMMS_HAMMER = 9,
-    SAY_MURADIN_RIFLEMAN = 10,
-    SAY_MURADIN_MORTAR = 11,
-    SAY_MURADIN_SORCERERS = 12,
-    SAY_MURADIN_VICTORY = 13,
-    SAY_MURADIN_WIPE = 14,
+    SAY_MURADIN_INTRO_1                 = 0,
+    SAY_MURADIN_INTRO_2                 = 1,
+    SAY_MURADIN_INTRO_3                 = 2,
+    SAY_MURADIN_INTRO_4                 = 3,
+    SAY_MURADIN_INTRO_5                 = 4,
+    SAY_MURADIN_INTRO_6                 = 5,
+    SAY_MURADIN_INTRO_7                 = 6,
+    SAY_MURADIN_INTRO_H                 = 7,
+    SAY_MURADIN_BOARD                   = 8,
+    SAY_MURADIN_ENTER_ORGRIMMS_HAMMER   = 9,
+    SAY_MURADIN_RIFLEMAN                = 10,
+    SAY_MURADIN_MORTAR                  = 11,
+    SAY_MURADIN_SORCERERS               = 12,
+    SAY_MURADIN_VICTORY                 = 13,
+    SAY_MURADIN_WIPE                    = 14,
 
-    SAY_ZAFOD_ROCKET_PACK_ACTIVE = 0,
-    SAY_ZAFOD_ROCKET_PACK_DISABLED = 1,
+    SAY_ZAFOD_ROCKET_PACK_ACTIVE        = 0,
+    SAY_ZAFOD_ROCKET_PACK_DISABLED      = 1,
 
-    SAY_OVERHEAT = 0
+    SAY_OVERHEAT                        = 0
 };
 
 enum Events
 {
     // High Overlord Saurfang
-    EVENT_INTRO_H_1 = 1,
-    EVENT_INTRO_H_2 = 2,
-    EVENT_INTRO_SUMMON_SKYBREAKER = 3,
-    EVENT_INTRO_H_3 = 4,
-    EVENT_INTRO_H_4 = 5,
-    EVENT_INTRO_H_5 = 6,
-    EVENT_INTRO_H_6 = 7,
+    EVENT_INTRO_H_1                 = 1,
+    EVENT_INTRO_H_2                 = 2,
+    EVENT_INTRO_SUMMON_SKYBREAKER   = 3,
+    EVENT_INTRO_H_3                 = 4,
+    EVENT_INTRO_H_4                 = 5,
+    EVENT_INTRO_H_5                 = 6,
+    EVENT_INTRO_H_6                 = 7,
 
     // Muradin Bronzebeard
-    EVENT_INTRO_A_1 = 1,
-    EVENT_INTRO_A_2 = 2,
+    EVENT_INTRO_A_1                 = 1,
+    EVENT_INTRO_A_2                 = 2,
     EVENT_INTRO_SUMMON_ORGRIMS_HAMMER = 3,
-    EVENT_INTRO_A_3 = 4,
-    EVENT_INTRO_A_4 = 5,
-    EVENT_INTRO_A_5 = 6,
-    EVENT_INTRO_A_6 = 7,
-    EVENT_INTRO_A_7 = 8,
+    EVENT_INTRO_A_3                 = 4,
+    EVENT_INTRO_A_4                 = 5,
+    EVENT_INTRO_A_5                 = 6,
+    EVENT_INTRO_A_6                 = 7,
+    EVENT_INTRO_A_7                 = 8,
 
-    EVENT_KEEP_PLAYER_IN_COMBAT = 9,
-    EVENT_SUMMON_MAGE = 10,
-    EVENT_ADDS = 11,
-    EVENT_ADDS_BOARD_YELL = 12,
-    EVENT_CHECK_RIFLEMAN = 13,
-    EVENT_CHECK_MORTAR = 14,
-    EVENT_CLEAVE = 15,
+    EVENT_KEEP_PLAYER_IN_COMBAT     = 9,
+    EVENT_SUMMON_MAGE               = 10,
+    EVENT_ADDS                      = 11,
+    EVENT_ADDS_BOARD_YELL           = 12,
+    EVENT_CHECK_RIFLEMAN            = 13,
+    EVENT_CHECK_MORTAR              = 14,
+    EVENT_CLEAVE                    = 15,
 
-    EVENT_BLADESTORM = 16,
-    EVENT_WOUNDING_STRIKE = 17
+    EVENT_BLADESTORM                = 16,
+    EVENT_WOUNDING_STRIKE           = 17
 };
 
 enum Spells
 {
     // Applied on friendly transport NPCs
-    SPELL_FRIENDLY_BOSS_DAMAGE_MOD = 70339,
-    SPELL_CHECK_FOR_PLAYERS = 70332,
-    SPELL_GUNSHIP_FALL_TELEPORT = 67335,
-    SPELL_TELEPORT_PLAYERS_ON_RESET_A = 70446,
-    SPELL_TELEPORT_PLAYERS_ON_RESET_H = 71284,
-    SPELL_TELEPORT_PLAYERS_ON_VICTORY = 72340,
-    SPELL_ACHIEVEMENT = 72959,
-    SPELL_AWARD_REPUTATION_BOSS_KILL = 73843,
+    SPELL_FRIENDLY_BOSS_DAMAGE_MOD          = 70339,
+    SPELL_CHECK_FOR_PLAYERS                 = 70332,
+    SPELL_GUNSHIP_FALL_TELEPORT             = 67335,
+    SPELL_TELEPORT_PLAYERS_ON_RESET_A       = 70446,
+    SPELL_TELEPORT_PLAYERS_ON_RESET_H       = 71284,
+    SPELL_TELEPORT_PLAYERS_ON_VICTORY       = 72340,
+    SPELL_ACHIEVEMENT                       = 72959,
+    SPELL_AWARD_REPUTATION_BOSS_KILL        = 73843,
 
     // Murading Bronzebeard
     // High Overlord Saurfang
-    SPELL_BATTLE_FURY = 69637,
-    SPELL_RENDING_THROW = 70309,
-    SPELL_CLEAVE = 15284,
-    SPELL_TASTE_OF_BLOOD = 69634,
+    SPELL_BATTLE_FURY                       = 69637,
+    SPELL_RENDING_THROW                     = 70309,
+    SPELL_CLEAVE                            = 15284,
+    SPELL_TASTE_OF_BLOOD                    = 69634,
 
     // Applied on enemy NPCs
-    SPELL_MELEE_TARGETING_ON_SKYBREAKER = 70219,
+    SPELL_MELEE_TARGETING_ON_SKYBREAKER     = 70219,
     SPELL_MELEE_TARGETING_ON_ORGRIMS_HAMMER = 70294,
 
     // Gunship Hull
-    SPELL_EXPLOSION_WIPE = 72134,
-    SPELL_EXPLOSION_VICTORY = 72137,
+    SPELL_EXPLOSION_WIPE                    = 72134,
+    SPELL_EXPLOSION_VICTORY                 = 72137,
 
     // Hostile NPCs
-    SPELL_TELEPORT_TO_ENEMY_SHIP = 70104,
-    SPELL_BATTLE_EXPERIENCE = 71201,
-    SPELL_EXPERIENCED = 71188,
-    SPELL_VETERAN = 71193,
-    SPELL_ELITE = 71195,
-    SPELL_ADDS_BERSERK = 72525,
+    SPELL_TELEPORT_TO_ENEMY_SHIP            = 70104,
+    SPELL_BATTLE_EXPERIENCE                 = 71201,
+    SPELL_EXPERIENCED                       = 71188,
+    SPELL_VETERAN                           = 71193,
+    SPELL_ELITE                             = 71195,
+    SPELL_ADDS_BERSERK                      = 72525,
 
     // Skybreaker Sorcerer
     // Kor'kron Battle-Mage
-    SPELL_SHADOW_CHANNELING = 43897,
-    SPELL_BELOW_ZERO = 69705,
+    SPELL_SHADOW_CHANNELING                 = 43897,
+    SPELL_BELOW_ZERO                        = 69705,
 
     // Skybreaker Rifleman
     // Kor'kron Axethrower
-    SPELL_SHOOT = 70162,
-    SPELL_HURL_AXE = 70161,
-    SPELL_BURNING_PITCH_A = 70403,
-    SPELL_BURNING_PITCH_H = 70397,
-    SPELL_BURNING_PITCH = 69660,
+    SPELL_SHOOT                             = 70162,
+    SPELL_HURL_AXE                          = 70161,
+    SPELL_BURNING_PITCH_A                   = 70403,
+    SPELL_BURNING_PITCH_H                   = 70397,
+    SPELL_BURNING_PITCH                     = 69660,
 
     // Skybreaker Mortar Soldier
     // Kor'kron Rocketeer
-    SPELL_ROCKET_ARTILLERY_A = 70609,
-    SPELL_ROCKET_ARTILLERY_H = 69678,
-    SPELL_BURNING_PITCH_DAMAGE_A = 70383,
-    SPELL_BURNING_PITCH_DAMAGE_H = 70374,
+    SPELL_ROCKET_ARTILLERY_A                = 70609,
+    SPELL_ROCKET_ARTILLERY_H                = 69678,
+    SPELL_BURNING_PITCH_DAMAGE_A            = 70383,
+    SPELL_BURNING_PITCH_DAMAGE_H            = 70374,
 
     // Skybreaker Marine
     // Kor'kron Reaver
-    SPELL_DESPERATE_RESOLVE = 69647,
+    SPELL_DESPERATE_RESOLVE                 = 69647,
 
     // Skybreaker Sergeant
     // Kor'kron Sergeant
-    SPELL_BLADESTORM = 69652,
-    SPELL_WOUNDING_STRIKE = 69651,
+    SPELL_BLADESTORM                        = 69652,
+    SPELL_WOUNDING_STRIKE                   = 69651,
 
     //
-    SPELL_LOCK_PLAYERS_AND_TAP_CHEST = 72347,
-    SPELL_ON_SKYBREAKER_DECK = 70120,
-    SPELL_ON_ORGRIMS_HAMMER_DECK = 70121,
+    SPELL_LOCK_PLAYERS_AND_TAP_CHEST        = 72347,
+    SPELL_ON_SKYBREAKER_DECK                = 70120,
+    SPELL_ON_ORGRIMS_HAMMER_DECK            = 70121,
 
     // Rocket Pack
-    SPELL_ROCKET_PACK_DAMAGE = 69193,
-    SPELL_ROCKET_BURST = 69192,
-    SPELL_ROCKET_PACK_USEABLE = 70348,
+    SPELL_ROCKET_PACK_DAMAGE                = 69193,
+    SPELL_ROCKET_BURST                      = 69192,
+    SPELL_ROCKET_PACK_USEABLE               = 70348,
 
     // Alliance Gunship Cannon
     // Horde Gunship Cannon
-    SPELL_OVERHEAT = 69487,
-    SPELL_EJECT_ALL_PASSENGERS_BELOW_ZERO = 68576,
-    SPELL_EJECT_ALL_PASSENGERS_WIPE = 50630
+    SPELL_OVERHEAT                          = 69487,
+    SPELL_EJECT_ALL_PASSENGERS_BELOW_ZERO   = 68576,
+    SPELL_EJECT_ALL_PASSENGERS_WIPE         = 50630
 };
 
 enum MiscData
 {
-    ITEM_GOBLIN_ROCKET_PACK = 49278,
-    SPELL_CREATE_ROCKET_PACK = 70055,
+    ITEM_GOBLIN_ROCKET_PACK    = 49278,
+    SPELL_CREATE_ROCKET_PACK   = 70055,
 
-    PHASE_COMBAT = 0,
-    PHASE_INTRO = 1,
+    PHASE_COMBAT               = 0,
+    PHASE_INTRO                = 1,
 
-    MUSIC_ENCOUNTER = 17289
+    MUSIC_ENCOUNTER            = 17289
 };
 
 enum EncounterActions
 {
-    ACTION_SPAWN_MAGE = 1,
-    ACTION_SPAWN_ALL_ADDS = 2,
-    ACTION_CLEAR_SLOT = 3,
-    ACTION_SET_SLOT = 4,
-    ACTION_SHIP_VISITS = 5
+    ACTION_SPAWN_MAGE       = 1,
+    ACTION_SPAWN_ALL_ADDS   = 2,
+    ACTION_CLEAR_SLOT       = 3,
+    ACTION_SET_SLOT         = 4,
+    ACTION_SHIP_VISITS      = 5
 };
 
 Position const SkybreakerAddsSpawnPos = { 15.91131f, 0.0f, 20.4628f, float(M_PI) };
 Position const OrgrimsHammerAddsSpawnPos = { 60.728395f, 0.0f, 38.93467f, float(M_PI) };
 
 // Horde encounter
-Position const SkybreakerTeleportPortal = { 6.666975f, 0.013001f, 20.87888f, 0.0f };
+Position const SkybreakerTeleportPortal  = { 6.666975f, 0.013001f, 20.87888f, 0.0f };
 Position const OrgrimsHammerTeleportExit = { 7.461699f, 0.158853f, 35.72989f, 0.0f };
 
 // Alliance encounter
 Position const OrgrimsHammerTeleportPortal = { 47.550990f, -0.101778f, 37.61111f, 0.0f };
-Position const SkybreakerTeleportExit = { -17.55738f, -0.090421f, 21.18366f, 0.0f };
+Position const SkybreakerTeleportExit      = { -17.55738f, -0.090421f, 21.18366f, 0.0f };
 
 uint32 const MuradinExitPathSize = 10;
 G3D::Vector3 const MuradinExitPath[MuradinExitPathSize] =
@@ -260,45 +261,45 @@ G3D::Vector3 const SaurfangExitPath[SaurfangExitPathSize] =
 enum PassengerSlots
 {
     // Freezing the cannons
-    SLOT_FREEZE_MAGE = 0,
+    SLOT_FREEZE_MAGE    = 0,
 
     // Channeling the portal, refilled with adds that board player's ship
-    SLOT_MAGE_1 = 1,
-    SLOT_MAGE_2 = 2,
+    SLOT_MAGE_1         = 1,
+    SLOT_MAGE_2         = 2,
 
     // Rifleman
-    SLOT_RIFLEMAN_1 = 3,
-    SLOT_RIFLEMAN_2 = 4,
-    SLOT_RIFLEMAN_3 = 5,
-    SLOT_RIFLEMAN_4 = 6,
+    SLOT_RIFLEMAN_1     = 3,
+    SLOT_RIFLEMAN_2     = 4,
+    SLOT_RIFLEMAN_3     = 5,
+    SLOT_RIFLEMAN_4     = 6,
 
     // Additional Rifleman on 25 man
-    SLOT_RIFLEMAN_5 = 7,
-    SLOT_RIFLEMAN_6 = 8,
-    SLOT_RIFLEMAN_7 = 9,
-    SLOT_RIFLEMAN_8 = 10,
+    SLOT_RIFLEMAN_5     = 7,
+    SLOT_RIFLEMAN_6     = 8,
+    SLOT_RIFLEMAN_7     = 9,
+    SLOT_RIFLEMAN_8     = 10,
 
     // Mortar
-    SLOT_MORTAR_1 = 11,
-    SLOT_MORTAR_2 = 12,
+    SLOT_MORTAR_1       = 11,
+    SLOT_MORTAR_2       = 12,
 
     // Additional spawns on 25 man
-    SLOT_MORTAR_3 = 13,
-    SLOT_MORTAR_4 = 14,
+    SLOT_MORTAR_3       = 13,
+    SLOT_MORTAR_4       = 14,
 
     // Marines
-    SLOT_MARINE_1 = 15,
-    SLOT_MARINE_2 = 16,
+    SLOT_MARINE_1       = 15,
+    SLOT_MARINE_2       = 16,
 
     // Additional spawns on 25 man
-    SLOT_MARINE_3 = 17,
-    SLOT_MARINE_4 = 18,
+    SLOT_MARINE_3       = 17,
+    SLOT_MARINE_4       = 18,
 
     // Sergeants
-    SLOT_SERGEANT_1 = 19,
+    SLOT_SERGEANT_1     = 19,
 
     // Additional spawns on 25 man
-    SLOT_SERGEANT_2 = 20,
+    SLOT_SERGEANT_2     = 20,
 
     MAX_SLOTS
 };
@@ -394,7 +395,7 @@ public:
         for (uint32 i = 0; i < MAX_SLOTS; ++i)
             _controlledSlots[i].Clear();
 
-        memset(_respawnCooldowns, 0, sizeof(time_t) * MAX_SLOTS);
+        memset(_respawnCooldowns, 0, sizeof(time_t)* MAX_SLOTS);
         _spawnPoint = team == HORDE ? &OrgrimsHammerAddsSpawnPos : &SkybreakerAddsSpawnPos;
         _slotInfo = team == HORDE ? OrgrimsHammerSlotInfo : SkybreakerSlotInfo;
     }
@@ -418,7 +419,7 @@ public:
                     continue;
             }
 
-            if (Creature* passenger = _transport->SummonPassenger(_slotInfo[i].Entry, SelectSpawnPoint(), TEMPSUMMON_CORPSE_TIMED_DESPAWN, nullptr, 15000))
+            if (Creature* passenger = _transport->SummonPassenger(_slotInfo[i].Entry, SelectSpawnPoint(), TEMPSUMMON_CORPSE_TIMED_DESPAWN, nullptr, 15s))
             {
                 _controlledSlots[i] = passenger->GetGUID();
                 _respawnCooldowns[i] = time_t(0);
@@ -632,7 +633,7 @@ protected:
     {
         if (Instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) != IN_PROGRESS)
         {
-            EnterEvadeMode(EVADE_REASON_OTHER);
+            EnterEvadeMode(EvadeReason::Other);
             return false;
         }
 
@@ -646,7 +647,7 @@ protected:
         }
         else if (me->GetThreatManager().IsThreatListEmpty())
         {
-            EnterEvadeMode(EVADE_REASON_OTHER);
+            EnterEvadeMode(EvadeReason::Other);
             return false;
         }
 
@@ -672,176 +673,176 @@ protected:
 
 class npc_gunship : public CreatureScript
 {
-public:
-    npc_gunship() : CreatureScript("npc_gunship") { }
+    public:
+        npc_gunship() : CreatureScript("npc_gunship") { }
 
-    struct npc_gunshipAI : public NullCreatureAI
-    {
-        npc_gunshipAI(Creature* creature) : NullCreatureAI(creature),
-            _teamInInstance(creature->GetInstanceScript()->GetData(DATA_TEAM_IN_INSTANCE)),
-            _summonedFirstMage(false), _died(false)
+        struct npc_gunshipAI : public NullCreatureAI
         {
-            me->SetRegenerateHealth(false);
-        }
-
-        void DamageTaken(Unit* /*source*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
-        {
-            if (damage >= me->GetHealth())
+            npc_gunshipAI(Creature* creature) : NullCreatureAI(creature),
+                _teamInInstance(creature->GetInstanceScript()->GetData(DATA_TEAM_IN_INSTANCE)),
+                _summonedFirstMage(false), _died(false)
             {
-                JustDied(nullptr);
-                damage = me->GetHealth() - 1;
-                return;
+                me->SetRegenerateHealth(false);
             }
 
-            if (_summonedFirstMage)
-                return;
-
-            if (me->GetTransport()->GetTransportGUID() != me->GetInstanceScript()->GetGuidData(DATA_ENEMY_GUNSHIP))
-                return;
-
-            if (!me->HealthBelowPctDamaged(90, damage))
-                return;
-
-            _summonedFirstMage = true;
-            if (Creature* captain = me->FindNearestCreature(_teamInInstance == HORDE ? NPC_IGB_MURADIN_BRONZEBEARD : NPC_IGB_HIGH_OVERLORD_SAURFANG, 100.0f))
-                captain->AI()->DoAction(ACTION_SPAWN_MAGE);
-        }
-
-        void JustDied(Unit* /*killer*/) override
-        {
-            if (_died)
-                return;
-
-            _died = true;
-
-            InstanceScript* instance = me->GetInstanceScript();
-            bool isVictory = me->GetTransport()->GetTransportGUID() == instance->GetGuidData(DATA_ENEMY_GUNSHIP);
-            instance->SetBossState(DATA_ICECROWN_GUNSHIP_BATTLE, isVictory ? DONE : FAIL);
-            if (Creature* creature = me->FindNearestCreature(me->GetEntry() == NPC_ORGRIMS_HAMMER ? NPC_THE_SKYBREAKER : NPC_ORGRIMS_HAMMER, 200.0f))
+            void DamageTaken(Unit* /*source*/, uint32& damage, DamageEffectType /*damageType*/, SpellInfo const* /*spellInfo = nullptr*/) override
             {
-                instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, creature);
-                creature->RemoveAurasDueToSpell(SPELL_CHECK_FOR_PLAYERS);
-            }
-
-            instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
-            me->RemoveAurasDueToSpell(SPELL_CHECK_FOR_PLAYERS);
-
-            me->GetMap()->SetZoneMusic(AREA_ICECROWN_CITADEL, 0);
-            std::list<Creature*> creatures;
-            GetCreatureListWithEntryInGrid(creatures, me, NPC_MARTYR_STALKER_IGB_SAURFANG, SIZE_OF_GRIDS);
-            for (std::list<Creature*>::iterator itr = creatures.begin(); itr != creatures.end(); ++itr)
-            {
-                Creature* stalker = *itr;
-                stalker->RemoveAllAuras();
-                stalker->CombatStop(true);
-            }
-
-            uint32 explosionSpell = isVictory ? SPELL_EXPLOSION_VICTORY : SPELL_EXPLOSION_WIPE;
-            creatures.clear();
-            GetCreatureListWithEntryInGrid(creatures, me, NPC_GUNSHIP_HULL, 200.0f);
-            for (std::list<Creature*>::iterator itr = creatures.begin(); itr != creatures.end(); ++itr)
-            {
-                Creature* hull = *itr;
-                if (hull->GetTransport() != me->GetTransport())
-                    continue;
-
-                hull->CastSpell(hull, explosionSpell, TRIGGERED_FULL_MASK);
-            }
-
-            creatures.clear();
-            GetCreatureListWithEntryInGrid(creatures, me, _teamInInstance == HORDE ? NPC_HORDE_GUNSHIP_CANNON : NPC_ALLIANCE_GUNSHIP_CANNON, 200.0f);
-            for (std::list<Creature*>::iterator itr = creatures.begin(); itr != creatures.end(); ++itr)
-            {
-                Creature* cannon = *itr;
-                if (isVictory)
+                if (damage >= me->GetHealth())
                 {
-                    cannon->CastSpell(cannon, SPELL_EJECT_ALL_PASSENGERS_BELOW_ZERO, TRIGGERED_FULL_MASK);
-                    cannon->RemoveVehicleKit();
+                    JustDied(nullptr);
+                    damage = me->GetHealth() - 1;
+                    return;
                 }
-                else
-                    cannon->CastSpell(cannon, SPELL_EJECT_ALL_PASSENGERS_WIPE, TRIGGERED_FULL_MASK);
+
+                if (_summonedFirstMage)
+                    return;
+
+                if (me->GetTransport()->GetTransportGUID() != me->GetInstanceScript()->GetGuidData(DATA_ENEMY_GUNSHIP))
+                    return;
+
+                if (!me->HealthBelowPctDamaged(90, damage))
+                    return;
+
+                _summonedFirstMage = true;
+                if (Creature* captain = me->FindNearestCreature(_teamInInstance == HORDE ? NPC_IGB_MURADIN_BRONZEBEARD : NPC_IGB_HIGH_OVERLORD_SAURFANG, 100.0f))
+                    captain->AI()->DoAction(ACTION_SPAWN_MAGE);
             }
 
-            uint32 creatureEntry = NPC_IGB_MURADIN_BRONZEBEARD;
-            uint8 textId = isVictory ? SAY_MURADIN_VICTORY : SAY_MURADIN_WIPE;
-            if (_teamInInstance == HORDE)
+            void JustDied(Unit* /*killer*/) override
             {
-                creatureEntry = NPC_IGB_HIGH_OVERLORD_SAURFANG;
-                textId = isVictory ? SAY_SAURFANG_VICTORY : SAY_SAURFANG_WIPE;
-            }
+                if (_died)
+                    return;
 
-            if (Creature* creature = me->FindNearestCreature(creatureEntry, 100.0f))
-                creature->AI()->Talk(textId);
+                _died = true;
 
-            if (isVictory)
-            {
-                if (Transport* otherTransport = ObjectAccessor::GetTransport(*me, instance->GetGuidData(DATA_ICECROWN_GUNSHIP_BATTLE)))
-                    otherTransport->EnableMovement(true);
-
-                if (Transport* transport = dynamic_cast<Transport*>(me->GetTransport()))
-                    transport->EnableMovement(true);
-
-                if (Creature* ship = me->FindNearestCreature(_teamInInstance == HORDE ? NPC_ORGRIMS_HAMMER : NPC_THE_SKYBREAKER, 200.0f))
+                InstanceScript* instance = me->GetInstanceScript();
+                bool isVictory = me->GetTransport()->GetTransportGUID() == instance->GetGuidData(DATA_ENEMY_GUNSHIP);
+                instance->SetBossState(DATA_ICECROWN_GUNSHIP_BATTLE, isVictory ? DONE : FAIL);
+                if (Creature* creature = me->FindNearestCreature(me->GetEntry() == NPC_ORGRIMS_HAMMER ? NPC_THE_SKYBREAKER : NPC_ORGRIMS_HAMMER, 200.0f))
                 {
-                    ship->CastSpell(ship, SPELL_TELEPORT_PLAYERS_ON_VICTORY, TRIGGERED_FULL_MASK);
-                    ship->CastSpell(ship, SPELL_ACHIEVEMENT, TRIGGERED_FULL_MASK);
-                    ship->CastSpell(ship, SPELL_AWARD_REPUTATION_BOSS_KILL, TRIGGERED_FULL_MASK);
+                    instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, creature);
+                    creature->RemoveAurasDueToSpell(SPELL_CHECK_FOR_PLAYERS);
+                }
+
+                instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+                me->RemoveAurasDueToSpell(SPELL_CHECK_FOR_PLAYERS);
+
+                me->GetMap()->SetZoneMusic(AREA_ICECROWN_CITADEL, 0);
+                std::list<Creature*> creatures;
+                GetCreatureListWithEntryInGrid(creatures, me, NPC_MARTYR_STALKER_IGB_SAURFANG, SIZE_OF_GRIDS);
+                for (std::list<Creature*>::iterator itr = creatures.begin(); itr != creatures.end(); ++itr)
+                {
+                    Creature* stalker = *itr;
+                    stalker->RemoveAllAuras();
+                    stalker->CombatStop(true);
+                }
+
+                uint32 explosionSpell = isVictory ? SPELL_EXPLOSION_VICTORY : SPELL_EXPLOSION_WIPE;
+                creatures.clear();
+                GetCreatureListWithEntryInGrid(creatures, me, NPC_GUNSHIP_HULL, 200.0f);
+                for (std::list<Creature*>::iterator itr = creatures.begin(); itr != creatures.end(); ++itr)
+                {
+                    Creature* hull = *itr;
+                    if (hull->GetTransport() != me->GetTransport())
+                        continue;
+
+                    hull->CastSpell(hull, explosionSpell, TRIGGERED_FULL_MASK);
                 }
 
                 creatures.clear();
-                GetCreatureListWithEntryInGrid(creatures, me, NPC_SKYBREAKER_MARINE, 200.0f);
-                GetCreatureListWithEntryInGrid(creatures, me, NPC_SKYBREAKER_SERGEANT, 200.0f);
-                GetCreatureListWithEntryInGrid(creatures, me, NPC_KOR_KRON_REAVER, 200.0f);
-                GetCreatureListWithEntryInGrid(creatures, me, NPC_KOR_KRON_SERGEANT, 200.0f);
+                GetCreatureListWithEntryInGrid(creatures, me, _teamInInstance == HORDE ? NPC_HORDE_GUNSHIP_CANNON : NPC_ALLIANCE_GUNSHIP_CANNON, 200.0f);
                 for (std::list<Creature*>::iterator itr = creatures.begin(); itr != creatures.end(); ++itr)
-                    (*itr)->DespawnOrUnsummon(1ms);
+                {
+                    Creature* cannon = *itr;
+                    if (isVictory)
+                    {
+                        cannon->CastSpell(cannon, SPELL_EJECT_ALL_PASSENGERS_BELOW_ZERO, TRIGGERED_FULL_MASK);
+                        cannon->RemoveVehicleKit();
+                    }
+                    else
+                        cannon->CastSpell(cannon, SPELL_EJECT_ALL_PASSENGERS_WIPE, TRIGGERED_FULL_MASK);
+                }
+
+                uint32 creatureEntry = NPC_IGB_MURADIN_BRONZEBEARD;
+                uint8 textId = isVictory ? SAY_MURADIN_VICTORY : SAY_MURADIN_WIPE;
+                if (_teamInInstance == HORDE)
+                {
+                    creatureEntry = NPC_IGB_HIGH_OVERLORD_SAURFANG;
+                    textId = isVictory ? SAY_SAURFANG_VICTORY : SAY_SAURFANG_WIPE;
+                }
+
+                if (Creature* creature = me->FindNearestCreature(creatureEntry, 100.0f))
+                    creature->AI()->Talk(textId);
+
+                if (isVictory)
+                {
+                    if (Transport* otherTransport = ObjectAccessor::GetTransport(*me, instance->GetGuidData(DATA_ICECROWN_GUNSHIP_BATTLE)))
+                        otherTransport->EnableMovement(true);
+
+                    if (Transport* transport = dynamic_cast<Transport*>(me->GetTransport()))
+                        transport->EnableMovement(true);
+
+                    if (Creature* ship = me->FindNearestCreature(_teamInInstance == HORDE ? NPC_ORGRIMS_HAMMER : NPC_THE_SKYBREAKER, 200.0f))
+                    {
+                        ship->CastSpell(ship, SPELL_TELEPORT_PLAYERS_ON_VICTORY, TRIGGERED_FULL_MASK);
+                        ship->CastSpell(ship, SPELL_ACHIEVEMENT, TRIGGERED_FULL_MASK);
+                        ship->CastSpell(ship, SPELL_AWARD_REPUTATION_BOSS_KILL, TRIGGERED_FULL_MASK);
+                    }
+
+                    creatures.clear();
+                    GetCreatureListWithEntryInGrid(creatures, me, NPC_SKYBREAKER_MARINE, 200.0f);
+                    GetCreatureListWithEntryInGrid(creatures, me, NPC_SKYBREAKER_SERGEANT, 200.0f);
+                    GetCreatureListWithEntryInGrid(creatures, me, NPC_KOR_KRON_REAVER, 200.0f);
+                    GetCreatureListWithEntryInGrid(creatures, me, NPC_KOR_KRON_SERGEANT, 200.0f);
+                    for (std::list<Creature*>::iterator itr = creatures.begin(); itr != creatures.end(); ++itr)
+                        (*itr)->DespawnOrUnsummon(1ms);
+                }
+                else
+                {
+                    uint32 teleportSpellId = _teamInInstance == HORDE ? SPELL_TELEPORT_PLAYERS_ON_RESET_H : SPELL_TELEPORT_PLAYERS_ON_RESET_A;
+                    me->m_Events.AddEventAtOffset(new ResetEncounterEvent(me, teleportSpellId, instance->GetGuidData(DATA_ICECROWN_GUNSHIP_BATTLE),
+                        instance->GetGuidData(DATA_ENEMY_GUNSHIP)), 8s);
+                }
             }
-            else
+
+            void SetGUID(ObjectGuid const& guid, int32 id) override
             {
-                uint32 teleportSpellId = _teamInInstance == HORDE ? SPELL_TELEPORT_PLAYERS_ON_RESET_H : SPELL_TELEPORT_PLAYERS_ON_RESET_A;
-                me->m_Events.AddEventAtOffset(new ResetEncounterEvent(me, teleportSpellId, instance->GetGuidData(DATA_ICECROWN_GUNSHIP_BATTLE),
-                    instance->GetGuidData(DATA_ENEMY_GUNSHIP)), 8s);
+                if (id != ACTION_SHIP_VISITS)
+                    return;
+
+                std::map<ObjectGuid, uint32>::iterator itr = _shipVisits.find(guid);
+                if (itr == _shipVisits.end())
+                    _shipVisits[guid] = 1;
+                else
+                    ++itr->second;
             }
-        }
 
-        void SetGUID(ObjectGuid const& guid, int32 id) override
+            uint32 GetData(uint32 id) const override
+            {
+                if (id != ACTION_SHIP_VISITS)
+                    return 0;
+
+                uint32 max = 0;
+                for (std::map<ObjectGuid, uint32>::const_iterator itr = _shipVisits.begin(); itr != _shipVisits.end(); ++itr)
+                    max = std::max(max, itr->second);
+
+                return max;
+            }
+
+        private:
+            uint32 _teamInInstance;
+            std::map<ObjectGuid, uint32> _shipVisits;
+            bool _summonedFirstMage;
+            bool _died;
+        };
+
+        CreatureAI* GetAI(Creature* creature) const override
         {
-            if (id != ACTION_SHIP_VISITS)
-                return;
+            if (!creature->GetTransport())
+                return nullptr;
 
-            std::map<ObjectGuid, uint32>::iterator itr = _shipVisits.find(guid);
-            if (itr == _shipVisits.end())
-                _shipVisits[guid] = 1;
-            else
-                ++itr->second;
+            return GetIcecrownCitadelAI<npc_gunshipAI>(creature);
         }
-
-        uint32 GetData(uint32 id) const override
-        {
-            if (id != ACTION_SHIP_VISITS)
-                return 0;
-
-            uint32 max = 0;
-            for (std::map<ObjectGuid, uint32>::const_iterator itr = _shipVisits.begin(); itr != _shipVisits.end(); ++itr)
-                max = std::max(max, itr->second);
-
-            return max;
-        }
-
-    private:
-        uint32 _teamInInstance;
-        std::map<ObjectGuid, uint32> _shipVisits;
-        bool _summonedFirstMage;
-        bool _died;
-    };
-
-    CreatureAI* GetAI(Creature* creature) const override
-    {
-        if (!creature->GetTransport())
-            return nullptr;
-
-        return GetIcecrownCitadelAI<npc_gunshipAI>(creature);
-    }
 };
 
 struct npc_high_overlord_saurfang_igb : public ScriptedAI
@@ -993,94 +994,95 @@ struct npc_high_overlord_saurfang_igb : public ScriptedAI
         {
             switch (eventId)
             {
-            case EVENT_INTRO_H_1:
-                Talk(SAY_SAURFANG_INTRO_1);
-                break;
-            case EVENT_INTRO_H_2:
-                Talk(SAY_SAURFANG_INTRO_2);
-                break;
-            case EVENT_INTRO_SUMMON_SKYBREAKER:
-                sTransportMgr->CreateTransport(GO_THE_SKYBREAKER_H, me->GetMap());
-                break;
-            case EVENT_INTRO_H_3:
-                Talk(SAY_SAURFANG_INTRO_3);
-                break;
-            case EVENT_INTRO_H_4:
-                Talk(SAY_SAURFANG_INTRO_4);
-                break;
-            case EVENT_INTRO_H_5:
-                if (Creature* muradin = me->FindNearestCreature(NPC_IGB_MURADIN_BRONZEBEARD, 100.0f))
-                    muradin->AI()->Talk(SAY_MURADIN_INTRO_H);
-                break;
-            case EVENT_INTRO_H_6:
-                Talk(SAY_SAURFANG_INTRO_6);
-                break;
-            case EVENT_KEEP_PLAYER_IN_COMBAT:
-                if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
-                {
-                    _instance->DoCastSpellOnPlayers(SPELL_LOCK_PLAYERS_AND_TAP_CHEST);
-                    _events.ScheduleEvent(EVENT_KEEP_PLAYER_IN_COMBAT, 5s, 8s);
-                }
-                break;
-            case EVENT_SUMMON_MAGE:
-                Talk(SAY_SAURFANG_MAGES);
-                _controller.SummonCreatures(SLOT_FREEZE_MAGE, SLOT_FREEZE_MAGE);
-                break;
-            case EVENT_ADDS:
-                Talk(SAY_SAURFANG_ENTER_SKYBREAKER);
-                _controller.SummonCreatures(SLOT_MAGE_1, SLOT_MAGE_2);
-                _controller.SummonCreatures(SLOT_MARINE_1, Is25ManRaid() ? SLOT_MARINE_4 : SLOT_MARINE_2);
-                _controller.SummonCreatures(SLOT_SERGEANT_1, Is25ManRaid() ? SLOT_SERGEANT_2 : SLOT_SERGEANT_1);
-                if (Transport* orgrimsHammer = dynamic_cast<Transport*>(me->GetTransport()))
-                    orgrimsHammer->SummonPassenger(NPC_TELEPORT_PORTAL, OrgrimsHammerTeleportPortal, TEMPSUMMON_TIMED_DESPAWN, nullptr, 21000);
-
-                if (Transport* skybreaker = ObjectAccessor::GetTransport(*me, _instance->GetGuidData(DATA_ICECROWN_GUNSHIP_BATTLE)))
-                    skybreaker->SummonPassenger(NPC_TELEPORT_EXIT, SkybreakerTeleportExit, TEMPSUMMON_TIMED_DESPAWN, nullptr, 23000);
-
-                _events.ScheduleEvent(EVENT_ADDS_BOARD_YELL, 6s);
-                _events.ScheduleEvent(EVENT_ADDS, 1min);
-                break;
-            case EVENT_ADDS_BOARD_YELL:
-                if (Creature* muradin = me->FindNearestCreature(NPC_IGB_MURADIN_BRONZEBEARD, 200.0f))
-                    muradin->AI()->Talk(SAY_MURADIN_BOARD);
-                break;
-            case EVENT_CHECK_RIFLEMAN:
-                if (_controller.SummonCreatures(SLOT_RIFLEMAN_1, Is25ManRaid() ? SLOT_RIFLEMAN_8 : SLOT_RIFLEMAN_4))
-                {
-                    if (_axethrowersYellCooldown < GameTime::GetGameTime())
+                case EVENT_INTRO_H_1:
+                    Talk(SAY_SAURFANG_INTRO_1);
+                    break;
+                case EVENT_INTRO_H_2:
+                    Talk(SAY_SAURFANG_INTRO_2);
+                    break;
+                case EVENT_INTRO_SUMMON_SKYBREAKER:
+                    sTransportMgr->CreateTransport(GO_THE_SKYBREAKER_H, me->GetMap());
+                    break;
+                case EVENT_INTRO_H_3:
+                    Talk(SAY_SAURFANG_INTRO_3);
+                    break;
+                case EVENT_INTRO_H_4:
+                    Talk(SAY_SAURFANG_INTRO_4);
+                    break;
+                case EVENT_INTRO_H_5:
+                    if (Creature* muradin = me->FindNearestCreature(NPC_IGB_MURADIN_BRONZEBEARD, 100.0f))
+                        muradin->AI()->Talk(SAY_MURADIN_INTRO_H);
+                    break;
+                case EVENT_INTRO_H_6:
+                    Talk(SAY_SAURFANG_INTRO_6);
+                    break;
+                case EVENT_KEEP_PLAYER_IN_COMBAT:
+                    if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
                     {
-                        Talk(SAY_SAURFANG_AXETHROWERS);
-                        _axethrowersYellCooldown = GameTime::GetGameTime() + 5;
+                        _instance->DoCastSpellOnPlayers(SPELL_LOCK_PLAYERS_AND_TAP_CHEST);
+                        _events.ScheduleEvent(EVENT_KEEP_PLAYER_IN_COMBAT, 5s, 8s);
                     }
-                }
-                _events.ScheduleEvent(EVENT_CHECK_RIFLEMAN, 1s);
-                break;
-            case EVENT_CHECK_MORTAR:
-                if (_controller.SummonCreatures(SLOT_MORTAR_1, Is25ManRaid() ? SLOT_MORTAR_4 : SLOT_MORTAR_2))
-                {
-                    if (_rocketeersYellCooldown < GameTime::GetGameTime())
+                    break;
+                case EVENT_SUMMON_MAGE:
+                    Talk(SAY_SAURFANG_MAGES);
+                    _controller.SummonCreatures(SLOT_FREEZE_MAGE, SLOT_FREEZE_MAGE);
+                    break;
+                case EVENT_ADDS:
+                    Talk(SAY_SAURFANG_ENTER_SKYBREAKER);
+                    _controller.SummonCreatures(SLOT_MAGE_1, SLOT_MAGE_2);
+                    _controller.SummonCreatures(SLOT_MARINE_1, Is25ManRaid() ? SLOT_MARINE_4 : SLOT_MARINE_2);
+                    _controller.SummonCreatures(SLOT_SERGEANT_1, Is25ManRaid() ? SLOT_SERGEANT_2 : SLOT_SERGEANT_1);
+                    if (Transport* orgrimsHammer = dynamic_cast<Transport*>(me->GetTransport()))
+                        orgrimsHammer->SummonPassenger(NPC_TELEPORT_PORTAL, OrgrimsHammerTeleportPortal, TEMPSUMMON_TIMED_DESPAWN, nullptr, 21s);
+
+                    if (Transport* skybreaker = ObjectAccessor::GetTransport(*me, _instance->GetGuidData(DATA_ICECROWN_GUNSHIP_BATTLE)))
+                        skybreaker->SummonPassenger(NPC_TELEPORT_EXIT, SkybreakerTeleportExit, TEMPSUMMON_TIMED_DESPAWN, nullptr, 23s);
+
+                    _events.ScheduleEvent(EVENT_ADDS_BOARD_YELL, 6s);
+                    _events.ScheduleEvent(EVENT_ADDS, 1min);
+                    break;
+                case EVENT_ADDS_BOARD_YELL:
+                    if (Creature* muradin = me->FindNearestCreature(NPC_IGB_MURADIN_BRONZEBEARD, 200.0f))
+                        muradin->AI()->Talk(SAY_MURADIN_BOARD);
+                    break;
+                case EVENT_CHECK_RIFLEMAN:
+                    if (_controller.SummonCreatures(SLOT_RIFLEMAN_1, Is25ManRaid() ? SLOT_RIFLEMAN_8 : SLOT_RIFLEMAN_4))
                     {
-                        Talk(SAY_SAURFANG_ROCKETEERS);
-                        _rocketeersYellCooldown = GameTime::GetGameTime() + 5;
+                        if (_axethrowersYellCooldown < GameTime::GetGameTime())
+                        {
+                            Talk(SAY_SAURFANG_AXETHROWERS);
+                            _axethrowersYellCooldown = GameTime::GetGameTime() + 5;
+                        }
                     }
-                }
-                _events.ScheduleEvent(EVENT_CHECK_MORTAR, 1s);
-                break;
-            case EVENT_CLEAVE:
-                DoCastVictim(SPELL_CLEAVE);
-                _events.ScheduleEvent(EVENT_CLEAVE, 2s, 10s);
-                break;
-            default:
-                break;
+                    _events.ScheduleEvent(EVENT_CHECK_RIFLEMAN, 1s);
+                    break;
+                case EVENT_CHECK_MORTAR:
+                    if (_controller.SummonCreatures(SLOT_MORTAR_1, Is25ManRaid() ? SLOT_MORTAR_4 : SLOT_MORTAR_2))
+                    {
+                        if (_rocketeersYellCooldown < GameTime::GetGameTime())
+                        {
+                            Talk(SAY_SAURFANG_ROCKETEERS);
+                            _rocketeersYellCooldown = GameTime::GetGameTime() + 5;
+                        }
+                    }
+                    _events.ScheduleEvent(EVENT_CHECK_MORTAR, 1s);
+                    break;
+                case EVENT_CLEAVE:
+                    DoCastVictim(SPELL_CLEAVE);
+                    _events.ScheduleEvent(EVENT_CLEAVE, 2s, 10s);
+                    break;
+                default:
+                    break;
             }
         }
 
-        if (me->IsWithinMeleeRange(me->GetVictim()))
-            DoMeleeAttackIfReady();
-        else if (me->isAttackReady())
+        if (!me->IsWithinMeleeRange(me->GetVictim()))
         {
-            DoCastVictim(SPELL_RENDING_THROW);
-            me->resetAttackTimer();
+            if (me->isAttackReady())
+            {
+                DoCastVictim(SPELL_RENDING_THROW);
+                me->resetAttackTimer();
+            }
         }
     }
 
@@ -1250,97 +1252,98 @@ struct npc_muradin_bronzebeard_igb : public ScriptedAI
         {
             switch (eventId)
             {
-            case EVENT_INTRO_A_1:
-                Talk(SAY_MURADIN_INTRO_1);
-                break;
-            case EVENT_INTRO_A_2:
-                Talk(SAY_MURADIN_INTRO_2);
-                break;
-            case EVENT_INTRO_SUMMON_ORGRIMS_HAMMER:
-                sTransportMgr->CreateTransport(GO_ORGRIMS_HAMMER_A, me->GetMap());
-                break;
-            case EVENT_INTRO_A_3:
-                Talk(SAY_MURADIN_INTRO_3);
-                break;
-            case EVENT_INTRO_A_4:
-                Talk(SAY_MURADIN_INTRO_4);
-                break;
-            case EVENT_INTRO_A_5:
-                Talk(SAY_MURADIN_INTRO_5);
-                break;
-            case EVENT_INTRO_A_6:
-                if (Creature* saurfang = me->FindNearestCreature(NPC_IGB_HIGH_OVERLORD_SAURFANG, 100.0f))
-                    saurfang->AI()->Talk(SAY_SAURFANG_INTRO_A);
-                break;
-            case EVENT_INTRO_A_7:
-                Talk(SAY_MURADIN_INTRO_7);
-                break;
-            case EVENT_KEEP_PLAYER_IN_COMBAT:
-                if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
-                {
-                    _instance->DoCastSpellOnPlayers(SPELL_LOCK_PLAYERS_AND_TAP_CHEST);
-                    _events.ScheduleEvent(EVENT_KEEP_PLAYER_IN_COMBAT, 5s, 8s);
-                }
-                break;
-            case EVENT_SUMMON_MAGE:
-                Talk(SAY_MURADIN_SORCERERS);
-                _controller.SummonCreatures(SLOT_FREEZE_MAGE, SLOT_FREEZE_MAGE);
-                break;
-            case EVENT_ADDS:
-                Talk(SAY_MURADIN_ENTER_ORGRIMMS_HAMMER);
-                _controller.SummonCreatures(SLOT_MAGE_1, SLOT_MAGE_2);
-                _controller.SummonCreatures(SLOT_MARINE_1, Is25ManRaid() ? SLOT_MARINE_4 : SLOT_MARINE_2);
-                _controller.SummonCreatures(SLOT_SERGEANT_1, Is25ManRaid() ? SLOT_SERGEANT_2 : SLOT_SERGEANT_1);
-                if (Transport* skybreaker = dynamic_cast<Transport*>(me->GetTransport()))
-                    skybreaker->SummonPassenger(NPC_TELEPORT_PORTAL, SkybreakerTeleportPortal, TEMPSUMMON_TIMED_DESPAWN, nullptr, 21000);
-
-                if (Transport* orgrimsHammer = ObjectAccessor::GetTransport(*me, _instance->GetGuidData(DATA_ICECROWN_GUNSHIP_BATTLE)))
-                    orgrimsHammer->SummonPassenger(NPC_TELEPORT_EXIT, OrgrimsHammerTeleportExit, TEMPSUMMON_TIMED_DESPAWN, nullptr, 23000);
-
-                _events.ScheduleEvent(EVENT_ADDS_BOARD_YELL, 6s);
-                _events.ScheduleEvent(EVENT_ADDS, 1min);
-                break;
-            case EVENT_ADDS_BOARD_YELL:
-                if (Creature* saurfang = me->FindNearestCreature(NPC_IGB_HIGH_OVERLORD_SAURFANG, 200.0f))
-                    saurfang->AI()->Talk(SAY_SAURFANG_BOARD);
-                break;
-            case EVENT_CHECK_RIFLEMAN:
-                if (_controller.SummonCreatures(SLOT_RIFLEMAN_1, Is25ManRaid() ? SLOT_RIFLEMAN_8 : SLOT_RIFLEMAN_4))
-                {
-                    if (_riflemanYellCooldown < GameTime::GetGameTime())
+                case EVENT_INTRO_A_1:
+                    Talk(SAY_MURADIN_INTRO_1);
+                    break;
+                case EVENT_INTRO_A_2:
+                    Talk(SAY_MURADIN_INTRO_2);
+                    break;
+                case EVENT_INTRO_SUMMON_ORGRIMS_HAMMER:
+                    sTransportMgr->CreateTransport(GO_ORGRIMS_HAMMER_A, me->GetMap());
+                    break;
+                case EVENT_INTRO_A_3:
+                    Talk(SAY_MURADIN_INTRO_3);
+                    break;
+                case EVENT_INTRO_A_4:
+                    Talk(SAY_MURADIN_INTRO_4);
+                    break;
+                case EVENT_INTRO_A_5:
+                    Talk(SAY_MURADIN_INTRO_5);
+                    break;
+                case EVENT_INTRO_A_6:
+                    if (Creature* saurfang = me->FindNearestCreature(NPC_IGB_HIGH_OVERLORD_SAURFANG, 100.0f))
+                        saurfang->AI()->Talk(SAY_SAURFANG_INTRO_A);
+                    break;
+                case EVENT_INTRO_A_7:
+                    Talk(SAY_MURADIN_INTRO_7);
+                    break;
+                case EVENT_KEEP_PLAYER_IN_COMBAT:
+                    if (_instance->GetBossState(DATA_ICECROWN_GUNSHIP_BATTLE) == IN_PROGRESS)
                     {
-                        Talk(SAY_MURADIN_RIFLEMAN);
-                        _riflemanYellCooldown = GameTime::GetGameTime() + 5;
+                        _instance->DoCastSpellOnPlayers(SPELL_LOCK_PLAYERS_AND_TAP_CHEST);
+                        _events.ScheduleEvent(EVENT_KEEP_PLAYER_IN_COMBAT, 5s, 8s);
                     }
-                }
-                _events.ScheduleEvent(EVENT_CHECK_RIFLEMAN, 1s);
-                break;
-            case EVENT_CHECK_MORTAR:
-                if (_controller.SummonCreatures(SLOT_MORTAR_1, Is25ManRaid() ? SLOT_MORTAR_4 : SLOT_MORTAR_2))
-                {
-                    if (_mortarYellCooldown < GameTime::GetGameTime())
+                    break;
+                case EVENT_SUMMON_MAGE:
+                    Talk(SAY_MURADIN_SORCERERS);
+                    _controller.SummonCreatures(SLOT_FREEZE_MAGE, SLOT_FREEZE_MAGE);
+                    break;
+                case EVENT_ADDS:
+                    Talk(SAY_MURADIN_ENTER_ORGRIMMS_HAMMER);
+                    _controller.SummonCreatures(SLOT_MAGE_1, SLOT_MAGE_2);
+                    _controller.SummonCreatures(SLOT_MARINE_1, Is25ManRaid() ? SLOT_MARINE_4 : SLOT_MARINE_2);
+                    _controller.SummonCreatures(SLOT_SERGEANT_1, Is25ManRaid() ? SLOT_SERGEANT_2 : SLOT_SERGEANT_1);
+                    if (Transport* skybreaker = dynamic_cast<Transport*>(me->GetTransport()))
+                        skybreaker->SummonPassenger(NPC_TELEPORT_PORTAL, SkybreakerTeleportPortal, TEMPSUMMON_TIMED_DESPAWN, nullptr, 21s);
+
+                    if (Transport* orgrimsHammer = ObjectAccessor::GetTransport(*me, _instance->GetGuidData(DATA_ICECROWN_GUNSHIP_BATTLE)))
+                        orgrimsHammer->SummonPassenger(NPC_TELEPORT_EXIT, OrgrimsHammerTeleportExit, TEMPSUMMON_TIMED_DESPAWN, nullptr, 23s);
+
+                    _events.ScheduleEvent(EVENT_ADDS_BOARD_YELL, 6s);
+                    _events.ScheduleEvent(EVENT_ADDS, 1min);
+                    break;
+                case EVENT_ADDS_BOARD_YELL:
+                    if (Creature* saurfang = me->FindNearestCreature(NPC_IGB_HIGH_OVERLORD_SAURFANG, 200.0f))
+                        saurfang->AI()->Talk(SAY_SAURFANG_BOARD);
+                    break;
+                case EVENT_CHECK_RIFLEMAN:
+                    if (_controller.SummonCreatures(SLOT_RIFLEMAN_1, Is25ManRaid() ? SLOT_RIFLEMAN_8 : SLOT_RIFLEMAN_4))
                     {
-                        Talk(SAY_MURADIN_MORTAR);
-                        _mortarYellCooldown = GameTime::GetGameTime() + 5;
+                        if (_riflemanYellCooldown < GameTime::GetGameTime())
+                        {
+                            Talk(SAY_MURADIN_RIFLEMAN);
+                            _riflemanYellCooldown = GameTime::GetGameTime() + 5;
+                        }
                     }
-                }
-                _events.ScheduleEvent(EVENT_CHECK_MORTAR, 1s);
-                break;
-            case EVENT_CLEAVE:
-                DoCastVictim(SPELL_CLEAVE);
-                _events.ScheduleEvent(EVENT_CLEAVE, 2s, 10s);
-                break;
-            default:
-                break;
+                    _events.ScheduleEvent(EVENT_CHECK_RIFLEMAN, 1s);
+                    break;
+                case EVENT_CHECK_MORTAR:
+                    if (_controller.SummonCreatures(SLOT_MORTAR_1, Is25ManRaid() ? SLOT_MORTAR_4 : SLOT_MORTAR_2))
+                    {
+                        if (_mortarYellCooldown < GameTime::GetGameTime())
+                        {
+                            Talk(SAY_MURADIN_MORTAR);
+                            _mortarYellCooldown = GameTime::GetGameTime() + 5;
+                        }
+                    }
+                    _events.ScheduleEvent(EVENT_CHECK_MORTAR, 1s);
+                    break;
+                case EVENT_CLEAVE:
+                    DoCastVictim(SPELL_CLEAVE);
+                    _events.ScheduleEvent(EVENT_CLEAVE, 2s, 10s);
+                    break;
+                default:
+                    break;
             }
         }
 
-        if (me->IsWithinMeleeRange(me->GetVictim()))
-            DoMeleeAttackIfReady();
-        else if (me->isAttackReady())
+        if (!me->IsWithinMeleeRange(me->GetVictim()))
         {
-            DoCastVictim(SPELL_RENDING_THROW);
-            me->resetAttackTimer();
+            if (me->isAttackReady())
+            {
+                DoCastVictim(SPELL_RENDING_THROW);
+                me->resetAttackTimer();
+            }
         }
     }
 
@@ -1444,9 +1447,9 @@ struct npc_gunship_boarding_addAI : public gunship_npc_AI
             Cell::VisitWorldObjects(me, searcher, 200.0f);
 
             players.remove_if([this](Player* player)
-                {
-                    return !me->_IsTargetAcceptable(player) || !me->CanStartAttack(player, true);
-                });
+            {
+                return !me->_IsTargetAcceptable(player) || !me->CanStartAttack(player, true);
+            });
 
             if (!players.empty())
             {
@@ -1483,8 +1486,6 @@ struct npc_gunship_boarding_addAI : public gunship_npc_AI
 
         if (!HasAttackablePlayerNearby())
             TriggerBurningPitch();
-
-        DoMeleeAttackIfReady();
     }
 
     bool CanAIAttack(Unit const* target) const override
@@ -1505,12 +1506,12 @@ struct npc_gunship_boarding_addAI : public gunship_npc_AI
         std::list<Player*> players;
         Trinity::UnitAuraCheck check(true, Instance->GetData(DATA_TEAM_IN_INSTANCE) == HORDE ? SPELL_ON_ORGRIMS_HAMMER_DECK : SPELL_ON_SKYBREAKER_DECK);
         Trinity::PlayerListSearcher<Trinity::UnitAuraCheck> searcher(me, players, check);
-        Cell::VisitWorldObjects(me, searcher, 200.0f);
+        Cell::VisitWorldObjects(me, searcher,200.0f );
 
         players.remove_if([this](Player* player)
-            {
-                return !me->_IsTargetAcceptable(player) || !me->CanStartAttack(player, true);
-            });
+        {
+            return !me->_IsTargetAcceptable(player) || !me->CanStartAttack(player, true);
+        });
 
         return !players.empty();
     }
@@ -1550,20 +1551,18 @@ struct npc_gunship_boarding_leader : public npc_gunship_boarding_addAI
         {
             switch (eventId)
             {
-            case EVENT_BLADESTORM:
-                DoCastAOE(SPELL_BLADESTORM);
-                _events.ScheduleEvent(EVENT_BLADESTORM, 25s, 30s);
-                break;
-            case EVENT_WOUNDING_STRIKE:
-                DoCastVictim(SPELL_WOUNDING_STRIKE);
-                _events.ScheduleEvent(EVENT_WOUNDING_STRIKE, 9s, 13s);
-                break;
-            default:
-                break;
+                case EVENT_BLADESTORM:
+                    DoCastAOE(SPELL_BLADESTORM);
+                    _events.ScheduleEvent(EVENT_BLADESTORM, 25s, 30s);
+                    break;
+                case EVENT_WOUNDING_STRIKE:
+                    DoCastVictim(SPELL_WOUNDING_STRIKE);
+                    _events.ScheduleEvent(EVENT_WOUNDING_STRIKE, 9s, 13s);
+                    break;
+                default:
+                    break;
             }
         }
-
-        DoMeleeAttackIfReady();
     }
 
 private:
@@ -1572,13 +1571,13 @@ private:
 
 class npc_gunship_boarding_add : public CreatureScript
 {
-public:
-    npc_gunship_boarding_add() : CreatureScript("npc_gunship_boarding_add") { }
+    public:
+        npc_gunship_boarding_add() : CreatureScript("npc_gunship_boarding_add") { }
 
-    CreatureAI* GetAI(Creature* creature) const override
-    {
-        return GetIcecrownCitadelAI<npc_gunship_boarding_addAI>(creature);
-    }
+        CreatureAI* GetAI(Creature* creature) const override
+        {
+            return GetIcecrownCitadelAI<npc_gunship_boarding_addAI>(creature);
+        }
 };
 
 struct npc_gunship_gunner : public gunship_npc_AI
@@ -1663,15 +1662,15 @@ struct npc_gunship_mage : public gunship_npc_AI
             me->SetFacingTo(slots[Index].TargetPosition.GetOrientation());
             switch (Index)
             {
-            case SLOT_FREEZE_MAGE:
-                DoCastAOE(SPELL_BELOW_ZERO);
-                break;
-            case SLOT_MAGE_1:
-            case SLOT_MAGE_2:
-                DoCastAOE(SPELL_SHADOW_CHANNELING);
-                break;
-            default:
-                break;
+                case SLOT_FREEZE_MAGE:
+                    DoCastAOE(SPELL_BELOW_ZERO);
+                    break;
+                case SLOT_MAGE_1:
+                case SLOT_MAGE_2:
+                    DoCastAOE(SPELL_SHADOW_CHANNELING);
+                    break;
+                default:
+                    break;
             }
 
             me->SetControlled(true, UNIT_STATE_ROOT);
@@ -1692,6 +1691,7 @@ struct npc_gunship_mage : public gunship_npc_AI
 /** @HACK This AI only resets MOVEMENTFLAG_ROOT on the vehicle.
           Currently the core always removes MOVEMENTFLAG_ROOT sent from client packets to prevent cheaters from freezing clients of other players
           but it actually is a valid flag - needs more research to fix both freezes and keep the flag as is (see WorldSession::ReadMovementInfo)
+
 Example packet:
 ClientToServer: CMSG_MOVE_FORCE_ROOT_ACK (0x00E9) Length: 67 ConnectionIndex: 0 Time: 03/04/2010 03:57:55.000 Number: 471326
 Guid:
@@ -1727,12 +1727,10 @@ struct npc_gunship_cannon : public PassiveAI
 // 68721 - Rocket Pack
 class spell_igb_rocket_pack : public AuraScript
 {
-    PrepareAuraScript(spell_igb_rocket_pack);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo({ SPELL_ROCKET_PACK_DAMAGE, SPELL_ROCKET_BURST })
-            && !sSpellMgr->AssertSpellInfo(SPELL_ROCKET_PACK_DAMAGE, DIFFICULTY_NONE)->GetEffects().empty();
+            && ValidateSpellEffect({ { SPELL_ROCKET_PACK_DAMAGE, EFFECT_0 } });
     }
 
     void HandlePeriodic(AuraEffect const* /*aurEff*/)
@@ -1761,8 +1759,6 @@ class spell_igb_rocket_pack : public AuraScript
 // 70348 - Rocket Pack Useable
 class spell_igb_rocket_pack_useable : public AuraScript
 {
-    PrepareAuraScript(spell_igb_rocket_pack_useable);
-
     bool Load() override
     {
         return GetOwner()->GetInstanceScript() != nullptr;
@@ -1801,8 +1797,6 @@ class spell_igb_rocket_pack_useable : public AuraScript
 // 70121 - On Orgrim's Hammer Deck
 class spell_igb_on_gunship_deck : public AuraScript
 {
-    PrepareAuraScript(spell_igb_on_gunship_deck);
-
 public:
     spell_igb_on_gunship_deck()
     {
@@ -1844,8 +1838,6 @@ private:
 // 69487 - Overheat
 class spell_igb_periodic_trigger_with_power_cost : public AuraScript
 {
-    PrepareAuraScript(spell_igb_periodic_trigger_with_power_cost);
-
     void HandlePeriodicTick(AuraEffect const* aurEff)
     {
         PreventDefaultAction();
@@ -1861,8 +1853,6 @@ class spell_igb_periodic_trigger_with_power_cost : public AuraScript
 // 69399, 70172 - Cannon Blast
 class spell_igb_cannon_blast : public SpellScript
 {
-    PrepareSpellScript(spell_igb_cannon_blast);
-
     bool Load() override
     {
         return GetCaster()->GetTypeId() == TYPEID_UNIT;
@@ -1888,15 +1878,6 @@ class spell_igb_cannon_blast : public SpellScript
 // 69402, 70175 - Incinerating Blast
 class spell_igb_incinerating_blast : public SpellScript
 {
-    PrepareSpellScript(spell_igb_incinerating_blast);
-
-public:
-    spell_igb_incinerating_blast()
-    {
-        _energyLeft = 0;
-    }
-
-private:
     void StoreEnergy()
     {
         _energyLeft = GetCaster()->GetPower(POWER_ENERGY) - 10;
@@ -1907,26 +1888,24 @@ private:
         GetCaster()->SetPower(POWER_ENERGY, 0);
     }
 
-    void CalculateDamage(SpellEffIndex /*effIndex*/)
+    void CalculateDamage(Unit const* /*victim*/, int32& /*damage*/, int32& flatMod, float& /*pctMod*/) const
     {
-        SetEffectValue(GetEffectValue() + _energyLeft * _energyLeft * 8);
+        flatMod += _energyLeft * _energyLeft * 8;
     }
 
     void Register() override
     {
         OnCast += SpellCastFn(spell_igb_incinerating_blast::StoreEnergy);
         AfterCast += SpellCastFn(spell_igb_incinerating_blast::RemoveEnergy);
-        OnEffectLaunchTarget += SpellEffectFn(spell_igb_incinerating_blast::CalculateDamage, EFFECT_1, SPELL_EFFECT_SCHOOL_DAMAGE);
+        CalcDamage += SpellCalcDamageFn(spell_igb_incinerating_blast::CalculateDamage);
     }
 
-    uint32 _energyLeft;
+    int32 _energyLeft = 0;
 };
 
 // 69487 - Overheat
 class spell_igb_overheat : public AuraScript
 {
-    PrepareAuraScript(spell_igb_overheat);
-
     bool Load() override
     {
         if (GetAura()->GetType() != UNIT_AURA_TYPE)
@@ -1971,8 +1950,6 @@ class spell_igb_overheat : public AuraScript
 // 69705 - Below Zero
 class spell_igb_below_zero : public SpellScript
 {
-    PrepareSpellScript(spell_igb_below_zero);
-
     void RemovePassengers(SpellMissInfo missInfo)
     {
         if (missInfo != SPELL_MISS_NONE)
@@ -1990,8 +1967,6 @@ class spell_igb_below_zero : public SpellScript
 // 70104 - Teleport to Enemy Ship
 class spell_igb_teleport_to_enemy_ship : public SpellScript
 {
-    PrepareSpellScript(spell_igb_teleport_to_enemy_ship);
-
     void RelocateTransportOffset(SpellEffIndex /*effIndex*/)
     {
         WorldLocation const* dest = GetHitDest();
@@ -2014,8 +1989,6 @@ class spell_igb_teleport_to_enemy_ship : public SpellScript
 // 70397, 70403 - Burning Pitch
 class spell_igb_burning_pitch_selector : public SpellScript
 {
-    PrepareSpellScript(spell_igb_burning_pitch_selector);
-
     void FilterTargets(std::list<WorldObject*>& targets)
     {
         uint32 team = HORDE;
@@ -2023,11 +1996,11 @@ class spell_igb_burning_pitch_selector : public SpellScript
             team = instance->GetData(DATA_TEAM_IN_INSTANCE);
 
         targets.remove_if([team](WorldObject* target) -> bool
-            {
-                if (Transport* transport = dynamic_cast<Transport*>(target->GetTransport()))
-                    return transport->GetEntry() != uint32(team == HORDE ? GO_ORGRIMS_HAMMER_H : GO_THE_SKYBREAKER_A);
-                return true;
-            });
+        {
+            if (Transport* transport = dynamic_cast<Transport*>(target->GetTransport()))
+                return transport->GetEntry() != uint32(team == HORDE ? GO_ORGRIMS_HAMMER_H : GO_THE_SKYBREAKER_A);
+            return true;
+        });
 
         if (!targets.empty())
         {
@@ -2053,8 +2026,6 @@ class spell_igb_burning_pitch_selector : public SpellScript
 // 71335, 71339 - Burning Pitch
 class spell_igb_burning_pitch : public SpellScript
 {
-    PrepareSpellScript(spell_igb_burning_pitch);
-
     void HandleDummy(SpellEffIndex effIndex)
     {
         PreventHitDefaultEffect(effIndex);
@@ -2073,8 +2044,6 @@ class spell_igb_burning_pitch : public SpellScript
 // 69678, 70609 - Rocket Artillery
 class spell_igb_rocket_artillery : public SpellScript
 {
-    PrepareSpellScript(spell_igb_rocket_artillery);
-
     void SelectRandomTarget(std::list<WorldObject*>& targets)
     {
         if (!targets.empty())
@@ -2101,8 +2070,6 @@ class spell_igb_rocket_artillery : public SpellScript
 // 69679 - Rocket Artillery
 class spell_igb_rocket_artillery_explosion : public SpellScript
 {
-    PrepareSpellScript(spell_igb_rocket_artillery_explosion);
-
     void DamageGunship(SpellEffIndex /*effIndex*/)
     {
         if (InstanceScript* instance = GetCaster()->GetInstanceScript())
@@ -2122,8 +2089,6 @@ class spell_igb_rocket_artillery_explosion : public SpellScript
 // 67335 - Gunship Fall Teleport
 class spell_igb_gunship_fall_teleport : public SpellScript
 {
-    PrepareSpellScript(spell_igb_gunship_fall_teleport);
-
     bool Load() override
     {
         return GetCaster()->GetInstanceScript() != nullptr;
@@ -2153,8 +2118,6 @@ class spell_igb_gunship_fall_teleport : public SpellScript
 // 70331 - Check for Players
 class spell_igb_check_for_players : public SpellScript
 {
-    PrepareSpellScript(spell_igb_check_for_players);
-
 public:
     spell_igb_check_for_players()
     {
@@ -2197,8 +2160,6 @@ private:
 // 72340 - Teleport Players on Victory
 class spell_igb_teleport_players_on_victory : public SpellScript
 {
-    PrepareSpellScript(spell_igb_teleport_players_on_victory);
-
     bool Load() override
     {
         return GetCaster()->GetInstanceScript() != nullptr;
@@ -2208,9 +2169,9 @@ class spell_igb_teleport_players_on_victory : public SpellScript
     {
         InstanceScript* instance = GetCaster()->GetInstanceScript();
         targets.remove_if([instance](WorldObject* target) -> bool
-            {
-                return target->GetTransGUID() != instance->GetGuidData(DATA_ENEMY_GUNSHIP);
-            });
+        {
+            return target->GetTransGUID() != instance->GetGuidData(DATA_ENEMY_GUNSHIP);
+        });
     }
 
     void Register() override
@@ -2222,8 +2183,6 @@ class spell_igb_teleport_players_on_victory : public SpellScript
 // 71201 - Battle Experience - proc should never happen, handled in script
 class spell_igb_battle_experience_check : public AuraScript
 {
-    PrepareAuraScript(spell_igb_battle_experience_check);
-
     bool CheckProc(ProcEventInfo& /*eventInfo*/)
     {
         return false;
@@ -2237,13 +2196,13 @@ class spell_igb_battle_experience_check : public AuraScript
 
 class achievement_im_on_a_boat : public AchievementCriteriaScript
 {
-public:
-    achievement_im_on_a_boat() : AchievementCriteriaScript("achievement_im_on_a_boat") { }
+    public:
+        achievement_im_on_a_boat() : AchievementCriteriaScript("achievement_im_on_a_boat") { }
 
-    bool OnCheck(Player* /*source*/, Unit* target) override
-    {
-        return target->GetAI() && target->GetAI()->GetData(ACTION_SHIP_VISITS) <= 2;
-    }
+        bool OnCheck(Player* /*source*/, Unit* target) override
+        {
+            return target->GetAI() && target->GetAI()->GetData(ACTION_SHIP_VISITS) <= 2;
+        }
 };
 
 void AddSC_boss_icecrown_gunship_battle()

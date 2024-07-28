@@ -28,13 +28,9 @@
 GameTable<GtArtifactKnowledgeMultiplierEntry>   sArtifactKnowledgeMultiplierGameTable;
 GameTable<GtArtifactLevelXPEntry>               sArtifactLevelXPGameTable;
 GameTable<GtBarberShopCostBaseEntry>            sBarberShopCostBaseGameTable;
-GameTable<GtBattlePetXPEntry>                   sBattlePetXPTable;
-GameTable<GtBattlePetTypeDamageModEntry>        sBattlePetTypeDamageModTable;
 GameTable<GtBaseMPEntry>                        sBaseMPGameTable;
 GameTable<GtBattlePetXPEntry>                   sBattlePetXPGameTable;
 GameTable<GtCombatRatingsEntry>                 sCombatRatingsGameTable;
-GameTable<GtChallengeModeDamageEntry>           sChallengeModeDamageTable;
-GameTable<GtChallengeModeHealthEntry>           sChallengeModeHealthTable;
 GameTable<GtCombatRatingsMultByILvl>            sCombatRatingsMultByILvlGameTable;
 GameTable<GtHpPerStaEntry>                      sHpPerStaGameTable;
 GameTable<GtItemSocketCostPerLevelEntry>        sItemSocketCostPerLevelGameTable;
@@ -114,19 +110,19 @@ void LoadGameTables(std::string const& dataPath)
     std::vector<std::string> bad_gt_files;
     uint32 gameTableCount = 0, expectedGameTableCount = 0;
 
-#define LOAD_GT(store, file) gameTableCount += LoadGameTable(bad_gt_files, store, gtPath / file); ++expectedGameTableCount;
+    auto LOAD_GT = [&]<typename T>(GameTable<T>& gameTable, char const* file)
+    {
+        gameTableCount += LoadGameTable(bad_gt_files, gameTable, gtPath / file);
+        ++expectedGameTableCount;
+    };
 
     LOAD_GT(sArtifactKnowledgeMultiplierGameTable, "ArtifactKnowledgeMultiplier.txt");
     LOAD_GT(sArtifactLevelXPGameTable, "ArtifactLevelXP.txt");
     LOAD_GT(sBarberShopCostBaseGameTable, "BarberShopCostBase.txt");
-    LOAD_GT(sBattlePetXPTable, "BattlePetXP.txt");
-    LOAD_GT(sBattlePetTypeDamageModTable, "BattlePetTypeDamageMod.txt");
     LOAD_GT(sBaseMPGameTable, "BaseMp.txt");
     LOAD_GT(sBattlePetXPGameTable, "BattlePetXP.txt");
     LOAD_GT(sCombatRatingsGameTable, "CombatRatings.txt");
     LOAD_GT(sCombatRatingsMultByILvlGameTable, "CombatRatingsMultByILvl.txt");
-    LOAD_GT(sChallengeModeDamageTable, "ChallengeModeDamage.txt");
-    LOAD_GT(sChallengeModeHealthTable, "ChallengeModeHealth.txt");
     LOAD_GT(sItemSocketCostPerLevelGameTable, "ItemSocketCostPerLevel.txt");
     LOAD_GT(sHpPerStaGameTable, "HpPerSta.txt");
     LOAD_GT(sNpcManaCostScalerGameTable, "NPCManaCostScaler.txt");
@@ -140,7 +136,7 @@ void LoadGameTables(std::string const& dataPath)
     if (gameTableCount != expectedGameTableCount)
     {
         std::ostringstream str;
-        for (std::string const& err : bad_gt_files)
+        for (std::string const& err  : bad_gt_files)
             str << err << std::endl;
 
         WPFatal(false, "Some required *.txt GameTable files (" SZFMTD ") not found or not compatible:\n%s", bad_gt_files.size(), str.str().c_str());
@@ -154,26 +150,26 @@ float GetIlvlStatMultiplier(T const* row, InventoryType invType)
 {
     switch (invType)
     {
-    case INVTYPE_NECK:
-    case INVTYPE_FINGER:
-        return row->JewelryMultiplier;
-        break;
-    case INVTYPE_TRINKET:
-        return row->TrinketMultiplier;
-        break;
-    case INVTYPE_WEAPON:
-    case INVTYPE_SHIELD:
-    case INVTYPE_RANGED:
-    case INVTYPE_2HWEAPON:
-    case INVTYPE_WEAPONMAINHAND:
-    case INVTYPE_WEAPONOFFHAND:
-    case INVTYPE_HOLDABLE:
-    case INVTYPE_RANGEDRIGHT:
-        return row->WeaponMultiplier;
-        break;
-    default:
-        return row->ArmorMultiplier;
-        break;
+        case INVTYPE_NECK:
+        case INVTYPE_FINGER:
+            return row->JewelryMultiplier;
+            break;
+        case INVTYPE_TRINKET:
+            return row->TrinketMultiplier;
+            break;
+        case INVTYPE_WEAPON:
+        case INVTYPE_SHIELD:
+        case INVTYPE_RANGED:
+        case INVTYPE_2HWEAPON:
+        case INVTYPE_WEAPONMAINHAND:
+        case INVTYPE_WEAPONOFFHAND:
+        case INVTYPE_HOLDABLE:
+        case INVTYPE_RANGEDRIGHT:
+            return row->WeaponMultiplier;
+            break;
+        default:
+            return row->ArmorMultiplier;
+            break;
     }
 }
 

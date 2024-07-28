@@ -1,88 +1,259 @@
 /*
- * Copyright (C) 2020 DekkCore
+ * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
  *
- * This SourceCode is NOT free a software. Please hold everything Private
- * and read our Terms
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "InstanceScript.h"
+#include "MotionMaster.h"
+#include "Player.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
+#include "TaskScheduler.h"
+#include "ragefire_chasm.h"
 
-enum Spells
+enum AdaroggSpells
 {
-    SPELL_INFERNO_CHARGE           = 119405,
-    SPELL_INFERNO_CHARGE_TRIGGERED = 119299,
-    SPELL_FLAME_BREATH             = 119420
+    // Intro
+    SPELL_ADJULES_CHOW_TIME         = 120113,
+    SPELL_EAT_TROGG                 = 120064,
+
+    // Combat
+    SPELL_INFERNO_CHARGE_CAST       = 119405,
+    SPELL_INFERNO_CHARGE_SUMMON     = 119297, // Serverside
+    SPELL_FIRE_BREATH               = 119420
 };
 
-enum Events
+enum AdaroggTexts
 {
-    EVENT_FLAME_BREATH,
-    EVENT_INFERNO
+    SAY_INFERNO_CHARGE              = 0,
+
+    // Intro
+    SAY_HOUNDMASTER_INTRO_0         = 0,
+    SAY_HOUNDMASTER_INTRO_1         = 1
 };
 
-class boss_adarogg : public CreatureScript
+enum AdaroggEvents
 {
-    public:
-        boss_adarogg() : CreatureScript("boss_adarogg") { }
+    EVENT_INFERNO_CHARGE            = 1,
+    EVENT_FIRE_BREATH               = 2
+};
 
-        struct boss_adaroggAI : public ScriptedAI
+enum AdaroggActions
+{
+    ACTION_KILL_HOUNDMASTERS        = 1
+};
+
+enum AdaroggPaths
+{
+    PATH_INTRO                      = 6140800,
+    PATH_INTRO2                     = 6140801,
+    PATH_INTRO3                     = 6140802,
+};
+
+constexpr Position AdaroggIntroPoints[2] =
+{
+    { -282.31488f, -53.24906f, -60.802902f },
+    { -281.1894f,  -54.73433f, -60.34256f }
+};
+
+// Areatrigger - 7904
+class at_adarogg_intro : public OnlyOnceAreaTriggerScript
+{
+public:
+    at_adarogg_intro() : OnlyOnceAreaTriggerScript("at_adarogg_intro") { }
+
+    bool TryHandleOnce(Player* player, AreaTriggerEntry const* /*areaTrigger*/) override
+    {
+        if (player->IsGameMaster())
+            return false;
+
+        InstanceScript* instance = player->GetInstanceScript();
+        if (!instance)
+            return false;
+
+        Creature* adarogg = instance->GetCreature(BOSS_ADAROGG);
+        if (!adarogg)
+            return false;
+
+        adarogg->AI()->DoAction(ACTION_KILL_HOUNDMASTERS);
+
+        return true;
+    }
+};
+
+// 61408 - Adarogg
+struct boss_adarogg : public BossAI
+{
+    boss_adarogg(Creature* creature) : BossAI(creature, BOSS_ADAROGG), _eatCounter(0) { }
+
+    void Reset() override
+    {
+        _Reset();
+
+        scheduler.ClearValidator();
+
+        _eatCounter = 0;
+    }
+
+    void EnterEvadeMode(EvadeReason /*why*/) override
+    {
+        instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+
+        _EnterEvadeMode();
+        _DespawnAtEvade();
+    }
+
+    void JustEngagedWith(Unit* who) override
+    {
+        BossAI::JustEngagedWith(who);
+
+        instance->SendEncounterUnit(ENCOUNTER_FRAME_ENGAGE, me, 1);
+
+        scheduler.CancelAll();
+
+        events.ScheduleEvent(EVENT_INFERNO_CHARGE, 10s);
+        events.ScheduleEvent(EVENT_FIRE_BREATH, 20s);
+    }
+
+    void JustDied(Unit* /*killer*/) override
+    {
+        instance->SendEncounterUnit(ENCOUNTER_FRAME_DISENGAGE, me);
+
+        _JustDied();
+    }
+
+    void DoAction(int32 action) override
+    {
+        if (action != ACTION_KILL_HOUNDMASTERS)
+            return;
+
+        Creature* corruptedHoundmaster1 = me->FindNearestCreatureWithOptions(70.0f, { .StringId = "npc_corrupted_houndmaster_1" });
+        if (!corruptedHoundmaster1)
+            return;
+
+        Creature* corruptedHoundmaster2 = me->FindNearestCreatureWithOptions(70.0f, { .StringId = "npc_corrupted_houndmaster_2" });
+        if (!corruptedHoundmaster2)
+            return;
+
+        corruptedHoundmaster1->AI()->Talk(SAY_HOUNDMASTER_INTRO_0);
+        corruptedHoundmaster2->AI()->Talk(SAY_HOUNDMASTER_INTRO_1);
+
+        scheduler.Schedule(2s, [this](TaskContext task)
         {
-            boss_adaroggAI(Creature* creature) : ScriptedAI(creature) { }
+            DoCast(SPELL_ADJULES_CHOW_TIME);
+            me->GetMotionMaster()->MovePoint(0, AdaroggIntroPoints[0]);
 
-            void Reset() { } 
-
-            void JustEngagedWith(Unit* /*who*/) override
+            task.Schedule(1s, [this](TaskContext task)
             {
-                events.ScheduleEvent(EVENT_FLAME_BREATH, 5s);
-                events.ScheduleEvent(EVENT_INFERNO, 15s);
-            }
+                DoCast(SPELL_ADJULES_CHOW_TIME);
+                me->GetMotionMaster()->MovePoint(0, AdaroggIntroPoints[1]);
 
-            void SpellHitTarget(WorldObject* target, SpellInfo const* spell) override
-            {
-                if (spell->Id == SPELL_INFERNO_CHARGE)
-                    me->CastSpell(target, SPELL_INFERNO_CHARGE_TRIGGERED, false);
-            }
-
-            void JustDied(Unit* /*killer*/) { }
-
-            void UpdateAI(uint32 const diff)
-            {
-                if(!UpdateVictim())
-                    return;
-
-                events.Update(diff);
-
-                if(me->HasUnitState(UNIT_STATE_CASTING))
-                    return;
-
-                if(uint32 eventId = events.ExecuteEvent())
+                task.Schedule(1s + 200ms, [this](TaskContext /*task*/)
                 {
-                    switch(eventId)
-                    {
-                        case EVENT_FLAME_BREATH:
-                            DoCastVictim(SPELL_FLAME_BREATH);
-                            events.ScheduleEvent(EVENT_FLAME_BREATH, 10s);
-                            break;
-                        case EVENT_INFERNO:
-                            DoCastRandom(SPELL_INFERNO_CHARGE, 100);
-                            events.ScheduleEvent(EVENT_INFERNO, 18s);
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                DoMeleeAttackIfReady();
-            }
-        };
+                    DoCast(SPELL_ADJULES_CHOW_TIME);
+                    me->GetMotionMaster()->MovePath(PATH_INTRO, false);
+                });
+            });
+        });
+    }
 
-        CreatureAI* GetAI(Creature* creature) const
+    void WaypointPathEnded(uint32 /*nodeId*/, uint32 pathId) override
+    {
+        switch (pathId)
         {
-            return new boss_adaroggAI(creature);
+            case PATH_INTRO:
+                scheduler.Schedule(6148ms, [this](TaskContext /*task*/)
+                {
+                    me->GetMotionMaster()->MovePath(PATH_INTRO2, false);
+                });
+                break;
+            case PATH_INTRO2:
+                scheduler.Schedule(6996ms, [this](TaskContext /*task*/)
+                {
+                    me->GetMotionMaster()->MovePath(PATH_INTRO3, false);
+                });
+                break;
+            case PATH_INTRO3:
+                scheduler.Schedule(6148ms, [this](TaskContext /*task*/)
+                {
+                    me->GetMotionMaster()->MovePath(PATH_INTRO2, false);
+                });
+                break;
+            default:
+                return;
         }
+
+        _eatCounter = 0;
+        scheduler.Schedule(1s, [this](TaskContext task)
+        {
+            if (_eatCounter >= 2)
+                return;
+
+            DoCast(SPELL_EAT_TROGG);
+            _eatCounter++;
+
+            task.Repeat(2s, 3s);
+        });
+    }
+
+    void UpdateAI(uint32 diff) override
+    {
+        scheduler.Update(diff);
+
+        if (!UpdateVictim())
+            return;
+
+        events.Update(diff);
+
+        if (me->HasUnitState(UNIT_STATE_CASTING))
+            return;
+
+        while (uint32 eventId = events.ExecuteEvent())
+        {
+            switch (eventId)
+            {
+                case EVENT_INFERNO_CHARGE:
+                {
+                    if (Unit* target = SelectTarget(SelectTargetMethod::Random, 0, NonTankTargetSelector(me)))
+                    {
+                        Talk(SAY_INFERNO_CHARGE, target);
+                        DoCast(target, SPELL_INFERNO_CHARGE_SUMMON);
+                        DoCast(target, SPELL_INFERNO_CHARGE_CAST);
+                    }
+                    events.Repeat(15s, 20s);
+                    break;
+                }
+                case EVENT_FIRE_BREATH:
+                {
+                    DoCastVictim(SPELL_FIRE_BREATH);
+                    events.Repeat(15s, 20s);
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    }
+
+private:
+    uint8 _eatCounter;
 };
 
 void AddSC_boss_adarogg()
 {
-    new boss_adarogg();
+    new at_adarogg_intro();
+
+    RegisterRagefireChasmCreatureAI(boss_adarogg);
 }

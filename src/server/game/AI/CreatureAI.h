@@ -18,7 +18,6 @@
 #ifndef TRINITY_CREATUREAI_H
 #define TRINITY_CREATUREAI_H
 
-#include "DamageEventMap.h"
 #include "LootItemType.h"
 #include "ObjectDefines.h"
 #include "Optional.h"
@@ -68,16 +67,6 @@ class TC_GAME_API CreatureAI : public UnitAI
         Creature* DoSummonFlyer(uint32 entry, WorldObject* obj, float flightZ, float radius = 5.0f, Milliseconds despawnTime = 30s, TempSummonType summonType = TEMPSUMMON_CORPSE_TIMED_DESPAWN);
 
     public:
-        // EnumUtils: DESCRIBE THIS (in CreatureAI::)
-        enum EvadeReason
-        {
-            EVADE_REASON_NO_HOSTILES,       // the creature's threat list is empty
-            EVADE_REASON_BOUNDARY,          // the creature has moved outside its evade boundary
-            EVADE_REASON_NO_PATH,           // the creature was unable to reach its target for over 5 seconds
-            EVADE_REASON_SEQUENCE_BREAK,    // this is a boss and the pre-requisite encounters for engaging it are not defeated yet
-            EVADE_REASON_OTHER,             // anything else
-        };
-
         explicit CreatureAI(Creature* creature, uint32 scriptId = {});
 
         virtual ~CreatureAI();
@@ -98,7 +87,7 @@ class TC_GAME_API CreatureAI : public UnitAI
         void TriggerAlert(Unit const* who) const;
 
         // Called for reaction at stopping attack at no attackers or targets
-        virtual void EnterEvadeMode(EvadeReason why = EVADE_REASON_OTHER);
+        virtual void EnterEvadeMode(EvadeReason why = EvadeReason::Other);
 
         // Called for reaction whenever we start being in combat (overridden from base UnitAI)
         void JustEnteredCombat(Unit* /*who*/) override;
@@ -110,7 +99,7 @@ class TC_GAME_API CreatureAI : public UnitAI
         virtual void JustEngagedWith(Unit* /*who*/) { }
 
         // Called when the creature reaches 0 health (or 1 if unkillable).
-        virtual void OnHealthDepleted(Unit* /*attacker*/) { }
+        virtual void OnHealthDepleted(Unit* /*attacker*/, bool /*isKill*/) { }
 
         // Called when the creature is killed
         virtual void JustDied(Unit* /*killer*/) { }
@@ -155,15 +144,6 @@ class TC_GAME_API CreatureAI : public UnitAI
         // Called when a channeled spell finishes
         virtual void OnChannelFinished(SpellInfo const* /*spell*/) { }
 
-        // Called when spell hits a destination
-        virtual void SpellHitDest(SpellDestination const* /*dest*/, SpellInfo const* /*spellInfo*/) { }
-
-        // Called when successful cast a spell
-        virtual void OnSpellCasted(SpellInfo const* /*spellInfo*/) { }
-
-        // Called when an aura is removed
-        virtual void OnAuraRemoved(SpellInfo const* /*spellInfo*/) { }
-
         // Should return true if the NPC is currently being escorted
         virtual bool IsEscorted() const { return false; }
 
@@ -193,7 +173,7 @@ class TC_GAME_API CreatureAI : public UnitAI
         /// == Triggered Actions Requested ==================
 
         // Called when creature attack expected (if creature can and no have current victim)
-        //virtual void AttackStart(Unit*) { }
+        void AttackStart(Unit* victim) override;
 
         // Called at World update tick
         //virtual void UpdateAI(const uint32 /*diff*/) { }
@@ -259,23 +239,15 @@ class TC_GAME_API CreatureAI : public UnitAI
         static bool IsInBounds(CreatureBoundary const& boundary, Position const* who);
         bool IsInBoundary(Position const* who = nullptr) const;
 
-        //DekkCOre
-         // Called when a spell cast has been successfully finished
-        virtual void OnSuccessfulSpellCast(SpellInfo const* /*spell*/) { }
-        //DekkCore
-
     protected:
         void EngagementStart(Unit* who);
         void EngagementOver();
         virtual void MoveInLineOfSight(Unit* /*who*/);
 
-        bool _EnterEvadeMode(EvadeReason why = EVADE_REASON_OTHER);
+        bool _EnterEvadeMode(EvadeReason why = EvadeReason::Other);
 
         CreatureBoundary const* _boundary;
         bool _negateBoundary;
-
-        DamageEventMap damageEvents;
-        InstanceScript* const instance;
 
     private:
         void OnOwnerCombatInteraction(Unit* target);
@@ -283,18 +255,6 @@ class TC_GAME_API CreatureAI : public UnitAI
         uint32 const _scriptId;
         bool _isEngaged;
         bool _moveInLOSLocked;
-
-    // DekkCore >
-    public:
-        void ZoneTalk(uint8 id, WorldObject const* whisperTarget);
-        void Speak(uint32 TextID, uint32 SoundID, Player* TargetedPlayer);
-        bool m_canSeeEvenInPassiveMode;
-        bool CanSeeEvenInPassiveMode() { return m_canSeeEvenInPassiveMode; }
-        void SetCanSeeEvenInPassiveMode(bool canSeeEvenInPassiveMode) { m_canSeeEvenInPassiveMode = canSeeEvenInPassiveMode; }
-        virtual void OnSplineEndReached() { }
-        // Called when a spell is finished
-        virtual void OnSpellFinished(SpellInfo const* /*spellInfo*/) { }
-    // < DekkCore
 };
 
 #endif

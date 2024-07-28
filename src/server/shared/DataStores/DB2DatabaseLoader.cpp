@@ -267,7 +267,7 @@ void DB2DatabaseLoader::LoadStrings(bool custom, LocaleConstant locale, uint32 r
             ASSERT(offset == recordSize);
         }
         else
-            TC_LOG_DEBUG("sql.sql", "Hotfix locale table for storage {} references row that does not exist {} locale {}!", _storageName, indexValue, localeNames[locale]);
+            TC_LOG_ERROR("sql.sql", "Hotfix locale table for storage {} references row that does not exist {} locale {}!", _storageName, indexValue, localeNames[locale]);
 
     } while (result->NextRow());
 }

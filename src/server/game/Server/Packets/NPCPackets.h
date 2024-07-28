@@ -77,10 +77,10 @@ namespace WorldPackets
 
         struct ClientGossipOptions
         {
-            int32 GossipOptionID = 0;
+            int32 GossipOptionID  = 0;
             GossipOptionNpc OptionNPC = {};
-            uint8 OptionFlags = 0;
-            int32 OptionCost = 0;
+            uint8 OptionFlags   = 0;
+            int32 OptionCost    = 0;
             uint32 OptionLanguage = 0;
             GossipOptionFlags Flags = {};
             int32 OrderIndex = 0;
@@ -94,11 +94,11 @@ namespace WorldPackets
 
         struct ClientGossipText
         {
-            int32 QuestID = 0;
+            int32 QuestID       = 0;
             int32 ContentTuningID = 0;
-            int32 QuestType = 0;
-            bool Repeatable = false;
-            bool Important = false;
+            int32 QuestType     = 0;
+            bool Repeatable     = false;
+            bool Important      = false;
             std::string QuestTitle;
             int32 QuestFlags[2] = { };
         };
@@ -116,8 +116,8 @@ namespace WorldPackets
             int32 FriendshipFactionID = 0;
             ObjectGuid GossipGUID;
             std::vector<ClientGossipText> GossipText;
-            Optional<int32> TextID;
-            Optional<int32> TextID2;
+            Optional<int32> TextID;             // in classic variants this still holds npc_text id
+            Optional<int32> BroadcastTextID;
             int32 GossipID = 0;
         };
 
@@ -158,18 +158,18 @@ namespace WorldPackets
 
         struct VendorItem
         {
-            int32 MuID = 0;
-            int32 Type = 0;
+            int32 MuID                      = 0;
+            int32 Type                      = 0;
             WorldPackets::Item::ItemInstance Item;
-            int32 Quantity = -1;
-            uint64 Price = 0;
-            int32 Durability = 0;
-            int32 StackCount = 0;
-            int32 ExtendedCostID = 0;
-            int32 PlayerConditionFailed = 0;
-            bool Locked = false;
-            bool DoNotFilterOnVendor = false;
-            bool Refundable = false;
+            int32 Quantity                  = -1;
+            uint64 Price                    = 0;
+            int32 Durability                = 0;
+            int32 StackCount                = 0;
+            int32 ExtendedCostID            = 0;
+            int32 PlayerConditionFailed     = 0;
+            bool Locked                     = false;
+            bool DoNotFilterOnVendor        = false;
+            bool Refundable                 = false;
         };
 
         class VendorInventory final : public ServerPacket
@@ -186,13 +186,13 @@ namespace WorldPackets
 
         struct TrainerListSpell
         {
-            int32 SpellID = 0;
-            uint32 MoneyCost = 0;
+            int32 SpellID       = 0;
+            uint32 MoneyCost    = 0;
             uint32 ReqSkillLine = 0;
             uint32 ReqSkillRank = 0;
             std::array<int32, 3> ReqAbility = { };
-            uint8 Usable = 0;
-            uint8 ReqLevel = 0;
+            uint8 Usable        = 0;
+            uint8 ReqLevel      = 0;
         };
 
         class TrainerList final : public ServerPacket
@@ -203,8 +203,8 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid TrainerGUID;
-            int32 TrainerType = 0;
-            int32 TrainerID = 1;
+            int32 TrainerType   = 0;
+            int32 TrainerID     = 1;
             std::vector<TrainerListSpell> Spells;
             std::string Greeting;
         };
@@ -216,12 +216,12 @@ namespace WorldPackets
 
             WorldPacket const* Write() override;
 
-            int32 ID = 0;
-            uint32 Flags = 0;
+            int32 ID            = 0;
+            uint32 Flags        = 0;
             TaggedPosition<Position::XYZ> Pos;
-            int32 Icon = 0;
-            int32 Importance = 0;
-            int32 WMOGroupID = 0;
+            int32 Icon          = 0;
+            int32 Importance    = 0;
+            int32 WMOGroupID    = 0;
             std::string Name;
         };
 
@@ -235,6 +235,17 @@ namespace WorldPackets
             ObjectGuid Healer;
         };
 
+        class TabardVendorActivate final : public ClientPacket
+        {
+        public:
+            TabardVendorActivate(WorldPacket&& packet) : ClientPacket(CMSG_TABARD_VENDOR_ACTIVATE, std::move(packet)) { }
+
+            void Read() override;
+
+            ObjectGuid Vendor;
+            int32 Type = 0;
+        };
+
         class TrainerBuySpell final : public ClientPacket
         {
         public:
@@ -243,8 +254,8 @@ namespace WorldPackets
             void Read() override;
 
             ObjectGuid TrainerGUID;
-            int32 TrainerID = 0;
-            int32 SpellID = 0;
+            int32 TrainerID     = 0;
+            int32 SpellID       = 0;
         };
 
         class TrainerBuyFailed final : public ServerPacket
@@ -255,8 +266,8 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid TrainerGUID;
-            int32 SpellID = 0;
-            int32 TrainerFailedReason = 0;
+            int32 SpellID               = 0;
+            int32 TrainerFailedReason   = 0;
         };
 
         class RequestStabledPets final : public ClientPacket
@@ -280,59 +291,6 @@ namespace WorldPackets
             uint32 PetNumber = 0;
             uint8 DestSlot = 0;
         };
-
-        class ChromieTimeSelectExpansion final : public ClientPacket
-        {
-        public:
-            ChromieTimeSelectExpansion(WorldPacket&& packet) : ClientPacket(CMSG_CHROMIE_TIME_SELECT_EXPANSION, std::move(packet)) { }
-
-            void Read() override;
-
-            ObjectGuid GUID;
-            uint32 Expansion = 0;
-        };
-
-        class ChromieTimeSelectExpansionSuccess  final : public ServerPacket
-        {
-        public:
-            ChromieTimeSelectExpansionSuccess() : ServerPacket(SMSG_CHROMIE_TIME_SELECT_EXPANSION_SUCCESS, 0) { }
-
-            WorldPacket const* Write() override { return &_worldPacket; }
-        };
-
-        // DekkCore >
-        class OpenAlliedRaceDetails final : public ServerPacket
-        {
-        public:
-            OpenAlliedRaceDetails() : ServerPacket(SMSG_ALLIED_RACE_DETAILS, 12) { }
-
-            WorldPacket const* Write() override;
-
-            ObjectGuid Guid;
-            uint32 RaceId = 0;
-        };
-
-        class OpenTradeSkillNpc final : public ClientPacket
-        {
-        public:
-            OpenTradeSkillNpc(WorldPacket&& packet) : ClientPacket(CMSG_OPEN_TRADESKILL_NPC, std::move(packet)) { }
-
-            void Read() override;
-
-            ObjectGuid NpcGuid;
-        };
-
-        class GossipQuestUpdate final : public ServerPacket
-        {
-        public:
-            GossipQuestUpdate() : ServerPacket(SMSG_GOSSIP_QUEST_UPDATE) { }
-
-            WorldPacket const* Write() override;
-
-            ObjectGuid GossipGUID;
-            std::vector<NPC::ClientGossipText> QuestDataText;
-        };
-        // < DekkCore
     }
 }
 

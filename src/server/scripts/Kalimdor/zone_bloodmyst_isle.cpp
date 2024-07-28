@@ -17,6 +17,7 @@
 
 #include "ScriptMgr.h"
 #include "CellImpl.h"
+#include "Containers.h"
 #include "GridNotifiersImpl.h"
 #include "Group.h"
 #include "MotionMaster.h"
@@ -234,8 +235,6 @@ public:
                         break;
                 }
             }
-
-            DoMeleeAttackIfReady();
         }
 
         void DoAction(int32 param) override
@@ -283,6 +282,8 @@ public:
 ## npc_demolitionist_legoso
 ######*/
 
+static constexpr uint32 PATH_ESCORT_LEGOSO = 143858;
+
 class npc_demolitionist_legoso : public CreatureScript
 {
 public:
@@ -306,6 +307,7 @@ public:
             if (quest->GetQuestId() == QUEST_ENDING_THEIR_WORLD)
             {
                 SetGUID(player->GetGUID(), DATA_EVENT_STARTER_GUID);
+                LoadPath(PATH_ESCORT_LEGOSO);
                 Start(true, player->GetGUID(), quest);
             }
         }
@@ -387,8 +389,6 @@ public:
                             break;
                     }
                 }
-
-                DoMeleeAttackIfReady();
             }
 
             if (HasEscortState(STATE_ESCORT_NONE))
@@ -771,8 +771,6 @@ uint32 const CocoonSummonSpells[10] =
 // 30950 - Free Webbed Creature
 class spell_free_webbed : public SpellScript
 {
-    PrepareSpellScript(spell_free_webbed);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo(CocoonSummonSpells);
@@ -792,8 +790,6 @@ class spell_free_webbed : public SpellScript
 // 31009 - Free Webbed Creature
 class spell_free_webbed_on_quest : public SpellScript
 {
-    PrepareSpellScript(spell_free_webbed_on_quest);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo(CocoonSummonSpells) && ValidateSpellInfo({ SPELL_FREE_WEBBED_11 });

@@ -69,9 +69,9 @@ enum Points
 
 enum Misc
 {
-    ITEM_VIRTUAL_ITEM = 5301,
+    ITEM_VIRTUAL_ITEM           = 5301,
 
-    GOSSIP_MENU_START_INTRO = 12797,
+    GOSSIP_MENU_START_INTRO     = 12797,
 };
 
 Position const VoljinIntroWaypoint[4] =

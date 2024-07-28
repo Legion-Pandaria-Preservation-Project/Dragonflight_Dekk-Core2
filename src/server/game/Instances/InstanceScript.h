@@ -22,12 +22,14 @@
 #include "Common.h"
 #include "Duration.h"
 #include "Optional.h"
-#include "Position.h"
 #include <array>
 #include <map>
 #include <set>
 #include <variant>
-#include <bitset>
+
+#ifdef TRINITY_API_USE_DYNAMIC_LINKING
+#include <memory>
+#endif
 
 #define OUT_SAVE_INST_DATA             TC_LOG_DEBUG("scripts", "Saving Instance Data for Instance {} (Map {}, Instance Id {})", instance->GetMapName(), instance->GetId(), instance->GetInstanceId())
 #define OUT_SAVE_INST_DATA_COMPLETE    TC_LOG_DEBUG("scripts", "Saving Instance Data for Instance {} (Map {}, Instance Id {}) completed.", instance->GetMapName(), instance->GetId(), instance->GetInstanceId())
@@ -37,7 +39,6 @@
 
 class AreaBoundary;
 class Creature;
-class Challenge;
 class GameObject;
 class InstanceMap;
 class ModuleReference;
@@ -46,84 +47,20 @@ class Player;
 class Unit;
 struct DungeonEncounterEntry;
 struct InstanceSpawnGroupInfo;
-enum class CriteriaType : uint8;
+enum class CriteriaType : int16;
 enum class CriteriaStartEvent : uint8;
 enum Difficulty : uint8;
-enum EncounterCreditType : uint8;
-enum Affixes : uint32;
 
-//DekkCore
-
-enum Affixes : uint32
-{
-    Overflowing = 1,
-    Skittish = 2,
-    Volcanic = 3,
-    Necrotic = 4,
-    Teeming = 5,
-    Raging = 6,
-    Bolstering = 7,
-    Sanguine = 8,
-    Tyrannical = 9,
-    Fortified = 10,
-    Bursting = 11,
-    Grievous = 12,
-    Explosive = 13,
-    Quaking = 14,
-    Relentless = 15,
-    Infested = 16,
-    Reaping = 117,
-    Beguiling = 119,
-    Awakened = 120,
-    Prideful = 121,
-    Inspiring = 122,
-    Spiteful = 123,
-    Storming = 124,
-    Tormented = 128,
-    Infernal = 129,
-    Encrypted = 130,
-    Shrouded = 131,
-    Thundering = 132,
-    MaxAffixes
-};
-/* not working on linux gcc
-constexpr auto AFFIXES_ALL =
-((1 << Affixes::Overflowing) | (1 << Affixes::Skittish) | (1 << Affixes::Volcanic) |
-    (1 << Affixes::Necrotic) | (1 << Affixes::Teeming) | (1 << Affixes::Raging) |
-    (1 << Affixes::Bolstering) | (1 << Affixes::Sanguine) | (1 << Affixes::Tyrannical) |
-    (1 << Affixes::Fortified) | (1 << Affixes::Bursting) | (1 << Affixes::Grievous) |
-    (1 << Affixes::FelExplosives) | (1 << Affixes::Quaking) | (1 << Affixes::Relentless) |
-    (1 << Affixes::Infested) | (1 << Affixes::Reaping) | (1 << Affixes::Beguiling) | (1 << Affixes::Awakened));*/
-
-/*uint32 const AFFIXES_ALL[MaxAffixes] =
-{
-    (1 << Affixes::Overflowing)   | (1 << Affixes::Skittish) | (1 << Affixes::Volcanic)   |
-    (1 << Affixes::Necrotic)      | (1 << Affixes::Teeming)  | (1 << Affixes::Raging)     |
-    (1 << Affixes::Bolstering)    | (1 << Affixes::Sanguine) | (1 << Affixes::Tyrannical) |
-    (1 << Affixes::Fortified)     | (1 << Affixes::Bursting) | (1 << Affixes::Grievous)   |
-    (1 << Affixes::FelExplosives) | (1 << Affixes::Quaking)  | (1 << Affixes::Relentless) |
-    (1 << Affixes::Infested)      | (1 << Affixes::Reaping)  | (1 << Affixes::Beguiling)  | (1 << Affixes::Awakened)
-};*/
-//Dekkcore
 enum EncounterFrameType
 {
-    ENCOUNTER_FRAME_SET_COMBAT_RES_LIMIT    = 0,
-    ENCOUNTER_FRAME_RESET_COMBAT_RES_LIMIT  = 1,
-    ENCOUNTER_FRAME_ENGAGE                  = 2,
-    ENCOUNTER_FRAME_DISENGAGE               = 3,
-    ENCOUNTER_FRAME_UPDATE_PRIORITY         = 4,
-    ENCOUNTER_FRAME_ADD_TIMER               = 5,
-    ENCOUNTER_FRAME_ENABLE_OBJECTIVE        = 6,
-    ENCOUNTER_FRAME_UPDATE_OBJECTIVE        = 7,
-    ENCOUNTER_FRAME_DISABLE_OBJECTIVE       = 8,
-    ENCOUNTER_FRAME_UNK7                    = 9,    // Seems to have something to do with sorting the encounter units
-    ENCOUNTER_FRAME_ADD_COMBAT_RES_LIMIT    = 10,
-    // DekkCore >
-    ENCOUNTER_FRAME_INSTANCE_END                = 11,
-    ENCOUNTER_FRAME_UPDATE_SUPPRESSING_RELEASE  = 13,
-    ENCOUNTER_FRAME_UPDATE_ALLOWING_RELEASE     = 12,
-    ENCOUNTER_FRAME_INSTANCE_START              = 14
-    // < DekkCore
+    ENCOUNTER_FRAME_ENGAGE              = 0,
+    ENCOUNTER_FRAME_DISENGAGE           = 1,
+    ENCOUNTER_FRAME_UPDATE_PRIORITY     = 2,
+    ENCOUNTER_FRAME_ADD_TIMER           = 3,
+    ENCOUNTER_FRAME_ENABLE_OBJECTIVE    = 4,
+    ENCOUNTER_FRAME_UPDATE_OBJECTIVE    = 5,
+    ENCOUNTER_FRAME_DISABLE_OBJECTIVE   = 6,
+    ENCOUNTER_FRAME_PHASE_SHIFT_CHANGED = 7
 };
 
 // EnumUtils: DESCRIBE THIS
@@ -137,12 +74,13 @@ enum EncounterState
     TO_BE_DECIDED = 5
 };
 
-enum DoorType
+enum class EncounterDoorBehavior : uint8
 {
-    DOOR_TYPE_ROOM          = 0,    // Door can open if encounter is not in progress
-    DOOR_TYPE_PASSAGE       = 1,    // Door can open if encounter is done
-    DOOR_TYPE_SPAWN_HOLE    = 2,    // Door can open if encounter is in progress, typically used for spawning places
-    MAX_DOOR_TYPES
+    OpenWhenNotInProgress   = 0, // open if encounter is not in progress
+    OpenWhenDone            = 1, // open if encounter is done
+    OpenWhenInProgress      = 2, // open if encounter is in progress, typically used for spawning places
+    OpenWhenNotDone         = 3, // open if encounter is not done
+    Max
 };
 
 static constexpr uint32 MAX_DUNGEON_ENCOUNTERS_PER_BOSS = 4;
@@ -156,7 +94,7 @@ struct DungeonEncounterData
 struct DoorData
 {
     uint32 entry, bossId;
-    DoorType type;
+    EncounterDoorBehavior Behavior;
 };
 
 struct BossBoundaryEntry
@@ -199,7 +137,7 @@ struct BossInfo
     DungeonEncounterEntry const* GetDungeonEncounterForDifficulty(Difficulty difficulty) const;
 
     EncounterState state;
-    GuidSet door[MAX_DOOR_TYPES];
+    std::array<GuidSet, static_cast<uint8>(EncounterDoorBehavior::Max)> door;
     GuidSet minion;
     CreatureBoundary boundary;
     std::array<DungeonEncounterEntry const*, MAX_DUNGEON_ENCOUNTERS_PER_BOSS> DungeonEncounters;
@@ -207,10 +145,10 @@ struct BossInfo
 
 struct DoorInfo
 {
-    explicit DoorInfo(BossInfo* _bossInfo, DoorType _type)
-        : bossInfo(_bossInfo), type(_type) { }
+    explicit DoorInfo(BossInfo* _bossInfo, EncounterDoorBehavior _behavior)
+        : bossInfo(_bossInfo), Behavior(_behavior) { }
     BossInfo* bossInfo;
-    DoorType type;
+    EncounterDoorBehavior Behavior;
 };
 
 struct MinionInfo
@@ -245,7 +183,10 @@ class TC_GAME_API InstanceScript : public ZoneScript
 {
     public:
         explicit InstanceScript(InstanceMap* map);
-
+        InstanceScript(InstanceScript const& right) = delete;
+        InstanceScript(InstanceScript&& right) = delete;
+        InstanceScript& operator=(InstanceScript const& right) = delete;
+        InstanceScript& operator=(InstanceScript&& right) = delete;
         virtual ~InstanceScript();
 
         InstanceMap* instance;
@@ -282,12 +223,12 @@ class TC_GAME_API InstanceScript : public ZoneScript
         ObjectGuid GetObjectGuid(uint32 type) const;
         virtual ObjectGuid GetGuidData(uint32 type) const override;
 
-        Creature* GetCreature(uint32 type);
-        GameObject* GetGameObject(uint32 type);
-
         // Triggers a GameEvent
         // * If source is nullptr then event is triggered for each player in the instance as "source"
         void TriggerGameEvent(uint32 gameEventId, WorldObject* source = nullptr, WorldObject* target = nullptr) override;
+
+        Creature* GetCreature(uint32 type);
+        GameObject* GetGameObject(uint32 type);
 
         // Called when a player successfully enters the instance.
         virtual void OnPlayerEnter(Player* /*player*/) { }
@@ -340,16 +281,6 @@ class TC_GAME_API InstanceScript : public ZoneScript
         // Checks boss requirements (one boss required to kill other)
         virtual bool CheckRequiredBosses(uint32 /*bossId*/, Player const* /*player*/ = nullptr) const { return true; }
 
-        // Checks encounter state at kill/spellcast
-        void UpdateEncounterStateForKilledCreature(uint32 creatureId, Unit* source);
-        void UpdateEncounterStateForSpellCast(uint32 spellId, Unit* source);
-
-        // Used only during loading
-        void SetCompletedEncountersMask(uint32 newMask);
-
-        // Returns completed encounters mask for packets
-        uint32 GetCompletedEncounterMask() const { return completedEncounters; }
-
         bool IsEncounterCompleted(uint32 dungeonEncounterId) const;
         bool IsEncounterCompletedInMaskByBossId(uint32 completedEncountersMask, uint32 bossId) const;
 
@@ -369,7 +300,7 @@ class TC_GAME_API InstanceScript : public ZoneScript
         void ResetAreaTriggerDone(uint32 id) { _activatedAreaTriggers.erase(id); }
         bool IsAreaTriggerDone(uint32 id) const { return _activatedAreaTriggers.find(id) != _activatedAreaTriggers.end(); }
 
-        void SendEncounterUnit(uint32 type, Unit* unit = nullptr, uint8 priority = 0);
+        void SendEncounterUnit(EncounterFrameType type, Unit const* unit, Optional<int32> param1 = {}, Optional<int32> param2 = {});
         void SendEncounterStart(uint32 inCombatResCount = 0, uint32 maxInCombatResCount = 0, uint32 inCombatResChargeRecovery = 0, uint32 nextCombatResChargeTime = 0);
         void SendEncounterEnd();
 
@@ -389,11 +320,6 @@ class TC_GAME_API InstanceScript : public ZoneScript
         std::string const& GetHeader() const { return headers; }
         std::vector<PersistentInstanceScriptValueBase*>& GetPersistentScriptValues() { return _persistentScriptValues; }
 
-        //DekkCore
-        void SetChallenge(Challenge* challenge);
-        uint32 getScenarionStep() const;
-        void SendMythicPlusMapStatsUpdate(Player* player, uint32 challengeId, uint32 recordTime) const;
-        //Dekkcore
     protected:
         void SetHeaders(std::string const& dataHeaders);
         void SetBossNumber(uint32 number) { bosses.resize(number); }
@@ -432,7 +358,7 @@ class TC_GAME_API InstanceScript : public ZoneScript
     private:
         static void LoadObjectData(ObjectData const* creatureData, ObjectInfoMap& objectInfo);
         void LoadDungeonEncounterData(uint32 bossId, std::array<uint32, MAX_DUNGEON_ENCOUNTERS_PER_BOSS> const& dungeonEncounterIds);
-        void UpdateEncounterState(EncounterCreditType type, uint32 creditEntry, Unit* source);
+        void UpdateLfgEncounterState(BossInfo const* bossInfo);
 
         std::string headers;
         std::vector<BossInfo> bosses;
@@ -441,8 +367,7 @@ class TC_GAME_API InstanceScript : public ZoneScript
         MinionInfoMap minions;
         ObjectInfoMap _creatureInfo;
         ObjectInfoMap _gameObjectInfo;
-        ObjectGuidMap _objectGuids = {};
-        uint32 completedEncounters; // DEPRECATED, REMOVE
+        ObjectGuidMap _objectGuids;
         std::vector<InstanceSpawnGroupInfo> const* const _instanceSpawnGroups;
         std::unordered_set<uint32> _activatedAreaTriggers;
         uint32 _entranceId;
@@ -457,141 +382,6 @@ class TC_GAME_API InstanceScript : public ZoneScript
     #endif // #ifndef TRINITY_API_USE_DYNAMIC_LINKING
 
         friend class debug_commandscript;
-
-
-
-
-        // DekkCore >
-        public:
-            void AddTimedDelayedOperation(uint32 timeout, std::function<void()>&& function)
-            {
-                emptyWarned = false;
-                timedDelayedOperations.push_back(std::pair<uint32, std::function<void()>>(timeout, function));
-            }
-
-            std::vector<std::pair<int32, std::function<void()>>>timedDelayedOperations; ///< Delayed operations
-            bool emptyWarned; ///< Warning when there are no more delayed operations
-
-            // Execute the parameter function for all players in instance
-            void DoOnPlayers(std::function<void(Player*)>&& function);
-
-            void DoAddAuraOnPlayers(uint32 spell);
-
-            void DoCompleteAchievement(uint32 achievement);
-
-            //Scenarios
-            void DoSendScenarioEvent(uint32 eventId);
-            void GetScenarioByID(Player* p_Player, uint32 p_ScenarioId);
-            void DoStartMovie(uint32 movieId);
-            void DoNearTeleportPlayers(const Position pos, bool casting);
-
-            void DoPlayConversation(uint32 conversationId);
-
-            void DoTeleportPlayers(uint32 mapId, const Position pos);
-            void DoPlayScenePackageIdOnPlayers(uint32 scenePackageId);
-
-             std::array<uint32, 2> GetIslandCount() const { return _islandCount; }
-
-            enum IslandSpells
-            {
-                SPELL_AZERITE_RESIDUE = 260738,
-                SPELL_AZERITE_ENERGY = 265703,
-                SPELL_ISLAND_COMPLETE = 245618, // island - complete
-            };
-
-            void CastIslandAzeriteAura();
-            void GiveIslandAzeriteXpGain(Player* player, ObjectGuid guid, int32 xp);
-            void IslandComplete(bool winnerIsAlliance);
-
-            Optional<Position> _checkPointPosition;
-            void SetCheckPointPos(Position pos) { _checkPointPosition = pos; }
-            Optional<Position> GetCheckPoint() { return _checkPointPosition; }
-
-
-            // Challenge
-            static uint32 const ChallengeModeOrb = 246779;
-            static uint32 const ChallengeModeDoor = 239323;
-
-            Challenge* GetChallenge() const;
-            bool IsChallenge() const;
-            void ResetChallengeMode();
-            void RepopPlayersAtGraveyard();
-
-            void AddChallengeModeChests(ObjectGuid chestGuid, uint8 chestLevel);
-            ObjectGuid GetChellngeModeChests(uint8 chestLevel);
-            void AddChallengeModeDoor(ObjectGuid doorGuid);
-            void AddChallengeModeOrb(ObjectGuid orbGuid);
-            void StartChallengeMode(uint8 modeid, uint8 level, uint8 affix1, uint8 affix2, uint8 affix3, uint8 affix4);
-            void CompleteChallengeMode();
-            bool IsChallengeModeStarted() const { return _challengeModeStarted; }
-            uint8 GetChallengeModeId() const { return _challengeModeId; }
-            uint8 GetChallengeModeLevel() const { return _challengeModeLevel; }
-            std::array<uint32, 4> GetAffixes() const;
-            bool HasAffix(Affixes affix);
-            uint32 GetChallengeModeCurrentDuration() const;
-            void SendChallengeModeStart(Player* player = nullptr) const;
-            void SendChallengeModeDeathCount(Player* player = nullptr) const;
-            void SendChallengeModeElapsedTimer(Player* player = nullptr) const;
-            void SendChallengeModeMapStatsUpdate(Player* player, uint32 challengeId, uint32 recordTime) const;
-            void SendChallengeModeNewPlayerRecord(Player* player);
-            void OnPlayerExit(Player* player);
-            void OnPlayerDeath(Player*) override;
-            void OnUnitDeath(Unit* unit) override;
-
-            void CastChallengeCreatureSpell(Creature* creature);
-            void CastChallengePlayerSpell(Player* player);
-            void CastChallengeCreatureSpellOnDeath(Creature* creature);
-
-
-            // load scenario after challenge mode started
-            void SetChallengeModeScenario(uint32 scenarioId) { _challengeModeScenario = scenarioId; }
-            void SetChallengeDoorPos(Position pos) { _challengeModeDoorPosition = pos; }
-            void SetChallengeStartPos(Position pos) { _challengeModeStartPosition = pos; _checkPointPosition = pos; }
-            virtual void SpawnChallengeModeRewardChest() { }
-            void SetFontOfPowerPos(Position pos) { _challengeModeFontOfPowerPosition = pos; }
-            void SetFontOfPowerPos2(Position pos) { _challengeModeFontOfPowerPosition2 = pos; }
-            void SpawnFontOfPower();
-
-            virtual void ShowChallengeDoor() { }
-            virtual void HideChallengeDoor() { }
-
-            void AfterChallengeModeStarted();
-
-            std::vector<ObjectGuid> _challengeDoorGuids;
-            std::vector<ObjectGuid> _challengeChestGuids;
-            ObjectGuid _challengeOrbGuid;
-            ObjectGuid _challengeChest;
-
-    private:
-            Challenge* _challenge;
-            uint32 _inCombatResCount;
-            uint32 _maxInCombatResCount;
-            uint32 _combatResChargeTime;
-            uint32 _nextCombatResChargeTime;
-            bool _challengeModeStarted;
-            uint8 _challengeModeId;
-            uint8 _challengeModeLevel;
-            std::array<uint32, 4> _affixes;
-            std::bitset<size_t(Affixes::MaxAffixes)> _affixesTest;
-            uint32 _challengeModeStartTime;
-            uint32 _challengeModeDeathCount;
-            Optional<uint32> _challengeModeScenario;
-            Optional<Position> _challengeModeDoorPosition;
-            Optional<Position> _challengeModeFontOfPowerPosition;
-            Optional<Position> _challengeModeFontOfPowerPosition2;
-            Optional<Position> _challengeModeStartPosition;
-            std::array<uint32, 2> _islandCount;
-            uint32 scenarioStep;
-
-    protected:
-            GuidUnorderedSet _challengers;
-            uint32 _challengeTimer;
-            uint32 _affixQuakingTimer;
-            uint32 _challengeLevel;
-            bool _isKeyDepleted;
-            uint32 _mapID;
-            uint8 _rewardLevel;
-        // < DekkCore
 };
 
 class TC_GAME_API PersistentInstanceScriptValueBase

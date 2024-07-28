@@ -23,6 +23,7 @@
 #include "CreatureGroups.h"
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
+#include "PhasingHandler.h"
 #include "Player.h"
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
@@ -120,8 +121,8 @@ struct npc_cameron : public ScriptedAI
         // first we break formation because children will need to move on their own now
         for (ObjectGuid guid : _childrenGUIDs)
             if (Creature* child = ObjectAccessor::GetCreature(*me, guid))
-                if (child->GetFormation())
-                    child->GetFormation()->RemoveMember(child);
+                if (CreatureGroup* creatureGroup = child->GetFormation())
+                    FormationMgr::RemoveCreatureFromGroup(creatureGroup, child);
 
         // Move each child to an random position
         for (uint32 i = 0; i < _childrenGUIDs.size(); ++i)
@@ -283,32 +284,32 @@ private:
 
 enum AnUnlikelyInformantData
 {
-    QUEST_AN_UNLIKELY_INFORMANT = 72405,
+    QUEST_AN_UNLIKELY_INFORMANT         = 72405,
 
-    GOSSIP_MENU_SIGNAL_INFORMANT = 30224,
-    GOSSIP_OPTION_SIGNAL_INFORMANT = 0,
+    GOSSIP_MENU_SIGNAL_INFORMANT        = 30224,
+    GOSSIP_OPTION_SIGNAL_INFORMANT      = 0,
 
-    CONVO_AN_UNLIKELY_INFORMANT_HELLO = 20340,
-    CONVO_AN_UNLIKELY_INFORMANT = 20342,
+    CONVO_AN_UNLIKELY_INFORMANT_HELLO   = 20340,
+    CONVO_AN_UNLIKELY_INFORMANT         = 20342,
 
-    CONVO_LINE_VANESSA_TELEPORT = 53702,
-    CONVO_LINE_VANESSA_MOVEMENT = 52465,
-    CONVO_LINE_MATHIAS_QUEST_CREDIT = 52466,
+    CONVO_LINE_VANESSA_TELEPORT         = 53702,
+    CONVO_LINE_VANESSA_MOVEMENT         = 52465,
+    CONVO_LINE_MATHIAS_QUEST_CREDIT     = 52466,
 
-    CONVO_ACTOR_IDX_MATHIAS = 0,
-    CONVO_ACTOR_IDX_VANESSA = 1,
+    CONVO_ACTOR_IDX_MATHIAS             = 0,
+    CONVO_ACTOR_IDX_VANESSA             = 1,
 
-    NPC_MATHIAS_SHAW = 198896,
-    NPC_VANESSA_VANCLEEF = 198883,
+    NPC_MATHIAS_SHAW                    = 198896,
+    NPC_VANESSA_VANCLEEF                = 198883,
 
-    POINT_VANESSA_FINISH = 1,
+    POINT_VANESSA_FINISH                = 1,
 
-    DISPLAY_VANESSA_INVISIBLE = 71887,
-    DISPLAY_VANESSA_VISIBLE = 110980,
+    DISPLAY_VANESSA_INVISIBLE           = 71887,
+    DISPLAY_VANESSA_VISIBLE             = 110980,
 
-    SPELL_VANESSA_STEALTH = 228928,
-    SPELL_VANESSA_TELEPORT_BEHIND = 396357,
-    SPELL_VANESSA_CHEAP_SHOT = 396359,
+    SPELL_VANESSA_STEALTH               = 228928,
+    SPELL_VANESSA_TELEPORT_BEHIND       = 396357,
+    SPELL_VANESSA_CHEAP_SHOT            = 396359,
 };
 
 enum AnUnlikelyInformantEvents
@@ -322,17 +323,43 @@ enum AnUnlikelyInformantEvents
 
 enum WindowToThePastData
 {
-    GOSSIP_MENU_WINDOW_TO_THE_PAST = 30224,
-    GOSSIP_OPTION_WINDOW_TO_THE_PAST = 2,
+    GOSSIP_MENU_WINDOW_TO_THE_PAST      = 30224,
+    GOSSIP_OPTION_WINDOW_TO_THE_PAST    = 2,
 
-    SPELL_PLAY_ONYXIA_SCENE = 402962
+    SPELL_PLAY_ONYXIA_SCENE             = 402962
 };
 
 enum RottenOldMemoriesData
 {
-    QUEST_ROTTEN_OLD_MEMORIES = 72409,
+    QUEST_ROTTEN_OLD_MEMORIES   = 72409,
 
-    CONVO_ROTTEN_OLD_MEMORIES = 20345
+    CONVO_ROTTEN_OLD_MEMORIES   = 20345
+};
+
+enum TheNewClassingtonEstateData
+{
+    QUEST_THE_NEW_CLASSINGTON_ESTATE            = 72426,
+
+    CONVO_THE_NEW_CLASSINGTON_ESTATE            = 20387,
+
+    CONVO_LINE_VANESSA_START_WALK               = 52595,
+    CONVO_LINE_HANDLE_CLONE_FACING              = 52593,
+
+    CONVO_ACTOR_IDX_VANESSA_CLASSINGTON_ESTATE  = 1,
+    CONVO_ACTOR_IDX_MATHIAS_CLASSINGTON_ESTATE  = 2,
+
+    PATH_VANESSA_GOLDSHIRE_BASEMENT             = 15910640,
+
+    SPELL_VANESSA_COSMETIC_VANISH               = 210194,
+    SPELL_VANESSA_STEALTH_DESPAWN               = 186810
+};
+
+enum ClassingtonEstateEvents
+{
+    EVENT_VANESSA_START_WALK        = 1,
+    EVENT_VANESSA_STEALTH_DESPAWN,
+    EVENT_MATHIAS_SET_FACING,
+    EVENT_VANESSA_SET_FACING
 };
 
 Position const VanessaClonePosition = { -9462.44f, -11.7101f, 50.161f, 2.99500f };
@@ -342,6 +369,15 @@ Position const VanessaStaticPosition = { -9468.16f, -3.6128f, 49.876f, 4.47226f 
 struct npc_master_mathias_shaw_human_heritage_lions_pride_inn_basement : public ScriptedAI
 {
     npc_master_mathias_shaw_human_heritage_lions_pride_inn_basement(Creature* creature) : ScriptedAI(creature) { }
+
+    void OnQuestAccept(Player* player, Quest const* quest) override
+    {
+        if (quest->GetQuestId() == QUEST_THE_NEW_CLASSINGTON_ESTATE)
+        {
+            PhasingHandler::OnConditionChange(player);
+            Conversation::CreateConversation(CONVO_THE_NEW_CLASSINGTON_ESTATE, player, *player, player->GetGUID(), nullptr, false);
+        }
+    }
 
     bool OnGossipSelect(Player* player, uint32 menuId, uint32 gossipListId) override
     {
@@ -369,16 +405,25 @@ struct npc_vanessa_vancleef_human_heritage_lions_pride_inn_basement : public Scr
 {
     npc_vanessa_vancleef_human_heritage_lions_pride_inn_basement(Creature* creature) : ScriptedAI(creature) { }
 
-    void MovementInform(uint32 /*type*/, uint32 pointId) override
-    {
-        if (pointId == POINT_VANESSA_FINISH)
-            _events.ScheduleEvent(EVENT_VANESSA_CLONE_LEAN, 1s);
-    }
-
     void OnQuestAccept(Player* player, Quest const* quest) override
     {
         if (quest->GetQuestId() == QUEST_ROTTEN_OLD_MEMORIES)
             Conversation::CreateConversation(CONVO_ROTTEN_OLD_MEMORIES, player, *player, player->GetGUID(), nullptr);
+    }
+
+    void MovementInform(uint32 type, uint32 pointId) override
+    {
+        if (type != POINT_MOTION_TYPE)
+            return;
+
+        if (pointId == POINT_VANESSA_FINISH)
+            _events.ScheduleEvent(EVENT_VANESSA_CLONE_LEAN, 1s);
+    }
+
+    void WaypointPathEnded(uint32 /*nodeId*/, uint32 pathId) override
+    {
+        if (pathId == PATH_VANESSA_GOLDSHIRE_BASEMENT)
+            _events.ScheduleEvent(EVENT_VANESSA_STEALTH_DESPAWN, 0s);
     }
 
     void UpdateAI(uint32 diff) override
@@ -389,14 +434,19 @@ struct npc_vanessa_vancleef_human_heritage_lions_pride_inn_basement : public Scr
         {
             switch (eventId)
             {
-            case EVENT_VANESSA_CLONE_LEAN:
-                me->SetVirtualItem(1, 0);
-                me->SetNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
-                me->SetFacingTo(4.47226f);
-                me->HandleEmoteCommand(EMOTE_STATE_WALEAN02);
-                break;
-            default:
-                break;
+                case EVENT_VANESSA_CLONE_LEAN:
+                    me->SetVirtualItem(1, 0);
+                    me->SetNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
+                    me->SetFacingTo(4.47226f);
+                    me->HandleEmoteCommand(EMOTE_STATE_WALEAN02);
+                    break;
+                case EVENT_VANESSA_STEALTH_DESPAWN:
+                    me->CastSpell(nullptr, SPELL_VANESSA_COSMETIC_VANISH, true);
+                    me->CastSpell(nullptr, SPELL_VANESSA_STEALTH_DESPAWN, true);
+                    me->DespawnOrUnsummon(1s);
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -426,8 +476,8 @@ public:
 
     void OnConversationCreate(Conversation* conversation, Unit* creator) override
     {
-        Creature* mathiasObject = GetClosestCreatureWithOptions(creator, 15.0f, FindCreatureOptions().SetIgnorePhases(true).SetCreatureId(NPC_MATHIAS_SHAW));
-        Creature* vanessaObject = GetClosestCreatureWithOptions(creator, 15.0f, FindCreatureOptions().SetIgnorePhases(true).SetCreatureId(NPC_VANESSA_VANCLEEF));
+        Creature* mathiasObject = GetClosestCreatureWithOptions(creator, 15.0f, { .CreatureId = NPC_MATHIAS_SHAW, .IgnorePhases = true });
+        Creature* vanessaObject = GetClosestCreatureWithOptions(creator, 15.0f, { .CreatureId = NPC_VANESSA_VANCLEEF, .IgnorePhases = true });
         if (!mathiasObject || !vanessaObject)
             return;
 
@@ -436,8 +486,6 @@ public:
         if (!mathiasClone || !vanessaClone)
             return;
 
-        _vanessaGUID = vanessaClone->GetGUID();
-        _mathiasGUID = mathiasClone->GetGUID();
         mathiasClone->RemoveNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
         vanessaClone->RemoveNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
         vanessaClone->SetVirtualItem(1, vanessaClone->GetVirtualItemId(0)); // add 2nd dagger to hands
@@ -449,9 +497,7 @@ public:
 
     void OnConversationStart(Conversation* conversation) override
     {
-        LocaleConstant privateOwnerLocale = LOCALE_enUS;
-        if (Player* owner = ObjectAccessor::GetPlayer(*conversation, conversation->GetPrivateObjectOwner()))
-            privateOwnerLocale = owner->GetSession()->GetSessionDbLocaleIndex();
+        LocaleConstant privateOwnerLocale = conversation->GetPrivateObjectOwnerLocale();
 
         if (Milliseconds const* teleportLineStartTime = conversation->GetLineStartTime(privateOwnerLocale, CONVO_LINE_VANESSA_TELEPORT))
             _events.ScheduleEvent(EVENT_VANESSA_TELEPORT, *teleportLineStartTime);
@@ -471,77 +517,181 @@ public:
 
         switch (_events.ExecuteEvent())
         {
-        case EVENT_VANESSA_TELEPORT:
-        {
-            Unit* privateObjectOwner = ObjectAccessor::GetUnit(*conversation, conversation->GetPrivateObjectOwner());
-            if (!privateObjectOwner)
-                break;
+            case EVENT_VANESSA_TELEPORT:
+            {
+                Unit* privateObjectOwner = ObjectAccessor::GetUnit(*conversation, conversation->GetPrivateObjectOwner());
+                if (!privateObjectOwner)
+                    break;
 
-            Creature* vanessaClone = ObjectAccessor::GetCreature(*conversation, _vanessaGUID);
-            if (!vanessaClone)
-                break;
+                Creature* vanessaClone = conversation->GetActorCreature(CONVO_ACTOR_IDX_VANESSA);
+                if (!vanessaClone)
+                    break;
 
-            vanessaClone->CastSpell(privateObjectOwner, SPELL_VANESSA_TELEPORT_BEHIND, true);
-            vanessaClone->CastSpell(privateObjectOwner, SPELL_VANESSA_CHEAP_SHOT, true);
-            vanessaClone->RemoveAurasDueToSpell(SPELL_VANESSA_STEALTH);
-            vanessaClone->SetEmoteState(EMOTE_STATE_READY1H);
-            break;
-        }
-        case EVENT_VANESSA_MOVE:
-        {
-            Creature* vanessaClone = ObjectAccessor::GetCreature(*conversation, _vanessaGUID);
-            if (!vanessaClone)
+                vanessaClone->CastSpell(privateObjectOwner, SPELL_VANESSA_TELEPORT_BEHIND, true);
+                vanessaClone->CastSpell(privateObjectOwner, SPELL_VANESSA_CHEAP_SHOT, true);
+                vanessaClone->RemoveAurasDueToSpell(SPELL_VANESSA_STEALTH);
+                vanessaClone->SetEmoteState(EMOTE_STATE_READY1H);
                 break;
+            }
+            case EVENT_VANESSA_MOVE:
+            {
+                Creature* vanessaClone = conversation->GetActorCreature(CONVO_ACTOR_IDX_VANESSA);
+                if (!vanessaClone)
+                    break;
 
-            vanessaClone->SetWalk(true);
-            vanessaClone->SetEmoteState(EMOTE_STATE_NONE);
-            vanessaClone->GetMotionMaster()->MovePoint(POINT_VANESSA_FINISH, VanessaStaticPosition);
-            break;
-        }
-        case EVENT_MATHIAS_QUEST_CREDIT:
-        {
-            Unit* privateObjectOwner = ObjectAccessor::GetUnit(*conversation, conversation->GetPrivateObjectOwner());
-            if (!privateObjectOwner)
+                vanessaClone->SetWalk(true);
+                vanessaClone->SetEmoteState(EMOTE_STATE_NONE);
+                vanessaClone->GetMotionMaster()->MovePoint(POINT_VANESSA_FINISH, VanessaStaticPosition);
                 break;
+            }
+            case EVENT_MATHIAS_QUEST_CREDIT:
+            {
+                Unit* privateObjectOwner = ObjectAccessor::GetUnit(*conversation, conversation->GetPrivateObjectOwner());
+                if (!privateObjectOwner)
+                    break;
 
-            Creature* vanessaClone = ObjectAccessor::GetCreature(*conversation, _vanessaGUID);
-            if (!vanessaClone)
+                Creature* vanessaClone = conversation->GetActorCreature(CONVO_ACTOR_IDX_VANESSA);
+                if (!vanessaClone)
+                    break;
+
+                Creature* mathiasClone = conversation->GetActorCreature(CONVO_ACTOR_IDX_MATHIAS);
+                if (!mathiasClone)
+                    break;
+
+                privateObjectOwner->ToPlayer()->KilledMonsterCredit(NPC_MATHIAS_SHAW);
+                vanessaClone->DespawnOrUnsummon();
+                mathiasClone->SetNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
                 break;
+            }
+            case EVENT_MATHIAS_CLONE_DESPAWN:
+            {
+                Creature* mathiasClone = conversation->GetActorCreature(CONVO_ACTOR_IDX_MATHIAS);
+                if (!mathiasClone)
+                    break;
 
-            Creature* mathiasClone = ObjectAccessor::GetCreature(*conversation, _mathiasGUID);
-            if (!mathiasClone)
+                mathiasClone->DespawnOrUnsummon();
                 break;
-
-            privateObjectOwner->ToPlayer()->KilledMonsterCredit(NPC_MATHIAS_SHAW);
-            vanessaClone->DespawnOrUnsummon();
-            mathiasClone->SetNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
-            break;
-        }
-        case EVENT_MATHIAS_CLONE_DESPAWN:
-        {
-            Creature* mathiasClone = ObjectAccessor::GetCreature(*conversation, _mathiasGUID);
-            if (!mathiasClone)
+            }
+            default:
                 break;
-
-            mathiasClone->DespawnOrUnsummon();
-            break;
-        }
-        default:
-            break;
         }
     }
 
 private:
-    ObjectGuid _vanessaGUID;
-    ObjectGuid _mathiasGUID;
+    EventMap _events;
+};
+
+// 20387 - Conversation
+class conversation_the_new_classington_estate : public ConversationScript
+{
+public:
+    conversation_the_new_classington_estate() : ConversationScript("conversation_the_new_classington_estate") { }
+
+    void OnConversationCreate(Conversation* conversation, Unit* creator) override
+    {
+        Creature* mathiasObject = GetClosestCreatureWithOptions(creator, 15.0f, { .CreatureId = NPC_MATHIAS_SHAW, .IgnorePhases = true });
+        Creature* vanessaObject = GetClosestCreatureWithOptions(creator, 15.0f, { .CreatureId = NPC_VANESSA_VANCLEEF, .IgnorePhases = true });
+        if (!mathiasObject || !vanessaObject)
+            return;
+
+        TempSummon* mathiasClone = mathiasObject->SummonPersonalClone(mathiasObject->GetPosition(), TEMPSUMMON_MANUAL_DESPAWN, 0s, 0, 0, creator->ToPlayer());
+        TempSummon* vanessaClone = vanessaObject->SummonPersonalClone(VanessaStaticPosition, TEMPSUMMON_MANUAL_DESPAWN, 0s, 0, 0, creator->ToPlayer());
+        if (!mathiasClone || !vanessaClone)
+            return;
+
+        mathiasClone->RemoveNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
+        vanessaClone->RemoveNpcFlag(NPCFlags(UNIT_NPC_FLAG_GOSSIP | UNIT_NPC_FLAG_QUESTGIVER));
+        vanessaClone->SetVirtualItem(1, vanessaClone->GetVirtualItemId(0)); // add 2nd dagger to hands
+
+        conversation->AddActor(CONVO_THE_NEW_CLASSINGTON_ESTATE, CONVO_ACTOR_IDX_MATHIAS_CLASSINGTON_ESTATE, mathiasClone->GetGUID());
+        conversation->AddActor(CONVO_THE_NEW_CLASSINGTON_ESTATE, CONVO_ACTOR_IDX_VANESSA_CLASSINGTON_ESTATE, vanessaClone->GetGUID());
+        conversation->Start();
+    }
+
+    void OnConversationStart(Conversation* conversation) override
+    {
+        LocaleConstant privateOwnerLocale = conversation->GetPrivateObjectOwnerLocale();
+
+        _events.ScheduleEvent(EVENT_VANESSA_START_WALK, conversation->GetLineEndTime(privateOwnerLocale, CONVO_LINE_VANESSA_START_WALK));
+
+        if (Milliseconds const* facingLineStartTime = conversation->GetLineStartTime(privateOwnerLocale, CONVO_LINE_HANDLE_CLONE_FACING))
+            _events.ScheduleEvent(EVENT_MATHIAS_SET_FACING, *facingLineStartTime);
+
+        _events.ScheduleEvent(EVENT_VANESSA_SET_FACING, conversation->GetLineEndTime(privateOwnerLocale, CONVO_LINE_HANDLE_CLONE_FACING));
+
+        _events.ScheduleEvent(EVENT_MATHIAS_CLONE_DESPAWN, conversation->GetLastLineEndTime(privateOwnerLocale));
+    }
+
+    void OnConversationUpdate(Conversation* conversation, uint32 diff) override
+    {
+        _events.Update(diff);
+
+        switch (_events.ExecuteEvent())
+        {
+            case EVENT_VANESSA_START_WALK:
+            {
+                Creature* vanessaClone = conversation->GetActorCreature(CONVO_ACTOR_IDX_VANESSA_CLASSINGTON_ESTATE);
+                if (!vanessaClone)
+                    break;
+
+                Creature* mathiasClone = conversation->GetActorCreature(CONVO_ACTOR_IDX_MATHIAS_CLASSINGTON_ESTATE);
+                if (!mathiasClone)
+                    break;
+
+                mathiasClone->SetFacingTo(mathiasClone->GetHomePosition().GetOrientation());
+                // @ToDo: use emote data of broadcast text
+                vanessaClone->SetEmoteState(EMOTE_STATE_NONE);
+                vanessaClone->GetMotionMaster()->MovePath(PATH_VANESSA_GOLDSHIRE_BASEMENT, false);
+                break;
+            }
+            case EVENT_MATHIAS_SET_FACING:
+            {
+                Creature* vanessaClone = conversation->GetActorCreature(CONVO_ACTOR_IDX_VANESSA_CLASSINGTON_ESTATE);
+                if (!vanessaClone)
+                    break;
+
+                Creature* mathiasClone = conversation->GetActorCreature(CONVO_ACTOR_IDX_MATHIAS_CLASSINGTON_ESTATE);
+                if (!mathiasClone)
+                    break;
+
+                vanessaClone->HandleEmoteCommand(EMOTE_ONESHOT_LAUGH);
+                mathiasClone->SetFacingToObject(vanessaClone);
+                break;
+            }
+            case EVENT_VANESSA_SET_FACING:
+            {
+                Creature* vanessaClone = conversation->GetActorCreature(CONVO_ACTOR_IDX_VANESSA_CLASSINGTON_ESTATE);
+                if (!vanessaClone)
+                    break;
+
+                Creature* mathiasClone = conversation->GetActorCreature(CONVO_ACTOR_IDX_MATHIAS_CLASSINGTON_ESTATE);
+                if (!mathiasClone)
+                    break;
+
+                vanessaClone->SetFacingToObject(mathiasClone);
+                break;
+            }
+            case EVENT_MATHIAS_CLONE_DESPAWN:
+            {
+                Creature* mathiasClone = conversation->GetActorCreature(CONVO_ACTOR_IDX_MATHIAS_CLASSINGTON_ESTATE);
+                if (!mathiasClone)
+                    break;
+
+                mathiasClone->DespawnOrUnsummon();
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+private:
     EventMap _events;
 };
 
 // 228928 - Stealth
 class spell_stealth_vanessa_human_heritage : public AuraScript
 {
-    PrepareAuraScript(spell_stealth_vanessa_human_heritage);
-
     void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         GetTarget()->SetDisplayId(DISPLAY_VANESSA_INVISIBLE);
@@ -571,6 +721,7 @@ void AddSC_elwynn_forest()
 
     // Conversation
     new conversation_an_unlikely_informant();
+    new conversation_the_new_classington_estate();
 
     // AreaTrigger
     RegisterAreaTriggerAI(at_human_heritage_lions_pride_inn_basement_enter);

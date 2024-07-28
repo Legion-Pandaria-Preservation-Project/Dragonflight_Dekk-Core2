@@ -22,7 +22,6 @@
 #include "AreaTriggerPackets.h"
 #include "Battleground.h"
 #include "CharacterPackets.h"
-#include "ChallengeModeMgr.h"
 #include "Chat.h"
 #include "CinematicMgr.h"
 #include "ClientConfigPackets.h"
@@ -36,16 +35,12 @@
 #include "Group.h"
 #include "Guild.h"
 #include "GuildMgr.h"
-#include "InstanceLockMgr.h"
 #include "InstancePackets.h"
 #include "InstanceScript.h"
-#include "Item.h"
 #include "Language.h"
 #include "Log.h"
 #include "Map.h"
-#include "MapManager.h"
 #include "MiscPackets.h"
-#include "MythicPlusPacketsCommon.h"
 #include "Object.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
@@ -60,18 +55,6 @@
 #include "World.h"
 #include <cstdarg>
 #include <zlib.h>
-
-// DekkCore >
-#include "WorldPacket.h"
-#include "MythicPlusPacketsCommon.h"
-#include "GameObject.h"
-#include <Contribution/ContributionMgr.h>
-#include <ChallengeMode/Challenge.h>
-#include <WorldStates/WorldStateMgr.h>
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
-// < DekkCore
 
 void WorldSession::HandleRepopRequest(WorldPackets::Misc::RepopRequest& /*packet*/)
 {
@@ -92,10 +75,6 @@ void WorldSession::HandleRepopRequest(WorldPackets::Misc::RepopRequest& /*packet
             GetPlayer()->GetName(), GetPlayer()->GetGUID().ToString());
         GetPlayer()->KillPlayer();
     }
-
-#ifdef ELUNA
-    sEluna->OnRepop(GetPlayer());
-#endif
 
     //this is spirit release confirm?
     GetPlayer()->RemovePet(nullptr, PET_SAVE_NOT_IN_SLOT, true);
@@ -157,7 +136,7 @@ void WorldSession::HandleWhoOpcode(WorldPackets::Who::WhoRequestPkt& whoRequest)
 
     uint32 team = _player->GetTeam();
 
-    uint32 gmLevelInWhoList = sWorld->getIntConfig(CONFIG_GM_LEVEL_IN_WHO_LIST);
+    uint32 gmLevelInWhoList  = sWorld->getIntConfig(CONFIG_GM_LEVEL_IN_WHO_LIST);
 
     WorldPackets::Who::WhoResponsePkt response;
     response.RequestID = whoRequest.RequestID;
@@ -264,7 +243,7 @@ void WorldSession::HandleLogoutRequestOpcode(WorldPackets::Character::LogoutRequ
     bool instantLogout = GetPlayer()->IsInFlight();
     if (!logoutRequest.IdleLogout)
         instantLogout |= (GetPlayer()->HasPlayerFlag(PLAYER_FLAGS_RESTING) && !GetPlayer()->IsInCombat())
-        || HasPermission(rbac::RBAC_PERM_INSTANT_LOGOUT);
+            || HasPermission(rbac::RBAC_PERM_INSTANT_LOGOUT);
 
     /// TODO: Possibly add RBAC permission to log out in combat
     bool canLogoutInCombat = GetPlayer()->HasPlayerFlag(PLAYER_FLAGS_RESTING);
@@ -390,7 +369,7 @@ void WorldSession::HandleRequestCemeteryList(WorldPackets::Misc::RequestCemetery
     for (auto it = range.first; it != range.second && graveyardIds.size() < 16; ++it) // client max
     {
         ConditionSourceInfo conditionSource(_player);
-        if (!sConditionMgr->IsObjectMeetToConditions(conditionSource, it->second.Conditions))
+        if (!it->second.Conditions.Meets(conditionSource))
             continue;
 
         graveyardIds.push_back(it->first);
@@ -422,13 +401,13 @@ void WorldSession::HandleStandStateChangeOpcode(WorldPackets::Misc::StandStateCh
 {
     switch (packet.StandState)
     {
-    case UNIT_STAND_STATE_STAND:
-    case UNIT_STAND_STATE_SIT:
-    case UNIT_STAND_STATE_SLEEP:
-    case UNIT_STAND_STATE_KNEEL:
-        break;
-    default:
-        return;
+        case UNIT_STAND_STATE_STAND:
+        case UNIT_STAND_STATE_SIT:
+        case UNIT_STAND_STATE_SLEEP:
+        case UNIT_STAND_STATE_KNEEL:
+            break;
+        default:
+            return;
     }
 
     _player->SetStandState(packet.StandState);
@@ -501,7 +480,7 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPackets::AreaTrigger::AreaTrigge
     Player* player = GetPlayer();
     if (player->IsInFlight())
     {
-        TC_LOG_DEBUG("network", "HandleAreaTriggerOpcode: Player '{}' {} in flight, ignore Area Trigger ID:{}",
+        TC_LOG_DEBUG("network", "HandleAreaTriggerOpcode: Player '{}' {} in flight, ignore Area Trigger ID: {}",
             player->GetName(), player->GetGUID().ToString(), packet.AreaTriggerID);
         return;
     }
@@ -509,12 +488,12 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPackets::AreaTrigger::AreaTrigge
     AreaTriggerEntry const* atEntry = sAreaTriggerStore.LookupEntry(packet.AreaTriggerID);
     if (!atEntry)
     {
-        TC_LOG_DEBUG("network", "HandleAreaTriggerOpcode: Player '{}' {} send unknown (by DBC) Area Trigger ID:{}",
+        TC_LOG_DEBUG("network", "HandleAreaTriggerOpcode: Player '{}' {} send unknown (by DBC) Area Trigger ID: {}",
             player->GetName(), player->GetGUID().ToString(), packet.AreaTriggerID);
         return;
     }
 
-    if (packet.Entered && !player->IsInAreaTriggerRadius(atEntry))
+    if (packet.Entered != player->IsInAreaTrigger(atEntry))
     {
         TC_LOG_DEBUG("network", "HandleAreaTriggerOpcode: Player '{}' {} too far, ignore Area Trigger ID: {}",
             player->GetName(), player->GetGUID().ToString(), packet.AreaTriggerID);
@@ -529,6 +508,14 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPackets::AreaTrigger::AreaTrigge
 
     if (sScriptMgr->OnAreaTrigger(player, atEntry, packet.Entered))
         return;
+
+    if (atEntry->AreaTriggerActionSetID)
+    {
+        if (packet.Entered)
+            player->UpdateCriteria(CriteriaType::EnterAreaTriggerWithActionSet, atEntry->AreaTriggerActionSetID);
+        else
+            player->UpdateCriteria(CriteriaType::LeaveAreaTriggerWithActionSet, atEntry->AreaTriggerActionSetID);
+    }
 
     if (player->IsAlive() && packet.Entered)
     {
@@ -571,7 +558,7 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPackets::AreaTrigger::AreaTrigge
             }
 
             if (anyObjectiveChangedCompletionState)
-                player->UpdateVisibleGameobjectsOrSpellClicks();
+                player->UpdateVisibleObjectInteractions(true, false, false, true);
         }
     }
 
@@ -593,9 +580,6 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPackets::AreaTrigger::AreaTrigge
 
         return;
     }
-
-    if (Battleground* bg = player->GetBattleground())
-        bg->HandleAreaTrigger(player, packet.AreaTriggerID, packet.Entered);
 
     if (OutdoorPvP* pvp = player->GetOutdoorPvP())
         if (pvp->HandleAreaTrigger(_player, packet.AreaTriggerID, packet.Entered))
@@ -642,34 +626,34 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPackets::AreaTrigger::AreaTrigge
         {
             switch (denyReason.Reason)
             {
-            case TRANSFER_ABORT_MAP_NOT_ALLOWED:
-                TC_LOG_DEBUG("maps", "MAP: Player '{}' attempted to enter map with id {} which has no entry", player->GetName(), at->target_mapId);
-                break;
-            case TRANSFER_ABORT_DIFFICULTY:
-                TC_LOG_DEBUG("maps", "MAP: Player '{}' attempted to enter instance map {} but the requested difficulty was not found", player->GetName(), at->target_mapId);
-                break;
-            case TRANSFER_ABORT_NEED_GROUP:
-                TC_LOG_DEBUG("maps", "MAP: Player '{}' must be in a raid group to enter map {}", player->GetName(), at->target_mapId);
-                player->SendRaidGroupOnlyMessage(RAID_GROUP_ERR_ONLY, 0);
-                break;
-            case TRANSFER_ABORT_LOCKED_TO_DIFFERENT_INSTANCE:
-                TC_LOG_DEBUG("maps", "MAP: Player '{}' cannot enter instance map {} because their permanent bind is incompatible with their group's", player->GetName(), at->target_mapId);
-                break;
-            case TRANSFER_ABORT_ALREADY_COMPLETED_ENCOUNTER:
-                TC_LOG_DEBUG("maps", "MAP: Player '{}' cannot enter instance map {} because their permanent bind is incompatible with their group's", player->GetName(), at->target_mapId);
-                break;
-            case TRANSFER_ABORT_TOO_MANY_INSTANCES:
-                TC_LOG_DEBUG("maps", "MAP: Player '{}' cannot enter instance map {} because he has exceeded the maximum number of instances per hour.", player->GetName(), at->target_mapId);
-                break;
-            case TRANSFER_ABORT_MAX_PLAYERS:
-                break;
-            case TRANSFER_ABORT_ZONE_IN_COMBAT:
-                break;
-            case TRANSFER_ABORT_NOT_FOUND:
-                TC_LOG_DEBUG("maps", "MAP: Player '{}' cannot enter instance map {} because instance is resetting.", player->GetName(), at->target_mapId);
-                break;
-            default:
-                break;
+                case TRANSFER_ABORT_MAP_NOT_ALLOWED:
+                    TC_LOG_DEBUG("maps", "MAP: Player '{}' attempted to enter map with id {} which has no entry", player->GetName(), at->target_mapId);
+                    break;
+                case TRANSFER_ABORT_DIFFICULTY:
+                    TC_LOG_DEBUG("maps", "MAP: Player '{}' attempted to enter instance map {} but the requested difficulty was not found", player->GetName(), at->target_mapId);
+                    break;
+                case TRANSFER_ABORT_NEED_GROUP:
+                    TC_LOG_DEBUG("maps", "MAP: Player '{}' must be in a raid group to enter map {}", player->GetName(), at->target_mapId);
+                    player->SendRaidGroupOnlyMessage(RAID_GROUP_ERR_ONLY, 0);
+                    break;
+                case TRANSFER_ABORT_LOCKED_TO_DIFFERENT_INSTANCE:
+                    TC_LOG_DEBUG("maps", "MAP: Player '{}' cannot enter instance map {} because their permanent bind is incompatible with their group's", player->GetName(), at->target_mapId);
+                    break;
+                case TRANSFER_ABORT_ALREADY_COMPLETED_ENCOUNTER:
+                    TC_LOG_DEBUG("maps", "MAP: Player '{}' cannot enter instance map {} because their permanent bind is incompatible with their group's", player->GetName(), at->target_mapId);
+                    break;
+                case TRANSFER_ABORT_TOO_MANY_INSTANCES:
+                    TC_LOG_DEBUG("maps", "MAP: Player '{}' cannot enter instance map {} because he has exceeded the maximum number of instances per hour.", player->GetName(), at->target_mapId);
+                    break;
+                case TRANSFER_ABORT_MAX_PLAYERS:
+                    break;
+                case TRANSFER_ABORT_ZONE_IN_COMBAT:
+                    break;
+                case TRANSFER_ABORT_NOT_FOUND:
+                    TC_LOG_DEBUG("maps", "MAP: Player '{}' cannot enter instance map {} because instance is resetting.", player->GetName(), at->target_mapId);
+                    break;
+                default:
+                    break;
             }
 
             if (denyReason.Reason != TRANSFER_ABORT_NEED_GROUP)
@@ -694,29 +678,8 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPackets::AreaTrigger::AreaTrigge
 
     if (!teleported)
     {
-        WorldSafeLocsEntry const* entranceLocation = nullptr;
-        MapEntry const* mapEntry = sMapStore.AssertEntry(at->target_mapId);
-        if (mapEntry->Instanceable())
-        {
-            // Check if we can contact the instancescript of the instance for an updated entrance location
-            if (uint32 targetInstanceId = sMapMgr->FindInstanceIdForPlayer(at->target_mapId, _player))
-                if (Map* map = sMapMgr->FindMap(at->target_mapId, targetInstanceId))
-                    if (InstanceMap* instanceMap = map->ToInstanceMap())
-                        if (InstanceScript* instanceScript = instanceMap->GetInstanceScript())
-                            entranceLocation = sObjectMgr->GetWorldSafeLoc(instanceScript->GetEntranceLocation());
-
-            // Finally check with the instancesave for an entrance location if we did not get a valid one from the instancescript
-            if (!entranceLocation)
-            {
-                Group* group = player->GetGroup();
-                Difficulty difficulty = group ? group->GetDifficultyID(mapEntry) : player->GetDifficultyID(mapEntry);
-                ObjectGuid instanceOwnerGuid = group ? group->GetRecentInstanceOwner(at->target_mapId) : player->GetGUID();
-                if (InstanceLock const* instanceLock = sInstanceLockMgr.FindActiveInstanceLock(instanceOwnerGuid, { mapEntry, sDB2Manager.GetDownscaledMapDifficultyData(at->target_mapId, difficulty) }))
-                    entranceLocation = sObjectMgr->GetWorldSafeLoc(instanceLock->GetData()->EntranceWorldSafeLocId);
-            }
-        }
-
-        if (entranceLocation)
+        WorldSafeLocsEntry const* entranceLocation = player->GetInstanceEntrance(at->target_mapId);
+        if (entranceLocation && player->GetMapId() != at->target_mapId)
             player->TeleportTo(entranceLocation->Loc, TELE_TO_NOT_LEAVE_TRANSPORT);
         else
             player->TeleportTo(at->target_mapId, at->target_X, at->target_Y, at->target_Z, at->target_Orientation, TELE_TO_NOT_LEAVE_TRANSPORT);
@@ -920,7 +883,7 @@ void WorldSession::HandleSetTitleOpcode(WorldPackets::Character::SetTitle& packe
     // -1 at none
     if (packet.TitleID > 0)
     {
-        if (!GetPlayer()->HasTitle(packet.TitleID))
+       if (!GetPlayer()->HasTitle(packet.TitleID))
             return;
     }
     else
@@ -954,21 +917,21 @@ void WorldSession::HandleSetDungeonDifficultyOpcode(WorldPackets::Misc::SetDunge
     DifficultyEntry const* difficultyEntry = sDifficultyStore.LookupEntry(setDungeonDifficulty.DifficultyID);
     if (!difficultyEntry)
     {
-        TC_LOG_INFO("network", "WorldSession::HandleSetDungeonDifficultyOpcode: {} sent an invalid instance mode {}!",
+        TC_LOG_DEBUG("network", "WorldSession::HandleSetDungeonDifficultyOpcode: {} sent an invalid instance mode {}!",
             _player->GetGUID().ToString(), setDungeonDifficulty.DifficultyID);
         return;
     }
 
     if (difficultyEntry->InstanceType != MAP_INSTANCE)
     {
-        TC_LOG_INFO("network", "WorldSession::HandleSetDungeonDifficultyOpcode: {} sent an non-dungeon instance mode {}!",
+        TC_LOG_DEBUG("network", "WorldSession::HandleSetDungeonDifficultyOpcode: {} sent an non-dungeon instance mode {}!",
             _player->GetGUID().ToString(), difficultyEntry->ID);
         return;
     }
 
     if (!(difficultyEntry->Flags & DIFFICULTY_FLAG_CAN_SELECT))
     {
-        TC_LOG_INFO("network", "WorldSession::HandleSetDungeonDifficultyOpcode: player {} sent unselectable instance mode {}!",
+        TC_LOG_DEBUG("network", "WorldSession::HandleSetDungeonDifficultyOpcode: player {} sent unselectable instance mode {}!",
             _player->GetGUID().ToString(), difficultyEntry->ID);
         return;
     }
@@ -981,7 +944,7 @@ void WorldSession::HandleSetDungeonDifficultyOpcode(WorldPackets::Misc::SetDunge
     Map* map = _player->FindMap();
     if (map && map->Instanceable())
     {
-        TC_LOG_INFO("network", "WorldSession::HandleSetDungeonDifficultyOpcode: player (Name: {}, {}) tried to reset the instance while player is inside!",
+        TC_LOG_DEBUG("network", "WorldSession::HandleSetDungeonDifficultyOpcode: player (Name: {}, {}) tried to reset the instance while player is inside!",
             _player->GetName(), _player->GetGUID().ToString());
         return;
     }
@@ -1019,34 +982,34 @@ void WorldSession::HandleSetRaidDifficultyOpcode(WorldPackets::Misc::SetRaidDiff
 
     if (difficultyEntry->InstanceType != MAP_RAID)
     {
-        TC_LOG_INFO("network", "WorldSession::HandleSetDungeonDifficultyOpcode: {} sent an non-dungeon instance mode {}!",
+        TC_LOG_DEBUG("network", "WorldSession::HandleSetDungeonDifficultyOpcode: {} sent an non-dungeon instance mode {}!",
             _player->GetGUID().ToString(), difficultyEntry->ID);
         return;
     }
 
     if (!(difficultyEntry->Flags & DIFFICULTY_FLAG_CAN_SELECT))
     {
-        TC_LOG_INFO("network", "WorldSession::HandleSetDungeonDifficultyOpcode: player {} sent unselectable instance mode {}!",
+        TC_LOG_DEBUG("network", "WorldSession::HandleSetDungeonDifficultyOpcode: player {} sent unselectable instance mode {}!",
             _player->GetGUID().ToString(), difficultyEntry->ID);
         return;
     }
 
     if (((difficultyEntry->Flags & DIFFICULTY_FLAG_LEGACY) != 0) != setRaidDifficulty.Legacy)
     {
-        TC_LOG_INFO("network", "WorldSession::HandleSetDungeonDifficultyOpcode: {} sent not matching legacy difficulty {}!",
+        TC_LOG_DEBUG("network", "WorldSession::HandleSetDungeonDifficultyOpcode: {} sent not matching legacy difficulty {}!",
             _player->GetGUID().ToString(), difficultyEntry->ID);
         return;
     }
 
     Difficulty difficultyID = Difficulty(difficultyEntry->ID);
-    if (difficultyID == (setRaidDifficulty.Legacy ? _player->GetLegacyRaidDifficultyID() : _player->GetRaidDifficultyID()))
+    if (difficultyID == (setRaidDifficulty.Legacy ?  _player->GetLegacyRaidDifficultyID() : _player->GetRaidDifficultyID()))
         return;
 
     // cannot reset while in an instance
     Map* map = _player->FindMap();
     if (map && map->Instanceable())
     {
-        TC_LOG_INFO("network", "WorldSession::HandleSetRaidDifficultyOpcode: player (Name: {}, {}) tried to reset the instance while player is inside!",
+        TC_LOG_DEBUG("network", "WorldSession::HandleSetRaidDifficultyOpcode: player (Name: {}, {}) tried to reset the instance while player is inside!",
             _player->GetName(), _player->GetGUID().ToString());
         return;
     }
@@ -1212,9 +1175,8 @@ void WorldSession::HandleRequestLatestSplashScreen(WorldPackets::Misc::RequestLa
     UISplashScreenEntry const* splashScreen = nullptr;
     for (auto itr = sUISplashScreenStore.begin(); itr != sUISplashScreenStore.end(); ++itr)
     {
-        if (PlayerConditionEntry const* playerCondition = sPlayerConditionStore.LookupEntry(itr->CharLevelConditionID))
-            if (!ConditionMgr::IsPlayerMeetingCondition(_player, playerCondition))
-                continue;
+        if (!ConditionMgr::IsPlayerMeetingCondition(_player, itr->CharLevelConditionID))
+            continue;
 
         splashScreen = *itr;
     }
@@ -1224,539 +1186,20 @@ void WorldSession::HandleRequestLatestSplashScreen(WorldPackets::Misc::RequestLa
     SendPacket(splashScreenShowLatest.Write());
 }
 
-void WorldSession::HandleRequestCovenantCallings(WorldPackets::Misc::RequestCovenantCallings& packet)
+void WorldSession::HandleQueryCountdownTimer(WorldPackets::Misc::QueryCountdownTimer& queryCountdownTimer)
 {
-    WorldPackets::Misc::CovenantCallingAvailibilityResponse send;
-    send.Availability = true;
-    send.Index = 0;
-    send.Data = 208; // Index = 1
-    SendPacket(send.Write());
-}
-
-void WorldSession::HandleCovenantRenownRequestCatchupState(WorldPackets::Misc::CovenantRenownRequestCatchupState& packet)
-{
-    WorldPackets::Misc::CovenantRenownSendCatchUpState send;
-    send.CatchupState = false;
-    SendPacket(send.Write());
-}
-
-void WorldSession::HandleAssignEquipmentSetSpec(WorldPackets::EquipmentSet::AssignEquipmentSetSpec& packet)
-{
-}
-
-void WorldSession::HandleChallengeModeStart(WorldPackets::Misc::StartRequest& start)
-{
-    GameObject* object = _player->GetGameObjectIfCanInteractWith(start.GameObjectGUID, GAMEOBJECT_TYPE_KEYSTONE_RECEPTACLE);
-    if (!object)
-    {
-        TC_LOG_INFO("network", "WORLD: HandleChallengeModeStart - {} not found or you can not interact with it.", start.GameObjectGUID.ToString());
-        return;
-    }
-
-    Item* key = _player->GetItemByPos(start.Bag, start.Slot);
-    if (!key)
-    {
-        TC_LOG_INFO("network", "WORLD: HandleChallengeModeStart - item in Bag {} and Slot {} not found.", start.Bag, start.Slot);
-        return;
-    }
-
-    if (key->GetTemplate()->GetClass() != ITEM_CLASS_REAGENT || key->GetTemplate()->GetSubClass() != ITEM_SUBCLASS_KEYSTONE)
-    {
-        TC_LOG_INFO("network", "WORLD: HandleChallengeModeStart - Tried to start a challenge with item {} which have class {} and subclass {}.",
-            key->GetGUID().ToString(),
-            key->GetTemplate()->GetClass(),
-            key->GetTemplate()->GetSubClass());
-        return;
-    }
-
-    uint32 challengeModeId = key->GetModifier(ITEM_MODIFIER_CHALLENGE_MAP_CHALLENGE_MODE_ID);
-    uint32 challengeModeLevel = key->GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_LEVEL);
-    uint32 challengeModeAffix1 = key->GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_1);
-    uint32 challengeModeAffix2 = key->GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_2);
-    uint32 challengeModeAffix3 = key->GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_3);
-    uint32 challengeModeAffix4 = key->GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_4);
-
-    MapChallengeModeEntry const* entry = sMapChallengeModeStore.LookupEntry(challengeModeId);
-    if (!entry || !challengeModeLevel || entry->MapID != _player->GetMapId())
-    {
-        TC_LOG_INFO("network", "WORLD: HandleChallengeModeStart - Tried to start a challenge with wrong challengeModeId {} and level {}.", challengeModeId, challengeModeLevel);
-        return;
-    }
-
-    if (InstanceScript* instanceScript = _player->GetInstanceScript())
-        instanceScript->StartChallengeMode(challengeModeId, challengeModeLevel, challengeModeAffix1, challengeModeAffix2, challengeModeAffix3, challengeModeAffix4);
-
-    // Blizzard do not delete the key at challenge start, will require mort research
-    _player->DestroyItem(start.Bag, start.Slot, true);
-}
-
-
-void WorldSession::HandleRequestLeaders(WorldPackets::Misc::RequestLeaders& packet)
-{
-    WorldPackets::Misc::RequestLeadersResult result;
-    result.MapID = packet.MapId;
-    result.ChallengeID = packet.ChallengeID;
-
-    result.LastGuildUpdate = time(nullptr);
-    result.LastRealmUpdate = time(nullptr);
-
-    if (auto bestGuild = sChallengeModeMgr->BestGuildChallenge(_player->GetGuildId(), packet.ChallengeID))
-    {
-        for (auto itr = bestGuild->member.begin(); itr != bestGuild->member.end(); ++itr)
-        {
-            WorldPackets::Misc::ModeAttempt guildLeaders;
-            guildLeaders.InstanceRealmAddress = GetVirtualRealmAddress();
-            guildLeaders.AttemptID = bestGuild->ID;
-            guildLeaders.CompletionTime = bestGuild->RecordTime;
-            guildLeaders.CompletionDate = bestGuild->Date;
-            guildLeaders.MedalEarned = bestGuild->ChallengeLevel;
-
-            for (auto const& v : bestGuild->member)
-            {
-                WorldPackets::Misc::ModeAttempt::Member memberData;
-                memberData.VirtualRealmAddress = GetVirtualRealmAddress();
-                memberData.NativeRealmAddress = GetVirtualRealmAddress();
-                memberData.Guid = v.guid;
-                memberData.SpecializationID = v.specId;
-                guildLeaders.Members.emplace_back(memberData);
-            }
-
-            result.GuildLeaders.emplace_back(guildLeaders);
-        }
-    }
-
-    if (ChallengeData* bestServer = sChallengeModeMgr->BestServerChallenge(packet.ChallengeID))
-    {
-        WorldPackets::Misc::ModeAttempt realmLeaders;
-        realmLeaders.InstanceRealmAddress = GetVirtualRealmAddress();
-        realmLeaders.AttemptID = bestServer->ID;
-        realmLeaders.CompletionTime = bestServer->RecordTime;
-        realmLeaders.CompletionDate = bestServer->Date;
-        realmLeaders.MedalEarned = bestServer->ChallengeLevel;
-
-        for (auto const& v : bestServer->member)
-        {
-            WorldPackets::Misc::ModeAttempt::Member memberData;
-            memberData.VirtualRealmAddress = GetVirtualRealmAddress();
-            memberData.NativeRealmAddress = GetVirtualRealmAddress();
-            memberData.Guid = v.guid;
-            memberData.SpecializationID = v.specId;
-            realmLeaders.Members.emplace_back(memberData);
-        }
-        result.RealmLeaders.push_back(realmLeaders);
-    }
-
-    SendPacket(result.Write());
-}
-
-void WorldSession::HandleStartChallengeMode(WorldPackets::Misc::StartChallengeMode& packet)
-{
-    GameObject* object = _player->GetGameObjectIfCanInteractWith(packet.GameObjectGUID, GAMEOBJECT_TYPE_KEYSTONE_RECEPTACLE);
-    if (!object)
-    {
-        TC_LOG_INFO("server.info", "WORLD: HandleChallengeModeStart - {} not found or you can not interact with it.", packet.GameObjectGUID.ToString().c_str());
-        return;
-    }
-
-    Item* key = _player->GetItemByPos(packet.Bag, packet.Slot);
-    if (!key)
-    {
-        TC_LOG_INFO("server.info", "WORLD: HandleChallengeModeStart - item in Bag {} and Slot {} not found.", packet.Bag, packet.Slot);
-        return;
-    }
-
-    if (key->GetTemplate()->GetClass() != ITEM_CLASS_REAGENT || key->GetTemplate()->GetSubClass() != ITEM_SUBCLASS_KEYSTONE)
-    {
-        TC_LOG_INFO("server.info", "WORLD: HandleChallengeModeStart - Tried to start a challenge with item {} which have class {} and subclass {}.",
-        key->GetGUID().ToString().c_str(),
-            key->GetTemplate()->GetClass(),
-            key->GetTemplate()->GetSubClass());
-        return;
-    }
-
-    uint32 challengeModeId = key->GetModifier(ITEM_MODIFIER_CHALLENGE_MAP_CHALLENGE_MODE_ID);
-    uint32 challengeModeLevel = key->GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_LEVEL);
-    uint32 challengeModeAffix1 = key->GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_1);
-    uint32 challengeModeAffix2 = key->GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_2);
-    uint32 challengeModeAffix3 = key->GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_3);
-    uint32 challengeModeAffix4 = key->GetModifier(ITEM_MODIFIER_CHALLENGE_KEYSTONE_AFFIX_ID_4);
-
-    MapChallengeModeEntry const* entry = sMapChallengeModeStore.LookupEntry(challengeModeId);
-    if (!entry || !challengeModeLevel || entry->MapID != _player->GetMapId())
-    {
-        TC_LOG_INFO("server.info", "WORLD: HandleChallengeModeStart - Tried to start a challenge with wrong challengeModeId {} and level {}.", challengeModeId, challengeModeLevel);
-        return;
-    }
-
-    if (InstanceScript* instanceScript = _player->GetInstanceScript())
-        instanceScript->StartChallengeMode(challengeModeId, challengeModeLevel, challengeModeAffix1, challengeModeAffix2, challengeModeAffix3, challengeModeAffix4);
-
-    // Blizzard do not delete the key at challenge start, will require mort research
-    _player->DestroyItem(packet.Bag, packet.Slot, true);
-}
-
-void WorldSession::HandleResetChallengeMode(WorldPackets::Misc::ResetChallengeMode& packet)
-{
-    if (auto const& instanceScript = _player->GetInstanceScript())
-        if (instanceScript->instance->isChallenge())
-            instanceScript->ResetChallengeMode();
-}
-
-void WorldSession::HandleMythicPlusSeasonData(WorldPackets::MythicPlus::MythicPlusSeasonData& mythicPlusSeasonData)
-{
-    WorldPackets::MythicPlus::MythicPlusSeasonDataResult result;
-
-    SendPacket(result.Write());
-}
-
-void WorldSession::HandleMythicPlusCurrentAffixes(WorldPackets::MythicPlus::MythicPlusCurrentAffixes& mythicPlusCurrentAffixes)
-{
-    WorldPackets::MythicPlus::MythicPlusCurrentAffixesResult result;
-
-    result.Count = 4;
-
-    result.Affixes[0] = 10;
-    result.Affixes[1] = 6;
-    result.Affixes[2] = 14;
-    result.Affixes[3] = 132;
-
-    result.RequiredSeason[0] = 9;
-    result.RequiredSeason[1] = 0;
-    result.RequiredSeason[2] = 9;
-    result.RequiredSeason[3] = 3;
-
-    SendPacket(result.Write());
-}
-
-void WorldSession::HandleMythicPlusRequestMapStats(WorldPackets::MythicPlus::MythicPlusRequestMapStats& mythicPlusRequestMapStats)
-{
-    WorldPackets::MythicPlus::MythicPlusRequestMapStatsResult result;
-    uint32 maps = sChallengeModeMgr->GetRandomChallengeId();
-    for (auto& mythicPlusRun : result.mythicPlusRuns)
-    {
-        mythicPlusRun.MapChallengeModeID = maps;
-    }
-
-    for (auto& mythicPlusMembers : result.mythicPlusRuns)
-    {
-        mythicPlusMembers.Members.size();
-        for (auto& member : mythicPlusMembers.Members)
-        {
-            member.BnetAccountGUID = GetPlayer()->GetGUID();
-        }
-    }
-        SendPacket(result.Write());
-}
-
-void WorldSession::HandleContributionCollectorContribute(WorldPackets::Misc::ContributionCollectorContribute& packet)
-{
-    Creature* unit = GetPlayer()->GetNPCIfCanInteractWith(packet.ContributionTableNpcGuid, UNIT_NPC_FLAG_NONE, UNIT_NPC_FLAG_2_CONTRIBUTION_COLLECTOR);
-    if (!unit)
+    Group const* group = _player->GetGroup();
+    if (!group)
         return;
 
-    sContributionMgr.Contribute(GetPlayer(), packet.OrderIndex);
-}
-
-void WorldSession::HandleCommentatorEnable(WorldPackets::Misc::CommentatorEnable& packet)
-{
-}
-
-void WorldSession::HandleCommentatorGetMapInfo(WorldPackets::Misc::CommentatorGetMapInfo& packet)
-{
-}
-
-void WorldSession::HandleCommentatorGetPlayerInfo(WorldPackets::Misc::CommentatorGetPlayerInfo& packet)
-{
-}
-
-void WorldSession::HandleCommentatorEnterInstance(WorldPackets::Misc::CommentatorEnterInstance& packet)
-{
-}
-
-void WorldSession::HandleCommentatorExitInstance(WorldPackets::Misc::CommentatorExitInstance& packet)
-{
-}
-
-void WorldSession::HandleActivateSoulbind(WorldPackets::Misc::ActivateSoulbind& packet)
-{
-}
-
-void WorldSession::HandleAbandonNpeResponse(WorldPackets::Misc::AbandonNpeResponse& packet)
-{
-}
-
-void WorldSession::HandleAcceptReturningPlayerPrompt(WorldPackets::Misc::AcceptReturningPlayerPrompt& packet)
-{
-}
-
-void WorldSession::HandleAcceptSocialContract(WorldPackets::Misc::AcceptSocialContract& packet)
-{
-}
-
-void WorldSession::HandleAddAccountCosmetic(WorldPackets::Misc::AddAccountCosmetic& packet)
-{
-}
-
-void WorldSession::HandleClaimWeeklyRewards(WorldPackets::Misc::claimweeklyrewards& packet)
-{
-    WorldPackets::Misc::WeeklyRewardClaimResult send;
-    send.Result;
-
-    SendPacket(send.Write());
-}
-
-void WorldSession::HandleClearNewAppearance(WorldPackets::Misc::ClearNewAppearance& packet)
-{
-}
-
-void WorldSession::HandleAccountNotificationAcknowledge(WorldPackets::Misc::AccountNotificationAcknowledge& packet)
-{
-}
-
-void WorldSession::HandleAuctionableTokenSell(WorldPackets::Misc::AuctionableTokenSell& packet)
-{
-}
-
-void WorldSession::HandleAuctionableTokenSellAtMarketPrice(WorldPackets::Misc::AuctionableTokenSellAtMarketPrice& packet)
-{
-}
-
-void WorldSession::HandleCanRedeemTokenForBalance(WorldPackets::Misc::CanRedeemTokenForBalance& packet)
-{
-}
-
-void WorldSession::HandleChangeBagSlotFlag(WorldPackets::Misc::ChangeBagSlotFlag& packet)
-{
-}
-
-void WorldSession::HandleChangeBankBagSlotFlag(WorldPackets::Misc::ChangeBankBagSlotFlag& packet)
-{
-}
-
-void WorldSession::HandleCloseRuneforgeInteraction(WorldPackets::Misc::CloseRuneforgeInteraction& packet)
-{
-}
-
-void WorldSession::HandleCommerceTokenGetCount(WorldPackets::Misc::CommerceTokenGetCount& packet)
-{
-}
-
-void WorldSession::HandleContributionLastUpdateRequest(WorldPackets::Misc::ContributionLastUpdateRequest& packet)
-{
-}
-
-void WorldSession::SendChallengeModeMapStatsUpdate(uint32 keyID)
-{
-    WorldPacket packet(6 * 4);
-
-    for (auto l_ChallengeData : _player->m_CompletedChallenges)
-    {
-        if (l_ChallengeData.first == keyID)
-        {
-            CompletedChallenge l_CompletedChallenge = l_ChallengeData.second;
-
-            packet << uint32(l_CompletedChallenge.MapID);
-            packet << uint32(l_ChallengeData.first);
-            packet << uint32(l_CompletedChallenge.BestCompletion);
-            packet << uint32(l_CompletedChallenge.LastCompletion);
-            packet << uint32(l_CompletedChallenge.Medal);
-            packet << uint32(l_CompletedChallenge.MedalDate);
-
-            uint32 l_SpecCount = 5;
-            packet << uint32(l_SpecCount);
-
-            for (uint32 I = 0; I < 3; ++I)
-                packet << uint32(0);
-
-            for (uint32 J = 0; J < l_SpecCount; ++J)
-                packet << uint16(0);    ///pecID
-        }
-    }
-
-    SendPacket(&packet);
-}
-
-void WorldSession::HandleShowTradeSkill(WorldPackets::Misc::ShowTradeSkill& packet)
-{
-    if (!sSkillLineStore.LookupEntry(packet.SkillLineID) || !sSpellMgr->GetSpellInfo(packet.SpellID, DIFFICULTY_NONE))
+    Group::CountdownInfo const* info = group->GetCountdownInfo(queryCountdownTimer.TimerType);
+    if (!info)
         return;
 
-    Player* player = ObjectAccessor::FindPlayer(packet.PlayerGUID);
-    if (!player)
-        return;
-
-    std::set<uint32> relatedSkills;
-    relatedSkills.insert(packet.SkillLineID);
-
-    for (SkillLineEntry const* skillLine : sSkillLineStore)
-    {
-        if (skillLine->ParentSkillLineID != packet.SkillLineID)
-            continue;
-
-        if (!player->HasSkill(skillLine->ParentSkillLineID))
-            continue;
-
-        relatedSkills.insert(skillLine->ParentSkillLineID);
-    }
-
-    std::set<uint32> profSpells;
-    for (auto const& v : player->GetSpellMap())
-    {
-        if (v.second.state == PLAYERSPELL_REMOVED)
-            continue;
-
-        if (!v.second.active || v.second.disabled)
-            continue;
-
-        for (auto const& s : relatedSkills)
-            if (IsPartOfSkillLine(s, v.first))
-                profSpells.insert(v.first);
-    }
-
-    if (profSpells.empty())
-        return;
-
-    WorldPackets::Misc::ShowTradeSkillResponse response;
-    response.PlayerGUID = packet.PlayerGUID;
-    response.SpellId = packet.SpellID;
-
-    for (uint32 const& x : profSpells)
-        response.KnownAbilitySpellIDs.push_back(x);
-
-    for (uint32 const& v : relatedSkills)
-    {
-        response.SkillLineIDs.push_back(v);
-        response.SkillRanks.push_back(player->GetSkillValue(v));
-        response.SkillMaxRanks.push_back(player->GetMaxSkillValue(v));
-    }
-
-    _player->SendDirectMessage(response.Write());
-}
-
-void WorldSession::HandleSelectFactionOpcode(WorldPackets::Misc::FactionSelect& selectFaction)
-{
-    enum FactionSelection
-    {
-        JOIN_HORDE = 0,
-        JOIN_ALLIANCE = 1
-    };
-
-    if (_player->GetRace() != RACE_PANDAREN_NEUTRAL)
-        return;
-
-    if (selectFaction.FactionChoice == JOIN_ALLIANCE)
-    {
-        _player->SetRace(RACE_PANDAREN_ALLIANCE);
-        _player->SetFactionForRace(RACE_PANDAREN_ALLIANCE);
-        _player->SaveToDB();
-        _player->LearnSpell(668, false);            // Language Common
-        _player->LearnSpell(108130, false);         // Language Pandaren Alliance
-        _player->CastSpell(_player, 113244, true);  // Faction Choice Trigger Spell: Alliance
-    }
-    else if (selectFaction.FactionChoice == JOIN_HORDE)
-    {
-        _player->SetRace(RACE_PANDAREN_HORDE);
-        _player->SetFactionForRace(RACE_PANDAREN_HORDE);
-        _player->SaveToDB();
-        _player->LearnSpell(669, false);            // Language Orcish
-        _player->LearnSpell(108131, false);         // Language Pandaren Horde
-        _player->CastSpell(_player, 113245, true);  // Faction Choice Trigger Spell: Horde
-    }
-}
-
-void WorldSession::HandleAddonList(WorldPackets::ClientConfig::AddonList& packet)
-{
-    //SMSG_ADDON_LIST_REQUEST
-}
-
-void WorldSession::HandleQueryWorldCountwodnTimer(WorldPackets::Instance::QueryWorldCountwodnTimer& packet)
-{
-    //  Player* player = GetPlayer();
-    //  if (Battleground* bg = player->GetBattleground())
-       //   bg->HandleStartTimer(packet.Type);
-}
-
-void WorldSession::HandleIslandQueue(WorldPackets::Misc::IslandOnQueue& packet)
-{
-    lfg::LfgDungeonSet newDungeons;
-    newDungeons.insert(packet.ActivityID);
-    sLFGMgr->JoinLfg(GetPlayer(), ROLE_DAMAGE, newDungeons);
-
-    //alliance
-    GetPlayer()->KilledMonsterCredit(139310);
-    //horde
-    GetPlayer()->KilledMonsterCredit(139309);
-}
-
-void WorldSession::SendMythicPlusMapStatsUpdate(uint32 keyID)
-{
-    WorldPacket packet(6 * 4);
-
-    for (auto const& l_ChallengeData : _player->m_CompletedChallenges)
-    {
-        if (l_ChallengeData.first == keyID)
-        {
-            CompletedChallenge l_CompletedChallenge = l_ChallengeData.second;
-
-            packet << uint32(l_CompletedChallenge.MapID);
-            packet << uint32(l_ChallengeData.first);
-            packet << uint32(l_CompletedChallenge.BestCompletion);
-            packet << uint32(l_CompletedChallenge.LastCompletion);
-            packet << uint32(l_CompletedChallenge.Medal);
-            packet << uint32(l_CompletedChallenge.MedalDate);
-
-            uint32 l_SpecCount = 5;
-            packet << uint32(l_SpecCount);
-
-            for (uint32 I = 0; I < 3; ++I)
-                packet << uint32(0);
-
-            for (uint32 J = 0; J < l_SpecCount; ++J)
-                packet << uint16(0);    ///pecID
-        }
-    }
-
-    SendPacket(&packet);
-}
-
-void WorldSession::SendCovenantPreview(ObjectGuid sender, int32 covenantID)
-{
-    WorldPackets::Misc::CovenantPreviewOpenNpc result;
-    result.ObjGUID = sender;
-    result.CovenantId = covenantID;
-    SendPacket(result.Write());
-}
-
-void WorldSession::SendCovenantCallingAvailibilityResponse(bool availability, uint32 index, uint32 data)
-{
-    WorldPackets::Misc::CovenantCallingAvailibilityResponse send;
-    send.Availability = availability;
-    send.Index = index;
-    send.Data = data;
-    SendPacket(send.Write());
-}
-
-void WorldSession::OverrideLight(int32 areaLightID, int32 overrideLightID, int32 transitionMilliseconds)
-{
-    WorldPackets::Misc::OverrideLight overrideLight;
-    overrideLight.AreaLightID = areaLightID;
-    overrideLight.OverrideLightID = overrideLightID;
-    overrideLight.TransitionMilliseconds = transitionMilliseconds;
-    SendPacket(overrideLight.Write());
-}
-
-void WorldSession::StartTimer(InstanceMap* instance, int32 timerType, Seconds totalTime, Seconds timeLeft)
-{
     WorldPackets::Misc::StartTimer startTimer;
-    startTimer.Type = WorldPackets::Misc::StartTimer::TimerType(timerType);
-    startTimer.TotalTime = totalTime;
-    startTimer.TimeLeft = timeLeft;
-    instance->SendToPlayers(startTimer.Write());
-}
+    startTimer.Type = queryCountdownTimer.TimerType;
+    startTimer.TimeLeft = info->GetTimeLeft();
+    startTimer.TotalTime = info->GetTotalTime();
 
-void WorldSession::SendCovenantRenownSendCatchUpState(bool catchupState)
-{
-    WorldPackets::Misc::CovenantRenownSendCatchUpState send;
-    send.CatchupState = false;
-    SendPacket(send.Write());
+    _player->SendDirectMessage(startTimer.Write());
 }

@@ -73,7 +73,7 @@ enum LfgFlags
 /// Determines the type of instance
 enum LfgType
 {
-    LFG_TYPE_10_V10_BATTLEGROUND                 = 0,
+    LFG_TYPE_NONE                                = 0,
     LFG_TYPE_DUNGEON                             = 1,
     LFG_TYPE_RAID                                = 2,
     LFG_TYPE_QUEST                               = 3,
@@ -81,19 +81,6 @@ enum LfgType
     LFG_TYPE_HEROIC                              = 5,
     LFG_TYPE_RANDOM                              = 6
 };
-
-//DekkCore
-
-enum LfgSubType
-{
-    LFG_SUBTYPE_DUNGEON = 1,
-    LFG_SUBTYPE_LFR = 2,
-    LFG_SUBTYPE_SCENARIO = 3,
-    LFG_SUBTYPE_TIMEWALKING_RAID = 4,
-    LFG_SUBTYPE_BATTLEFIELD = 5,
-    LFG_SUBTYPE_BATTLEGROUND = 6,
-};
-//DekkCore
 
 /// Proposal states
 enum LfgProposalState
@@ -184,10 +171,6 @@ typedef std::map<ObjectGuid, LfgPlayerBoot> LfgPlayerBootContainer;
 typedef std::map<ObjectGuid, LfgGroupData> LfgGroupDataContainer;
 typedef std::map<ObjectGuid, LfgPlayerData> LfgPlayerDataContainer;
 typedef std::unordered_map<uint32, LFGDungeonData> LFGDungeonContainer;
-//DekkCore
-typedef std::map<ObjectGuid, std::set<uint32>> DungeonSet;
-typedef std::unordered_map<uint32, uint32> ShortageRoleMaskContainer;
-//DekkCore
 
 // Data needed by SMSG_LFG_JOIN_RESULT
 struct LfgJoinResultData
@@ -320,17 +303,13 @@ struct LFGDungeonData
     uint8 group;
     uint32 contentTuningId;
     Difficulty difficulty;
-    uint32 RequiredPlayerConditionId;
     bool seasonal;
     float x, y, z, o;
     uint16 requiredItemLevel;
-    uint16 requiredChromieTime;
+    uint32 finalDungeonEncounterId;
 
     // Helpers
     uint32 Entry() const { return id + (type << 24); }
-    //DEkkCore
-    bool IsRaid() const;
-    //DEkkCore
 };
 
 class TC_GAME_API LFGMgr
@@ -351,6 +330,8 @@ class TC_GAME_API LFGMgr
         void Update(uint32 diff);
 
         // World.cpp
+        /// Check dungeon completion on encounter completion
+        void OnDungeonEncounterDone(ObjectGuid gguid, std::array<uint32, 4> const& dungeonEncounterId, Map const* currMap);
         /// Finish the dungeon for the given group. All check are performed using internal lfg data
         void FinishDungeon(ObjectGuid gguid, uint32 dungeonId, Map const* currMap);
         /// Loads rewards for random dungeons
@@ -375,8 +356,6 @@ class TC_GAME_API LFGMgr
         uint32 GetDungeon(ObjectGuid guid, bool asId = true);
         /// Get the map id of the current dungeon
         uint32 GetDungeonMapId(ObjectGuid guid);
-        //// Get the heroic version of the current dungeon Id
-        uint32 GetDungeonIdForDifficulty(uint32 dungeonId, Difficulty difficulty);
         /// Get kicks left in current group
         uint8 GetKicksLeft(ObjectGuid gguid);
         /// Load Lfg group info from DB
@@ -386,7 +365,6 @@ class TC_GAME_API LFGMgr
         /// Return Lfg dungeon entry for given dungeon id
         uint32 GetLFGDungeonEntry(uint32 id);
 
-        LFGDungeonData const* GetLFGDungeon(uint32 id);
         // cs_lfg
         /// Get current player roles
         uint8 GetRoles(ObjectGuid guid);
@@ -429,7 +407,7 @@ class TC_GAME_API LFGMgr
         /// Gets the random dungeon reward corresponding to given dungeon and player level
         LfgReward const* GetRandomDungeonReward(uint32 dungeon, uint8 level);
         /// Returns all random and seasonal dungeons for given level and expansion
-        LfgDungeonSet GetRandomAndSeasonalDungeons(Player const* player, uint8 expansion, uint32 contentTuningReplacementConditionMask);
+        LfgDungeonSet GetRandomAndSeasonalDungeons(uint8 level, uint8 expansion, uint32 contentTuningReplacementConditionMask);
         /// Teleport a player to/from selected dungeon
         void TeleportPlayer(Player* player, bool out, bool fromOpcode = false);
         /// Inits new proposal to boot a player
@@ -446,21 +424,8 @@ class TC_GAME_API LFGMgr
         void JoinLfg(Player* player, uint8 roles, LfgDungeonSet& dungeons);
         /// Leaves lfg
         void LeaveLfg(ObjectGuid guid, bool disconnected = false);
-
-        /// Toggle LFG in debug mode
-        void ToggleSoloLFG();
-        /// Check if debug mode
-        bool IsSoloLFG() const { return m_isSoloLFG; }
-
         /// Gets unique join queue data
         WorldPackets::LFG::RideTicket const* GetTicket(ObjectGuid guid) const;
-
-        // Shortages
-        void SetShortageRoleMask(uint32 dungeonId, uint8 role);
-        /// Returns the stored role mask for the shortage system indexed by random dungeon id
-        uint32 GetShortageRoleMask(uint32 dungeonId);
-        /// Checks if the player's class is allowed to perform his selected roles
-        bool CanPerformSelectedRoles(uint8 playerClass, uint8 roles) const;
 
         // LfgQueue
         /// Get last lfg state (NONE, DUNGEON or FINISHED_DUNGEON)
@@ -483,12 +448,7 @@ class TC_GAME_API LFGMgr
         static bool HasIgnore(ObjectGuid guid1, ObjectGuid guid2);
         /// Sends queue status to player
         static void SendLfgQueueStatus(ObjectGuid guid, LfgQueueStatusData const& data);
-        //dekkcore
-        void SendLfgUpdatePlayer(ObjectGuid guid, LfgUpdateData const& data, bool Suspended = false);
-        void StopAllOtherQueue(ObjectGuid guid, uint32 queueId);
-        void SendLfgUpdateQueue(ObjectGuid guid);
-        void SendUpdateStatus(ObjectGuid guid, LfgUpdateData const& updateData, bool Suspended);
-       //dekkcore
+
     private:
         uint8 GetTeam(ObjectGuid guid);
         uint8 FilterClassRoles(Player* player, uint8 roles);
@@ -503,7 +463,7 @@ class TC_GAME_API LFGMgr
         void RemovePlayerData(ObjectGuid guid);
         void GetCompatibleDungeons(LfgDungeonSet* dungeons, GuidSet const& players, LfgLockPartyMap* lockMap, std::vector<std::string const*>* playersMissingRequirement, bool isContinue);
         void _SaveToDB(ObjectGuid guid, uint32 db_guid);
-        void AddDungeonsFromGroupingMap(LfgCachedDungeonContainer& container, uint32 groupId, uint32 dungeonId);
+        LFGDungeonData const* GetLFGDungeon(uint32 id);
 
         // Proposals
         void RemoveProposal(LfgProposalContainer::iterator itProposal, LfgUpdateType type);
@@ -529,26 +489,24 @@ class TC_GAME_API LFGMgr
         uint32 m_lfgProposalId;                            /// used as internal counter for proposals
         uint32 m_options;                                  /// Stores config options
 
-        bool m_isSoloLFG;                                  /// solo lfg
-
         LfgQueueContainer QueuesStore;                     /// Queues
         LfgCachedDungeonContainer CachedDungeonMapStore;   /// Stores all dungeons by groupType
         // Reward System
         LfgRewardContainer RewardMapStore;                 /// Stores rewards for random dungeons
         LFGDungeonContainer LfgDungeonStore;
-        // Shortage System
-        ShortageRoleMaskContainer ShortageRoleMaskStore;   ///< Stores the roles that are enligible for additional rewards indexed by random dungeonId
         // Rolecheck - Proposal - Vote Kicks
         LfgRoleCheckContainer RoleChecksStore;             /// Current Role checks
         LfgProposalContainer ProposalsStore;               /// Current Proposals
         LfgPlayerBootContainer BootsStore;                 /// Current player kicks
         LfgPlayerDataContainer PlayersStore;               /// Player data
         LfgGroupDataContainer GroupsStore;                 /// Group data
-        //DekkCore
-        DungeonSet PlayerDungeons;
-        //DekkCore
 };
 
+inline int32 format_as(LFGMgrEnum e) { return e; }
+inline int32 format_as(LfgProposalState e) { return e; }
+inline uint8 format_as(LfgTeleportResult e) { return e; }
+inline int32 format_as(LfgJoinResult e) { return e; }
+inline int32 format_as(LfgRoleCheckState e) { return e; }
 } // namespace lfg
 
 #define sLFGMgr lfg::LFGMgr::instance()

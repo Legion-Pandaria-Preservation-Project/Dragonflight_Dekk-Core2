@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 DekkCore
+ * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,61 +15,40 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DEF_RAGEFIRECHASM_H
-#define DEF_RAGEFIRECHASM_H
+#ifndef _Ragefire_Chasm_h__
+#define _Ragefire_Chasm_h__
 
-#define RCScriptName "instance_ragefire_chasm"
+#include "CreatureAIImpl.h"
 
-// enumerate all bosses 0-x
-enum Bosses
+constexpr char const* DataHeader = "RFC";
+constexpr char const* RfCScriptName = "instance_ragefire_chasm";
+
+constexpr uint32 const EncounterCount = 4;
+
+enum RFCDataTypes
 {
-    BOSS_OGGLEFLINT = 0,
-    BOSS_JERGOSH_THE_INVOKER,
-    BOSS_BAZZALAN,
-    BOSS_TARAGAMAN_THE_HUNGERER,
-    MAX_BOSS_ENCOUNTER
+    // Encounters
+    BOSS_ADAROGG               = 0,
+    BOSS_DARK_SHAMAN_KORANTHAL = 1,
+    BOSS_SLAGMAW               = 2,
+    BOSS_LAVA_GUARD_GORDOTH    = 3
 };
 
-// enumerate all npc where you want to store GUID
-enum Data64
+enum RFCCreatureIds
 {
-    DATA_OGGLEFLINT = 0,
-    DATA_JERGOSH_THE_INVOKER,
-    DATA_BAZZALAN,
-    DATA_TARAGAMAN_THE_HUNGERER,
-    MAX_DATA_ENCOUNTER
+    // Bosses
+    NPC_ADAROGG               = 61408,
+    NPC_DARK_SHAMAN_KORANTHAL = 61412,
+    NPC_SLAGMAW               = 61463,
+    NPC_LAVA_GUARD_GORDOTH    = 61528
 };
 
-// enumerate all gameobject and the entry's 
-enum GameObjectsIds
+template <class AI, class T>
+inline AI* GetRagefireChasmAI(T* obj)
 {
-    GO_ = 12345,
-};
-
-// enumerate all creatures and the entry's 
-enum CreatureIds
-{
-    NPC_OGGLEFLINT = 11517,
-    NPC_JERGOSH_THE_INVOKER = 11518,
-    NPC_BAZZALAN = 11519,
-    NPC_TARAGAMAN_THE_HUNGERER = 11520,
-};
-
-template<class AI>
-CreatureAI* GetRagefireChasmAI(Creature* creature)
-{
-    if (InstanceMap* instance = creature->GetMap()->ToInstanceMap())
-        if (instance->GetInstanceScript())
-            if (instance->GetScriptId() == sObjectMgr->GetScriptId(RCScriptName))
-                return new AI(creature);
-
-    return NULL;
+    return GetInstanceAI<AI>(obj, RfCScriptName);
 }
 
-template<class AI, class T>
-AI* GetRagefireChasmAI(T* obj)
-{
-    return GetInstanceAI<AI, T>(obj, RCScriptName);
-}
+#define RegisterRagefireChasmCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetRagefireChasmAI)
 
-#endif
+#endif // _Ragefire_Chasm_h__

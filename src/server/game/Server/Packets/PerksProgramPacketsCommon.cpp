@@ -35,11 +35,4 @@ ByteBuffer& operator<<(ByteBuffer& data, PerksVendorItem const& perksVendorItem)
 
     return data;
 }
-
-void PerksProgramRequestPurchase::Read()
-{
-    _worldPacket >> PlayerGuid;
-    _worldPacket >> unk;
-}
-
 }

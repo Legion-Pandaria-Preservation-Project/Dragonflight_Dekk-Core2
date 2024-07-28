@@ -96,7 +96,7 @@ WorldPacket const* WorldPackets::Combat::AIReaction::Write()
 
 WorldPacket const* WorldPackets::Combat::AttackSwingError::Write()
 {
-    _worldPacket.WriteBits(Reason, 3);
+    _worldPacket.WriteBits(AsUnderlyingType(Reason), 3);
     _worldPacket.FlushBits();
     return &_worldPacket;
 }
@@ -110,6 +110,13 @@ WorldPacket const* WorldPackets::Combat::PowerUpdate::Write()
         _worldPacket << int32(power.Power);
         _worldPacket << uint8(power.PowerType);
     }
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Combat::InterruptPowerRegen::Write()
+{
+    _worldPacket << int32(PowerType);
 
     return &_worldPacket;
 }
@@ -154,20 +161,6 @@ WorldPacket const* WorldPackets::Combat::PvPCredit::Write()
 WorldPacket const* WorldPackets::Combat::BreakTarget::Write()
 {
     _worldPacket << UnitGUID;
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Combat::ResetRangedCombatTimer::Write()
-{
-    _worldPacket << Delay;
-    
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Combat::InterruptPowerRegen::Write()
-{
-    _worldPacket << int32(PowerType);
 
     return &_worldPacket;
 }

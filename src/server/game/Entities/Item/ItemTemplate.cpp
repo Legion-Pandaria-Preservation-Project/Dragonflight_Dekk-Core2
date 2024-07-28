@@ -64,26 +64,26 @@ bool ItemTemplate::HasSignature() const
         GetClass() != ITEM_CLASS_CONSUMABLE &&
         GetClass() != ITEM_CLASS_QUEST &&
         !HasFlag(ITEM_FLAG_NO_CREATOR) &&
-        GetId() != 6948; /*Hearthstone*/
+        GetId() != ITEM_HEARTHSTONE;
 }
 
 bool ItemTemplate::CanChangeEquipStateInCombat() const
 {
     switch (GetInventoryType())
     {
-    case INVTYPE_RELIC:
-    case INVTYPE_SHIELD:
-    case INVTYPE_HOLDABLE:
-        return true;
-    default:
-        break;
+        case INVTYPE_RELIC:
+        case INVTYPE_SHIELD:
+        case INVTYPE_HOLDABLE:
+            return true;
+        default:
+            break;
     }
 
     switch (GetClass())
     {
-    case ITEM_CLASS_WEAPON:
-    case ITEM_CLASS_PROJECTILE:
-        return true;
+        case ITEM_CLASS_WEAPON:
+        case ITEM_CLASS_PROJECTILE:
+            return true;
     }
 
     return false;
@@ -114,23 +114,23 @@ uint32 ItemTemplate::GetSkill() const
 
     switch (GetClass())
     {
-    case ITEM_CLASS_WEAPON:
-        if (GetSubClass() >= MAX_ITEM_SUBCLASS_WEAPON)
+        case ITEM_CLASS_WEAPON:
+            if (GetSubClass() >= MAX_ITEM_SUBCLASS_WEAPON)
+                return 0;
+            else
+                return itemWeaponSkills[GetSubClass()];
+        case ITEM_CLASS_ARMOR:
+            if (GetSubClass() >= MAX_ITEM_SUBCLASS_ARMOR)
+                return 0;
+            else
+                return itemArmorSkills[GetSubClass()];
+        case ITEM_CLASS_PROFESSION:
+            if (GetSubClass() >= MAX_ITEM_SUBCLASS_PROFESSION)
+                return 0;
+            else
+                return itemProfessionSkills[GetSubClass()];
+        default:
             return 0;
-        else
-            return itemWeaponSkills[GetSubClass()];
-    case ITEM_CLASS_ARMOR:
-        if (GetSubClass() >= MAX_ITEM_SUBCLASS_ARMOR)
-            return 0;
-        else
-            return itemArmorSkills[GetSubClass()];
-    case ITEM_CLASS_PROFESSION:
-        if (GetSubClass() >= MAX_ITEM_SUBCLASS_PROFESSION)
-            return 0;
-        else
-            return itemProfessionSkills[GetSubClass()];
-    default:
-        return 0;
     }
 }
 
@@ -168,24 +168,24 @@ uint32 ItemTemplate::GetArmor(uint32 itemLevel) const
         float locationModifier = 1.0f;
         switch (GetSubClass())
         {
-        case ITEM_SUBCLASS_ARMOR_CLOTH:
-            total = armorTotal->Cloth;
-            locationModifier = location->Clothmodifier;
-            break;
-        case ITEM_SUBCLASS_ARMOR_LEATHER:
-            total = armorTotal->Leather;
-            locationModifier = location->Leathermodifier;
-            break;
-        case ITEM_SUBCLASS_ARMOR_MAIL:
-            total = armorTotal->Mail;
-            locationModifier = location->Chainmodifier;
-            break;
-        case ITEM_SUBCLASS_ARMOR_PLATE:
-            total = armorTotal->Plate;
-            locationModifier = location->Platemodifier;
-            break;
-        default:
-            break;
+            case ITEM_SUBCLASS_ARMOR_CLOTH:
+                total = armorTotal->Cloth;
+                locationModifier = location->Clothmodifier;
+                break;
+            case ITEM_SUBCLASS_ARMOR_LEATHER:
+                total = armorTotal->Leather;
+                locationModifier = location->Leathermodifier;
+                break;
+            case ITEM_SUBCLASS_ARMOR_MAIL:
+                total = armorTotal->Mail;
+                locationModifier = location->Chainmodifier;
+                break;
+            case ITEM_SUBCLASS_ARMOR_PLATE:
+                total = armorTotal->Plate;
+                locationModifier = location->Platemodifier;
+                break;
+            default:
+                break;
         }
 
         return uint32(armorQuality->Qualitymod[quality] * total * locationModifier + 0.5f);
@@ -208,45 +208,45 @@ float ItemTemplate::GetDPS(uint32 itemLevel) const
     float dps = 0.0f;
     switch (GetInventoryType())
     {
-    case INVTYPE_AMMO:
-        dps = sItemDamageAmmoStore.AssertEntry(itemLevel)->Quality[quality];
-        break;
-    case INVTYPE_2HWEAPON:
-        if (HasFlag(ITEM_FLAG2_CASTER_WEAPON))
-            dps = sItemDamageTwoHandCasterStore.AssertEntry(itemLevel)->Quality[quality];
-        else
-            dps = sItemDamageTwoHandStore.AssertEntry(itemLevel)->Quality[quality];
-        break;
-    case INVTYPE_RANGED:
-    case INVTYPE_THROWN:
-    case INVTYPE_RANGEDRIGHT:
-        switch (GetSubClass())
-        {
-        case ITEM_SUBCLASS_WEAPON_WAND:
-            dps = sItemDamageOneHandCasterStore.AssertEntry(itemLevel)->Quality[quality];
+        case INVTYPE_AMMO:
+            dps = sItemDamageAmmoStore.AssertEntry(itemLevel)->Quality[quality];
             break;
-        case ITEM_SUBCLASS_WEAPON_BOW:
-        case ITEM_SUBCLASS_WEAPON_GUN:
-        case ITEM_SUBCLASS_WEAPON_CROSSBOW:
+        case INVTYPE_2HWEAPON:
             if (HasFlag(ITEM_FLAG2_CASTER_WEAPON))
                 dps = sItemDamageTwoHandCasterStore.AssertEntry(itemLevel)->Quality[quality];
             else
                 dps = sItemDamageTwoHandStore.AssertEntry(itemLevel)->Quality[quality];
             break;
+        case INVTYPE_RANGED:
+        case INVTYPE_THROWN:
+        case INVTYPE_RANGEDRIGHT:
+            switch (GetSubClass())
+            {
+                case ITEM_SUBCLASS_WEAPON_WAND:
+                    dps = sItemDamageOneHandCasterStore.AssertEntry(itemLevel)->Quality[quality];
+                    break;
+                case ITEM_SUBCLASS_WEAPON_BOW:
+                case ITEM_SUBCLASS_WEAPON_GUN:
+                case ITEM_SUBCLASS_WEAPON_CROSSBOW:
+                    if (HasFlag(ITEM_FLAG2_CASTER_WEAPON))
+                        dps = sItemDamageTwoHandCasterStore.AssertEntry(itemLevel)->Quality[quality];
+                    else
+                        dps = sItemDamageTwoHandStore.AssertEntry(itemLevel)->Quality[quality];
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case INVTYPE_WEAPON:
+        case INVTYPE_WEAPONMAINHAND:
+        case INVTYPE_WEAPONOFFHAND:
+            if (HasFlag(ITEM_FLAG2_CASTER_WEAPON))
+                dps = sItemDamageOneHandCasterStore.AssertEntry(itemLevel)->Quality[quality];
+            else
+                dps = sItemDamageOneHandStore.AssertEntry(itemLevel)->Quality[quality];
+            break;
         default:
             break;
-        }
-        break;
-    case INVTYPE_WEAPON:
-    case INVTYPE_WEAPONMAINHAND:
-    case INVTYPE_WEAPONOFFHAND:
-        if (HasFlag(ITEM_FLAG2_CASTER_WEAPON))
-            dps = sItemDamageOneHandCasterStore.AssertEntry(itemLevel)->Quality[quality];
-        else
-            dps = sItemDamageOneHandStore.AssertEntry(itemLevel)->Quality[quality];
-        break;
-    default:
-        break;
     }
 
     return dps;
@@ -271,7 +271,7 @@ bool ItemTemplate::IsUsableByLootSpecialization(Player const* player, bool alway
 
     uint32 spec = player->GetLootSpecId();
     if (!spec)
-        spec = player->GetPrimarySpecialization();
+        spec = AsUnderlyingType(player->GetPrimarySpecialization());
     if (!spec)
         spec = player->GetDefaultSpecId();
 

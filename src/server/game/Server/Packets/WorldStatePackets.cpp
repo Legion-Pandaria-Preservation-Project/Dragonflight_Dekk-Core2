@@ -22,11 +22,6 @@ WorldPackets::WorldState::InitWorldStates::InitWorldStates()
 
 WorldPacket const* WorldPackets::WorldState::InitWorldStates::Write()
 {
-    std::sort(Worldstates.begin(), Worldstates.end(), [](WorldStateInfo const& a, WorldStateInfo const& b) -> bool
-        {
-            return a.VariableID < b.VariableID;
-        });
-
     _worldPacket.reserve(16 + Worldstates.size() * 8);
 
     _worldPacket << int32(MapID);
@@ -34,7 +29,7 @@ WorldPacket const* WorldPackets::WorldState::InitWorldStates::Write()
     _worldPacket << int32(SubareaID);
 
     _worldPacket << uint32(Worldstates.size());
-    for (auto const& wsi : Worldstates)
+    for (WorldStateInfo const& wsi : Worldstates)
     {
         _worldPacket << int32(wsi.VariableID);
         _worldPacket << int32(wsi.Value);

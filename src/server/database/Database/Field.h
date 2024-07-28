@@ -19,6 +19,7 @@
 #define TRINITY_DATABASE_FIELD_H
 
 #include "Define.h"
+#include "Duration.h"
 #include <array>
 #include <string>
 #include <string_view>
@@ -41,6 +42,7 @@ enum class DatabaseFieldTypes : uint8
     Double,
     Decimal,
     Date,
+    Time,
     Binary
 };
 
@@ -91,52 +93,53 @@ class TC_DATABASE_API Field
     friend class ResultSet;
     friend class PreparedResultSet;
 
-public:
-    Field();
-    ~Field();
+    public:
+        Field();
+        ~Field();
 
-    bool GetBool() const // Wrapper, actually gets integer
-    {
-        return GetUInt8() == 1 ? true : false;
-    }
+        bool GetBool() const // Wrapper, actually gets integer
+        {
+            return GetUInt8() == 1 ? true : false;
+        }
 
-    uint8 GetUInt8() const;
-    int8 GetInt8() const;
-    uint16 GetUInt16() const;
-    int16 GetInt16() const;
-    uint32 GetUInt32() const;
-    int32 GetInt32() const;
-    uint64 GetUInt64() const;
-    int64 GetInt64() const;
-    float GetFloat() const;
-    double GetDouble() const;
-    char const* GetCString() const;
-    std::string GetString() const;
-    std::string_view GetStringView() const;
-    std::vector<uint8> GetBinary() const;
-    template <size_t S>
-    std::array<uint8, S> GetBinary() const
-    {
-        std::array<uint8, S> buf;
-        GetBinarySizeChecked(buf.data(), S);
-        return buf;
-    }
+        uint8 GetUInt8() const;
+        int8 GetInt8() const;
+        uint16 GetUInt16() const;
+        int16 GetInt16() const;
+        uint32 GetUInt32() const;
+        int32 GetInt32() const;
+        uint64 GetUInt64() const;
+        int64 GetInt64() const;
+        float GetFloat() const;
+        double GetDouble() const;
+        SystemTimePoint GetDate() const;
+        char const* GetCString() const;
+        std::string GetString() const;
+        std::string_view GetStringView() const;
+        std::vector<uint8> GetBinary() const;
+        template <size_t S>
+        std::array<uint8, S> GetBinary() const
+        {
+            std::array<uint8, S> buf;
+            GetBinarySizeChecked(buf.data(), S);
+            return buf;
+        }
 
-    bool IsNull() const
-    {
-        return _value == nullptr;
-    }
+        bool IsNull() const
+        {
+            return _value == nullptr;
+        }
 
-private:
-    char const* _value;             // Actual data in memory
-    uint32 _length;                 // Length
+    private:
+        char const* _value;             // Actual data in memory
+        uint32 _length;                 // Length
 
-    void SetValue(char const* newValue, uint32 length);
+        void SetValue(char const* newValue, uint32 length);
 
-    QueryResultFieldMetadata const* _meta;
-    void SetMetadata(QueryResultFieldMetadata const* meta);
+        QueryResultFieldMetadata const* _meta;
+        void SetMetadata(QueryResultFieldMetadata const* meta);
 
-    void GetBinarySizeChecked(uint8* buf, size_t size) const;
+        void GetBinarySizeChecked(uint8* buf, size_t size) const;
 };
 
 #endif

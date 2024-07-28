@@ -122,6 +122,8 @@ float Spawns[6][2]=
 #define SPAWN_Y             -1758
 #define SPAWN_O             4.738f
 
+static constexpr uint32 PATH_ESCORT_BARNES = 134498;
+
 class npc_barnes : public CreatureScript
 {
 public:
@@ -175,6 +177,7 @@ public:
             if (m_uiEventId == EVENT_OZ)
                 instance->SetData(DATA_OPERA_OZ_DEATHCOUNT, IN_PROGRESS);
 
+            LoadPath(PATH_ESCORT_BARNES);
             Start(false);
         }
 
@@ -196,7 +199,7 @@ public:
                         me->GetPositionX(), me->GetPositionY(), me->GetPositionZ(), 0.0f,
                         TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 1min))
                     {
-                        spotlight->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+                        spotlight->SetUninteractible(true);
                         spotlight->CastSpell(spotlight, SPELL_SPOTLIGHT, false);
                         m_uiSpotlightGUID = spotlight->GetGUID();
                     }
@@ -322,7 +325,7 @@ public:
 
                         if (RaidWiped)
                         {
-                            EnterEvadeMode();
+                            EnterEvadeMode(EvadeReason::Other);
                             return;
                         }
 
@@ -379,9 +382,9 @@ public:
 
                 if (player->IsGameMaster())
                 {
-                    AddGossipItemFor(player, GossipOptionNpc::Auctioneer, OZ_GM_GOSSIP1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 3);
-                    AddGossipItemFor(player, GossipOptionNpc::Auctioneer, OZ_GM_GOSSIP2, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 4);
-                    AddGossipItemFor(player, GossipOptionNpc::Auctioneer, OZ_GM_GOSSIP3, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 5);
+                    AddGossipItemFor(player, GossipOptionNpc::None, OZ_GM_GOSSIP1, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 3);
+                    AddGossipItemFor(player, GossipOptionNpc::None, OZ_GM_GOSSIP2, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 4);
+                    AddGossipItemFor(player, GossipOptionNpc::None, OZ_GM_GOSSIP3, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 5);
                 }
 
                 if (!RaidWiped)

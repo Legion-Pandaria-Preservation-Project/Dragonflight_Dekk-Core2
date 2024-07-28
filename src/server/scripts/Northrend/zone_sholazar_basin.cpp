@@ -29,28 +29,30 @@
 #include "Vehicle.h"
 #include "GameObject.h"
 
- /*######
- ## npc_engineer_helice
- ######*/
+/*######
+## npc_engineer_helice
+######*/
 
 enum EngineerHelice
 {
     // Spells
-    SPELL_DETONATE_1 = 52369,
-    SPELL_DETONATE_2 = 52371,
-    SPELL_EXPLOSION = 46419,
+    SPELL_DETONATE_1            = 52369,
+    SPELL_DETONATE_2            = 52371,
+    SPELL_EXPLOSION             = 46419,
 
     // Yells
-    SAY_WP_1 = 0,
-    SAY_WP_2 = 1,
-    SAY_WP_3 = 2,
-    SAY_WP_4 = 3,
-    SAY_WP_5 = 4,
-    SAY_WP_6 = 5,
-    SAY_WP_7 = 6,
+    SAY_WP_1                    = 0,
+    SAY_WP_2                    = 1,
+    SAY_WP_3                    = 2,
+    SAY_WP_4                    = 3,
+    SAY_WP_5                    = 4,
+    SAY_WP_6                    = 5,
+    SAY_WP_7                    = 6,
 
     // Quests
-    QUEST_DISASTER = 12688
+    QUEST_DISASTER              = 12688,
+
+    PATH_ESCORT_HELICE          = 230298,
 };
 
 struct npc_engineer_helice : public EscortAI
@@ -61,31 +63,31 @@ struct npc_engineer_helice : public EscortAI
     {
         switch (waypointId)
         {
-        case 0:
-            Talk(SAY_WP_2);
-            break;
-        case 1:
-            Talk(SAY_WP_3);
-            DoCast(SPELL_DETONATE_1);
-            break;
-        case 7:
-            Talk(SAY_WP_5);
-            break;
-        case 8:
-            DoCast(SPELL_DETONATE_2);
-            break;
-        case 9:
-            Talk(SAY_WP_6);
-            break;
-        case 13:
-            if (Player* player = GetPlayerForEscort())
-            {
-                player->GroupEventHappens(QUEST_DISASTER, me);
-                Talk(SAY_WP_7);
-            }
-            break;
-        default:
-            break;
+            case 0:
+                Talk(SAY_WP_2);
+                break;
+            case 1:
+                Talk(SAY_WP_3);
+                DoCast(SPELL_DETONATE_1);
+                break;
+            case 7:
+                Talk(SAY_WP_5);
+                break;
+            case 8:
+                DoCast(SPELL_DETONATE_2);
+                break;
+            case 9:
+                Talk(SAY_WP_6);
+                break;
+            case 13:
+                if (Player* player = GetPlayerForEscort())
+                {
+                    player->GroupEventHappens(QUEST_DISASTER, me);
+                    Talk(SAY_WP_7);
+                }
+                break;
+            default:
+                break;
         }
     }
 
@@ -104,6 +106,7 @@ struct npc_engineer_helice : public EscortAI
         {
             me->SetFaction(FACTION_ESCORTEE_N_NEUTRAL_PASSIVE);
 
+            LoadPath(PATH_ESCORT_HELICE);
             Start(false, player->GetGUID());
             Talk(SAY_WP_1);
         }
@@ -112,8 +115,6 @@ struct npc_engineer_helice : public EscortAI
 
 class spell_q12688_detonate_1 : public SpellScript
 {
-    PrepareSpellScript(spell_q12688_detonate_1);
-
     static constexpr uint32 SPAWN_GROUP_FLAMES = 67;
 
     bool Validate(SpellInfo const* /*spellInfo*/) override
@@ -153,8 +154,6 @@ class spell_q12688_detonate_1 : public SpellScript
 
 class spell_q12688_detonate_2 : public SpellScript
 {
-    PrepareSpellScript(spell_q12688_detonate_2);
-
     static constexpr uint32 SPAWN_GROUP_FLAMES = 68;
 
     bool Validate(SpellInfo const* /*spellInfo*/) override
@@ -191,31 +190,31 @@ class spell_q12688_detonate_2 : public SpellScript
 
 enum JunglePunch
 {
-    SPELL_OFFER = 51962,
-    QUEST_TASTE_TEST = 12645,
+    SPELL_OFFER                         = 51962,
+    QUEST_TASTE_TEST                    = 12645,
 
-    SAY_HEMET_HADRIUS_TAMARA_1 = 0,
-    SAY_HEMET_HADRIUS_TAMARA_2 = 1,
-    SAY_HEMET_HADRIUS_TAMARA_3 = 2,
+    SAY_HEMET_HADRIUS_TAMARA_1          = 0,
+    SAY_HEMET_HADRIUS_TAMARA_2          = 1,
+    SAY_HEMET_HADRIUS_TAMARA_3          = 2,
 
-    SAY_HEMET_4 = 3, // unused
-    SAY_HEMET_5 = 4  // unused
+    SAY_HEMET_4                         = 3, // unused
+    SAY_HEMET_5                         = 4  // unused
 };
 
 enum NesingwaryChildrensWeek
 {
-    SPELL_ORPHAN_OUT = 58818,
+    SPELL_ORPHAN_OUT                    = 58818,
 
-    QUEST_THE_MIGHTY_HEMET_NESINGWARY = 13957,
+    QUEST_THE_MIGHTY_HEMET_NESINGWARY   = 13957,
 
-    ORPHAN_WOLVAR = 33532,
+    ORPHAN_WOLVAR                       = 33532,
 
-    TEXT_NESINGWARY_1 = 5,
+    TEXT_NESINGWARY_1                   = 5,
 
-    TEXT_WOLVAR_ORPHAN_6 = 6,
-    TEXT_WOLVAR_ORPHAN_7 = 7,
-    TEXT_WOLVAR_ORPHAN_8 = 8,
-    TEXT_WOLVAR_ORPHAN_9 = 9
+    TEXT_WOLVAR_ORPHAN_6                = 6,
+    TEXT_WOLVAR_ORPHAN_7                = 7,
+    TEXT_WOLVAR_ORPHAN_8                = 8,
+    TEXT_WOLVAR_ORPHAN_9                = 9
 };
 
 struct npc_jungle_punch_target : public ScriptedAI
@@ -271,33 +270,33 @@ struct npc_jungle_punch_target : public ScriptedAI
 
             switch (phase)
             {
-            case 1:
-                orphan->GetMotionMaster()->MovePoint(0, me->GetPositionX() + std::cos(me->GetOrientation()) * 5, me->GetPositionY() + std::sin(me->GetOrientation()) * 5, me->GetPositionZ());
-                orphan->AI()->Talk(TEXT_WOLVAR_ORPHAN_6);
-                timer = 5000;
-                break;
-            case 2:
-                orphan->SetFacingToObject(me);
-                orphan->AI()->Talk(TEXT_WOLVAR_ORPHAN_7);
-                timer = 5000;
-                break;
-            case 3:
-                Talk(TEXT_NESINGWARY_1);
-                timer = 5000;
-                break;
-            case 4:
-                orphan->AI()->Talk(TEXT_WOLVAR_ORPHAN_8);
-                timer = 5000;
-                break;
-            case 5:
-                orphan->AI()->Talk(TEXT_WOLVAR_ORPHAN_9);
-                timer = 5000;
-                break;
-            case 6:
-                orphan->GetMotionMaster()->MoveFollow(player, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
-                player->GroupEventHappens(QUEST_THE_MIGHTY_HEMET_NESINGWARY, me);
-                Reset();
-                return;
+                case 1:
+                    orphan->GetMotionMaster()->MovePoint(0, me->GetPositionX() + std::cos(me->GetOrientation()) * 5, me->GetPositionY() + std::sin(me->GetOrientation()) * 5, me->GetPositionZ());
+                    orphan->AI()->Talk(TEXT_WOLVAR_ORPHAN_6);
+                    timer = 5000;
+                    break;
+                case 2:
+                    orphan->SetFacingToObject(me);
+                    orphan->AI()->Talk(TEXT_WOLVAR_ORPHAN_7);
+                    timer = 5000;
+                    break;
+                case 3:
+                    Talk(TEXT_NESINGWARY_1);
+                    timer = 5000;
+                    break;
+                case 4:
+                    orphan->AI()->Talk(TEXT_WOLVAR_ORPHAN_8);
+                    timer = 5000;
+                    break;
+                case 5:
+                    orphan->AI()->Talk(TEXT_WOLVAR_ORPHAN_9);
+                    timer = 5000;
+                    break;
+                case 6:
+                    orphan->GetMotionMaster()->MoveFollow(player, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+                    player->GroupEventHappens(QUEST_THE_MIGHTY_HEMET_NESINGWARY, me);
+                    Reset();
+                    return;
             }
             ++phase;
         }
@@ -371,24 +370,22 @@ private:
 
 enum MiscLifewarden
 {
-    NPC_PRESENCE = 28563, // Freya's Presence
-    NPC_SABOTEUR = 28538, // Cultist Saboteur
-    NPC_SERVANT = 28320, // Servant of Freya
+    NPC_PRESENCE                 = 28563, // Freya's Presence
+    NPC_SABOTEUR                 = 28538, // Cultist Saboteur
+    NPC_SERVANT                  = 28320, // Servant of Freya
 
-    WHISPER_ACTIVATE = 0,
+    WHISPER_ACTIVATE             = 0,
 
-    SPELL_FREYA_DUMMY = 51318,
-    SPELL_LIFEFORCE = 51395,
-    SPELL_FREYA_DUMMY_TRIGGER = 51335,
-    SPELL_LASHER_EMERGE = 48195,
-    SPELL_WILD_GROWTH = 52948,
+    SPELL_FREYA_DUMMY            = 51318,
+    SPELL_LIFEFORCE              = 51395,
+    SPELL_FREYA_DUMMY_TRIGGER    = 51335,
+    SPELL_LASHER_EMERGE          = 48195,
+    SPELL_WILD_GROWTH            = 52948,
 };
 
 // 51957 - Call of the Lifewarden
 class spell_q12620_the_lifewarden_wrath : public SpellScript
 {
-    PrepareSpellScript(spell_q12620_the_lifewarden_wrath);
-
     void HandleSendEvent(SpellEffIndex effIndex)
     {
         PreventHitDefaultEffect(effIndex);
@@ -441,32 +438,30 @@ class spell_q12620_the_lifewarden_wrath : public SpellScript
 
 enum KickWhatKick
 {
-    NPC_LUCKY_WILHELM = 28054,
-    NPC_APPLE = 28053,
-    NPC_DROSTAN = 28328,
-    NPC_CRUNCHY = 28346,
-    NPC_THICKBIRD = 28093,
+    NPC_LUCKY_WILHELM         = 28054,
+    NPC_APPLE                 = 28053,
+    NPC_DROSTAN               = 28328,
+    NPC_CRUNCHY               = 28346,
+    NPC_THICKBIRD             = 28093,
 
-    SPELL_HIT_APPLE = 51331,
-    SPELL_MISS_APPLE = 51332,
-    SPELL_MISS_BIRD_APPLE = 51366,
-    SPELL_APPLE_FALL = 51371,
-    SPELL_BIRD_FALL = 51369,
+    SPELL_HIT_APPLE           = 51331,
+    SPELL_MISS_APPLE          = 51332,
+    SPELL_MISS_BIRD_APPLE     = 51366,
+    SPELL_APPLE_FALL          = 51371,
+    SPELL_BIRD_FALL           = 51369,
 
-    EVENT_MISS = 0,
-    EVENT_HIT = 1,
-    EVENT_MISS_BIRD = 2,
+    EVENT_MISS                = 0,
+    EVENT_HIT                 = 1,
+    EVENT_MISS_BIRD           = 2,
 
-    SAY_WILHELM_MISS = 0,
-    SAY_WILHELM_HIT = 1,
-    SAY_DROSTAN_REPLY_MISS = 0,
+    SAY_WILHELM_MISS          = 0,
+    SAY_WILHELM_HIT           = 1,
+    SAY_DROSTAN_REPLY_MISS    = 0,
 };
 
 // 51330 - Shoot RJR
 class spell_q12589_shoot_rjr : public SpellScript
 {
-    PrepareSpellScript(spell_q12589_shoot_rjr);
-
     SpellCastResult CheckCast()
     {
         if (Unit* target = GetExplTargetUnit())
@@ -499,42 +494,42 @@ class spell_q12589_shoot_rjr : public SpellScript
 
         switch (ev)
         {
-        case EVENT_MISS_BIRD:
-        {
-            Creature* crunchy = shooter->FindNearestCreature(NPC_CRUNCHY, 30);
-            Creature* bird = shooter->FindNearestCreature(NPC_THICKBIRD, 30);
-
-            if (bird && crunchy)
+            case EVENT_MISS_BIRD:
             {
-                shooter->CastSpell(bird, SPELL_MISS_BIRD_APPLE);
-                bird->CastSpell(bird, SPELL_BIRD_FALL);
+                Creature* crunchy = shooter->FindNearestCreature(NPC_CRUNCHY, 30);
+                Creature* bird = shooter->FindNearestCreature(NPC_THICKBIRD, 30);
+
+                if (bird && crunchy)
+                {
+                    shooter->CastSpell(bird, SPELL_MISS_BIRD_APPLE);
+                    bird->CastSpell(bird, SPELL_BIRD_FALL);
+                    wilhelm->AI()->Talk(SAY_WILHELM_MISS);
+                    drostan->AI()->Talk(SAY_DROSTAN_REPLY_MISS);
+
+                    bird->KillSelf();
+                    crunchy->GetMotionMaster()->MovePoint(0, bird->GetPositionX(), bird->GetPositionY(),
+                        bird->GetMap()->GetWaterOrGroundLevel(bird->GetPhaseShift(), bird->GetPositionX(), bird->GetPositionY(), bird->GetPositionZ()));
+                    /// @todo Make crunchy perform emote eat when he reaches the bird
+                    break;
+                }
+                [[fallthrough]];
+            }
+            case EVENT_MISS:
+            {
+                shooter->CastSpell(wilhelm, SPELL_MISS_APPLE);
                 wilhelm->AI()->Talk(SAY_WILHELM_MISS);
                 drostan->AI()->Talk(SAY_DROSTAN_REPLY_MISS);
-
-                bird->KillSelf();
-                crunchy->GetMotionMaster()->MovePoint(0, bird->GetPositionX(), bird->GetPositionY(),
-                    bird->GetMap()->GetWaterOrGroundLevel(bird->GetPhaseShift(), bird->GetPositionX(), bird->GetPositionY(), bird->GetPositionZ()));
-                /// @todo Make crunchy perform emote eat when he reaches the bird
                 break;
             }
-            [[fallthrough]];
-        }
-        case EVENT_MISS:
-        {
-            shooter->CastSpell(wilhelm, SPELL_MISS_APPLE);
-            wilhelm->AI()->Talk(SAY_WILHELM_MISS);
-            drostan->AI()->Talk(SAY_DROSTAN_REPLY_MISS);
-            break;
-        }
-        case EVENT_HIT:
-        {
-            shooter->CastSpell(apple, SPELL_HIT_APPLE);
-            apple->CastSpell(apple, SPELL_APPLE_FALL);
-            wilhelm->AI()->Talk(SAY_WILHELM_HIT);
-            if (Player* player = shooter->ToPlayer())
-                player->KilledMonsterCredit(NPC_APPLE);
-            break;
-        }
+            case EVENT_HIT:
+            {
+                shooter->CastSpell(apple, SPELL_HIT_APPLE);
+                apple->CastSpell(apple, SPELL_APPLE_FALL);
+                wilhelm->AI()->Talk(SAY_WILHELM_HIT);
+                if (Player* player = shooter->ToPlayer())
+                    player->KilledMonsterCredit(NPC_APPLE);
+                break;
+            }
         }
     }
 
@@ -553,11 +548,11 @@ may be easily converted to SAI when they get.*/
 enum SongOfWindAndWater
 {
     // Spells
-    SPELL_DEVOUR_WIND = 52862,
-    SPELL_DEVOUR_WATER = 52864,
+    SPELL_DEVOUR_WIND     = 52862,
+    SPELL_DEVOUR_WATER    = 52864,
     // NPCs
-    NPC_HAIPHOON_WATER = 28999,
-    NPC_HAIPHOON_AIR = 28985
+    NPC_HAIPHOON_WATER    = 28999,
+    NPC_HAIPHOON_AIR      = 28985
 };
 
 struct npc_haiphoon : public VehicleAI
@@ -582,16 +577,14 @@ struct npc_haiphoon : public VehicleAI
 
 enum ReturnedSevenfold
 {
-    SPELL_FREYAS_WARD = 51845,
+    SPELL_FREYAS_WARD           = 51845,
     SPELL_SEVENFOLD_RETRIBUTION = 51856,
-    SPELL_DEATHBOLT = 51855
+    SPELL_DEATHBOLT             = 51855
 };
 
 // 51854 - Deathbolt
 class spell_q12611_deathbolt : public SpellScript
 {
-    PrepareSpellScript(spell_q12611_deathbolt);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo(
@@ -625,21 +618,19 @@ class spell_q12611_deathbolt : public SpellScript
 
 enum BurningToHelp
 {
-    SPELL_HYDRA_SPUTUM = 52307
+    SPELL_HYDRA_SPUTUM     = 52307
 };
 
 // 52308 - Take Sputum Sample
 class spell_sholazar_take_sputum_sample : public SpellScript
 {
-    PrepareSpellScript(spell_sholazar_take_sputum_sample);
-
     bool Validate(SpellInfo const* spellInfo) override
     {
-        return spellInfo->GetEffects().size() > EFFECT_1 && ValidateSpellInfo(
-            {
-                uint32(spellInfo->GetEffect(EFFECT_0).CalcValue()),
-                uint32(spellInfo->GetEffect(EFFECT_1).CalcValue())
-            });
+        return ValidateSpellEffect({ { spellInfo->Id, EFFECT_1 } }) && ValidateSpellInfo(
+        {
+            uint32(spellInfo->GetEffect(EFFECT_0).CalcValue()),
+            uint32(spellInfo->GetEffect(EFFECT_1).CalcValue())
+        });
     }
 
     SpellCastResult CheckCast()
@@ -665,8 +656,6 @@ class spell_sholazar_take_sputum_sample : public SpellScript
 // 52306 - Sputum Collected
 class spell_sholazar_sputum_collected : public SpellScript
 {
-    PrepareSpellScript(spell_sholazar_sputum_collected);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo({ SPELL_HYDRA_SPUTUM });
@@ -689,28 +678,26 @@ class spell_sholazar_sputum_collected : public SpellScript
 
 enum ACleansingSong
 {
-    SPELL_SUMMON_SPIRIT_ATHA = 52954,
-    SPELL_SUMMON_SPIRIT_HAKHALAN = 52958,
-    SPELL_SUMMON_SPIRIT_KOOSU = 52959,
+    SPELL_SUMMON_SPIRIT_ATHA        = 52954,
+    SPELL_SUMMON_SPIRIT_HAKHALAN    = 52958,
+    SPELL_SUMMON_SPIRIT_KOOSU       = 52959,
 
-    AREA_BITTERTIDE_LAKE = 4385,
-    AREA_RIVERS_HEART = 4290,
-    AREA_WINTERGRASP_RIVER = 4388
+    AREA_BITTERTIDE_LAKE            = 4385,
+    AREA_RIVERS_HEART               = 4290,
+    AREA_WINTERGRASP_RIVER          = 4388
 };
 
 // 52941 - Song of Cleansing
 class spell_sholazar_song_of_cleansing : public SpellScript
 {
-    PrepareSpellScript(spell_sholazar_song_of_cleansing);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo(
-            {
-                SPELL_SUMMON_SPIRIT_ATHA,
-                SPELL_SUMMON_SPIRIT_HAKHALAN,
-                SPELL_SUMMON_SPIRIT_KOOSU
-            });
+        {
+            SPELL_SUMMON_SPIRIT_ATHA,
+            SPELL_SUMMON_SPIRIT_HAKHALAN,
+            SPELL_SUMMON_SPIRIT_KOOSU
+        });
     }
 
     void HandleScript(SpellEffIndex /*effIndex*/)
@@ -718,17 +705,17 @@ class spell_sholazar_song_of_cleansing : public SpellScript
         Unit* caster = GetCaster();
         switch (caster->GetAreaId())
         {
-        case AREA_BITTERTIDE_LAKE:
-            caster->CastSpell(caster, SPELL_SUMMON_SPIRIT_ATHA);
-            break;
-        case AREA_RIVERS_HEART:
-            caster->CastSpell(caster, SPELL_SUMMON_SPIRIT_HAKHALAN);
-            break;
-        case AREA_WINTERGRASP_RIVER:
-            caster->CastSpell(caster, SPELL_SUMMON_SPIRIT_KOOSU);
-            break;
-        default:
-            break;
+            case AREA_BITTERTIDE_LAKE:
+                caster->CastSpell(caster, SPELL_SUMMON_SPIRIT_ATHA);
+                break;
+            case AREA_RIVERS_HEART:
+                caster->CastSpell(caster, SPELL_SUMMON_SPIRIT_HAKHALAN);
+                break;
+            case AREA_WINTERGRASP_RIVER:
+                caster->CastSpell(caster, SPELL_SUMMON_SPIRIT_KOOSU);
+                break;
+            default:
+                break;
         }
     }
 
@@ -744,14 +731,12 @@ class spell_sholazar_song_of_cleansing : public SpellScript
 
 enum StrengthOfTheTempest
 {
-    SPELL_CREATE_POWER_OF_THE_TEMPEST = 53067
+    SPELL_CREATE_POWER_OF_THE_TEMPEST   = 53067
 };
 
 // 53062 - Lightning Strike
 class spell_sholazar_lightning_strike : public SpellScript
 {
-    PrepareSpellScript(spell_sholazar_lightning_strike);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo({ SPELL_CREATE_POWER_OF_THE_TEMPEST });
@@ -775,8 +760,6 @@ class spell_sholazar_lightning_strike : public SpellScript
 // 51071 - Flight to Sholazar (Missile Warning)
 class spell_sholazar_flight_to_sholazar : public SpellScript
 {
-    PrepareSpellScript(spell_sholazar_flight_to_sholazar);
-
     bool Validate(SpellInfo const* spellInfo) override
     {
         return sBroadcastTextStore.LookupEntry(uint32(spellInfo->GetEffect(EFFECT_0).CalcValue()));

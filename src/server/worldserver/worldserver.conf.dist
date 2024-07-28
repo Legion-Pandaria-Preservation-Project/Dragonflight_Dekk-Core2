@@ -41,18 +41,7 @@
 #    PACKET SPOOF PROTECTION SETTINGS
 #    METRIC SETTINGS
 #    PVP SETTINGS
-############################------ CUSTOM OPTIONS ------###########################################
-#
-#	 AUTO RESTART WORLDSERVER
-#    SOLO LFG
-#    Mythic+ System
-#    BattlePay
-#    REWARD system
-#    ELUNA SETTINGS
-#    WORLDQUEST
-#    FluxPhaseMgr
-#    SOLOCRAFT
-#    Announcer
+#    LOAD SETTINGS
 #
 ###################################################################################################
 
@@ -88,7 +77,7 @@ RealmID = 1
 #        Example:     "@prefix@/share/trinitycore"
 #        Default:     "."
 
-DataDir = ".\ClientData"
+DataDir = "."
 
 #
 #    LogsDir
@@ -97,7 +86,7 @@ DataDir = ".\ClientData"
 #                     Logs directory must exists, or log file creation will be disabled.
 #        Default:     "" - (Log files will be stored in the current path)
 
-LogsDir = ".\Logs"
+LogsDir = ""
 
 #
 #    LoginDatabaseInfo
@@ -124,10 +113,10 @@ LogsDir = ".\Logs"
 #    The SSL option will enable TLS when connecting to the specified database. If not provided or
 #    any value other than 'ssl' is set, TLS will not be used.
 
-LoginDatabaseInfo     = "127.0.0.1;3306;root;admin;auth"
-WorldDatabaseInfo     = "127.0.0.1;3306;root;admin;world"
-CharacterDatabaseInfo = "127.0.0.1;3306;root;admin;characters"
-HotfixDatabaseInfo    = "127.0.0.1;3306;root;admin;hotfixes"
+LoginDatabaseInfo     = "127.0.0.1;3306;trinity;trinity;auth"
+WorldDatabaseInfo     = "127.0.0.1;3306;trinity;trinity;world"
+CharacterDatabaseInfo = "127.0.0.1;3306;trinity;trinity;characters"
+HotfixDatabaseInfo    = "127.0.0.1;3306;trinity;trinity;hotfixes"
 
 #
 #    LoginDatabase.WorkerThreads
@@ -342,6 +331,15 @@ BaseMapLoadAllGrids = 0
 InstanceMapLoadAllGrids = 0
 
 #
+#    BattlegroundMapLoadAllGrids
+#        Description: Load all grids for battleground maps upon load.
+#                     Upon loading an battleground map, all creatures/objects in the map will be pre-loaded
+#        Default:     1 - (Preload all grids in the instance upon load)
+#                     0 - (Don't preload all base maps, dynamically load as used)
+
+BattlegroundMapLoadAllGrids = 1
+
+#
 #    SocketTimeOutTime
 #        Description: Time (in milliseconds) after which a connection being idle on the character
 #                     selection screen is disconnected.
@@ -430,7 +428,7 @@ DisconnectToleranceInterval = 0
 #        Default:     1 - (Enabled)
 #                     0 - (Disabled)
 
-mmap.enablePathFinding = 0
+mmap.enablePathFinding = 1
 
 #
 #    vmap.enableLOS
@@ -853,7 +851,7 @@ CharactersPerRealm = 60
 
 #
 #    CharacterCreating.EvokersPerRealm
-#        Description: Limit number of death knight characters per account on this realm.
+#        Description: Limit number of evokers per account on this realm.
 #        Range:       1-60
 #        Default:     1
 
@@ -870,7 +868,7 @@ CharacterCreating.MinLevelForDemonHunter = 0
 
 #
 #    CharacterCreating.MinLevelForEvoker
-#        Description: Limit creating demon hunters only for account with another
+#        Description: Limit creating evokers only for account with another
 #                     character of specific level.
 #        Default:     50  - (Enabled, Requires at least another level 50 character)
 #                     0  - (Disabled, No requirement)
@@ -883,7 +881,7 @@ CharacterCreating.MinLevelForEvoker = 0
 #        Default:     0 (Keep requirements active)
 #                     1 (Disable requirements)
 
-CharacterCreating.DisableAlliedRaceAchievementRequirement = 1
+CharacterCreating.DisableAlliedRaceAchievementRequirement = 0
 
 #
 #    SkipCinematics
@@ -1081,22 +1079,22 @@ Quests.EnableQuestTracker = 0
 #
 #    Quests.LowLevelHideDiff
 #        Description: Level difference between player and quest level at which quests are
-#                     considered low-level and are not shown via exclamation mark (!) at quest
-#                     givers.
-#        Default:     4  - (Enabled, Hide quests that have 4 levels less than the character)
+#                     considered trivial and are not shown via exclamation mark (!) at quest
+#                     givers by default.
+#        Default:     5  - (Enabled, Hide quests that have 6 levels less than the character)
 #                     -1 - (Disabled, Show all available quest marks)
 
-Quests.LowLevelHideDiff = 4
+Quests.LowLevelHideDiff = 5
 
 #
 #    Quests.HighLevelHideDiff
 #        Description: Level difference between player and quest level at which quests are
 #                     considered high-level and are not shown via exclamation mark (!) at quest
 #                     givers.
-#        Default:     7  - (Enabled, Hide quests that have 7 levels more than the character)
+#        Default:     2  - (Enabled, Hide quests that have 3 levels more than the character)
 #                     -1 - (Disabled, Show all available quest marks)
 
-Quests.HighLevelHideDiff = 7
+Quests.HighLevelHideDiff = 2
 
 #
 #    Quests.IgnoreRaid
@@ -1330,7 +1328,7 @@ FlashAtStart = 1
 #        Example:     "Welcome to John's Server!@This server is proud to be powered by Trinity Core."
 #        Default:     "Welcome to a Trinity Core server."
 
-Motd = "This server is using DekkCore Repack."
+Motd = "Welcome to a Trinity Core server."
 
 #
 #    Server.LoginInfo
@@ -1407,7 +1405,7 @@ BirthdayTime = 1222964635
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-FeatureSystem.BpayStore.Enabled = 1
+FeatureSystem.BpayStore.Enabled = 0
 
 #
 #   FeatureSystem.CharacterUndelete.Enabled
@@ -1790,23 +1788,29 @@ CreatureFamilyFleeDelay = 7000
 WorldBossLevelDiff = 3
 
 #
-#    Corpse.Decay.NORMAL
-#    Corpse.Decay.RARE
-#    Corpse.Decay.ELITE
-#    Corpse.Decay.RAREELITE
-#    Corpse.Decay.WORLDBOSS
+#    Corpse.Decay.Normal
+#    Corpse.Decay.Elite
+#    Corpse.Decay.RareElite
+#    Corpse.Decay.Obsolete
+#    Corpse.Decay.Rare
+#    Corpse.Decay.Trivial
+#    Corpse.Decay.MinusMob
 #        Description: Time (in seconds) until creature corpse will decay if not looted or skinned.
-#        Default:     300  - (5 Minutes, Corpse.Decay.NORMAL)
-#                     300  - (5 Minutes, Corpse.Decay.RARE)
-#                     300  - (5 Minutes, Corpse.Decay.ELITE)
-#                     300  - (5 Minutes, Corpse.Decay.RAREELITE)
-#                     3600 - (1 Hour, Corpse.Decay.WORLDBOSS)
+#        Default:     300  - (5 Minutes,   Corpse.Decay.Normal)
+#                     300  - (5 Minutes,   Corpse.Decay.Elite)
+#                     300  - (5 Minutes,   Corpse.Decay.RareElite)
+#                     3600 - (1 Hour,      Corpse.Decay.Obsolete)
+#                     300 -  (5 Minutes,   Corpse.Decay.Rare)
+#                     300 -  (5 Minutes,   Corpse.Decay.Trivial)
+#                     150 -  (2.5 Minutes, Corpse.Decay.MinusMob)
 
-Corpse.Decay.NORMAL    = 300
-Corpse.Decay.RARE      = 300
-Corpse.Decay.ELITE     = 300
-Corpse.Decay.RAREELITE = 300
-Corpse.Decay.WORLDBOSS = 3600
+Corpse.Decay.Normal    = 300
+Corpse.Decay.Elite     = 300
+Corpse.Decay.RareElite = 300
+Corpse.Decay.Obsolete  = 3600
+Corpse.Decay.Rare      = 300
+Corpse.Decay.Trivial   = 300
+Corpse.Decay.MinusMob  = 150
 
 #
 #    Rate.Corpse.Decay.Looted
@@ -1817,62 +1821,79 @@ Corpse.Decay.WORLDBOSS = 3600
 Rate.Corpse.Decay.Looted = 0.5
 
 #
-#    Rate.Creature.Normal.Damage
-#    Rate.Creature.Elite.Elite.Damage
-#    Rate.Creature.Elite.RARE.Damage
-#    Rate.Creature.Elite.RAREELITE.Damage
-#    Rate.Creature.Elite.WORLDBOSS.Damage
+#    Rate.Creature.Damage.Normal
+#    Rate.Creature.Damage.Elite
+#    Rate.Creature.Damage.RareElite
+#    Rate.Creature.Damage.Obsolete
+#    Rate.Creature.Damage.Rare
+#    Rate.Creature.Damage.Trivial
+#    Rate.Creature.Damage.MinusMob
 #        Description: Multiplier for creature melee damage.
-#        Default:     1 - (Rate.Creature.Normal.Damage)
-#                     1 - (Rate.Creature.Elite.Elite.Damage)
-#                     1 - (Rate.Creature.Elite.RARE.Damage)
-#                     1 - (Rate.Creature.Elite.RAREELITE.Damage)
-#                     1 - (Rate.Creature.Elite.WORLDBOSS.Damage)
-#
+#        Default:     1 - (Rate.Creature.Damage.Normal)
+#                     1 - (Rate.Creature.Damage.Elite)
+#                     1 - (Rate.Creature.Damage.RareElite)
+#                     1 - (Rate.Creature.Damage.Obsolete)
+#                     1 - (Rate.Creature.Damage.Rare)
+#                     1 - (Rate.Creature.Damage.Trivial)
+#                     1 - (Rate.Creature.Damage.MinusMob)
 
-Rate.Creature.Normal.Damage          = 1
-Rate.Creature.Elite.Elite.Damage     = 1
-Rate.Creature.Elite.RARE.Damage      = 1
-Rate.Creature.Elite.RAREELITE.Damage = 1
-Rate.Creature.Elite.WORLDBOSS.Damage = 1
+Rate.Creature.Damage.Normal    = 1
+Rate.Creature.Damage.Elite     = 1
+Rate.Creature.Damage.RareElite = 1
+Rate.Creature.Damage.Obsolete  = 1
+Rate.Creature.Damage.Rare      = 1
+Rate.Creature.Damage.Trivial   = 1
+Rate.Creature.Damage.MinusMob  = 1
 
 #
-#    Rate.Creature.Normal.SpellDamage
-#    Rate.Creature.Elite.Elite.SpellDamage
-#    Rate.Creature.Elite.RARE.SpellDamage
-#    Rate.Creature.Elite.RAREELITE.SpellDamage
-#    Rate.Creature.Elite.WORLDBOSS.SpellDamage
+#    Rate.Creature.SpellDamage.Normal
+#    Rate.Creature.SpellDamage.Elite
+#    Rate.Creature.SpellDamage.RareElite
+#    Rate.Creature.SpellDamage.Obsolete
+#    Rate.Creature.SpellDamage.Rare
+#    Rate.Creature.SpellDamage.Trivial
+#    Rate.Creature.SpellDamage.MinusMob
 #        Description: Multiplier for creature spell damage.
-#        Default:     1 - (Rate.Creature.Normal.SpellDamage)
-#                     1 - (Rate.Creature.Elite.Elite.SpellDamage)
-#                     1 - (Rate.Creature.Elite.RARE.SpellDamage)
-#                     1 - (Rate.Creature.Elite.RAREELITE.SpellDamage)
-#                     1 - (Rate.Creature.Elite.WORLDBOSS.SpellDamage)
+#        Default:     1 - (Rate.Creature.SpellDamage.Normal)
+#                     1 - (Rate.Creature.SpellDamage.Elite)
+#                     1 - (Rate.Creature.SpellDamage.RareElite)
+#                     1 - (Rate.Creature.SpellDamage.Obsolete)
+#                     1 - (Rate.Creature.SpellDamage.Rare)
+#                     1 - (Rate.Creature.SpellDamage.Trivial)
+#                     1 - (Rate.Creature.SpellDamage.MinusMob)
 
-Rate.Creature.Normal.SpellDamage          = 1
-Rate.Creature.Elite.Elite.SpellDamage     = 1
-Rate.Creature.Elite.RARE.SpellDamage      = 1
-Rate.Creature.Elite.RAREELITE.SpellDamage = 1
-Rate.Creature.Elite.WORLDBOSS.SpellDamage = 1
+Rate.Creature.SpellDamage.Normal    = 1
+Rate.Creature.SpellDamage.Elite     = 1
+Rate.Creature.SpellDamage.RareElite = 1
+Rate.Creature.SpellDamage.Obsolete  = 1
+Rate.Creature.SpellDamage.Rare      = 1
+Rate.Creature.SpellDamage.Trivial   = 1
+Rate.Creature.SpellDamage.MinusMob  = 1
 
 #
-#    Rate.Creature.Normal.HP
-#    Rate.Creature.Elite.Elite.HP
-#    Rate.Creature.Elite.RARE.HP
-#    Rate.Creature.Elite.RAREELITE.HP
-#    Rate.Creature.Elite.WORLDBOSS.HP
-#        Description: Multiplier for creature health.
-#        Default:     1 - (Rate.Creature.Normal.HP)
-#                     1 - (Rate.Creature.Elite.Elite.HP)
-#                     1 - (Rate.Creature.Elite.RARE.HP)
-#                     1 - (Rate.Creature.Elite.RAREELITE.HP)
-#                     1 - (Rate.Creature.Elite.WORLDBOSS.HP)
+#    Rate.Creature.HP.Normal
+#    Rate.Creature.HP.Elite
+#    Rate.Creature.HP.RareElite
+#    Rate.Creature.HP.Obsolete
+#    Rate.Creature.HP.Rare
+#    Rate.Creature.HP.Trivial
+#    Rate.Creature.HP.MinusMob
+#        Description: Multiplier for creature spell damage.
+#        Default:     1 - (Rate.Creature.HP.Normal)
+#                     1 - (Rate.Creature.HP.Elite)
+#                     1 - (Rate.Creature.HP.RareElite)
+#                     1 - (Rate.Creature.HP.Obsolete)
+#                     1 - (Rate.Creature.HP.Rare)
+#                     1 - (Rate.Creature.HP.Trivial)
+#                     1 - (Rate.Creature.HP.MinusMob)
 
-Rate.Creature.Normal.HP          = 1
-Rate.Creature.Elite.Elite.HP     = 1
-Rate.Creature.Elite.RARE.HP      = 1
-Rate.Creature.Elite.RAREELITE.HP = 1
-Rate.Creature.Elite.WORLDBOSS.HP = 1
+Rate.Creature.HP.Normal    = 1
+Rate.Creature.HP.Elite     = 1
+Rate.Creature.HP.RareElite = 1
+Rate.Creature.HP.Obsolete  = 1
+Rate.Creature.HP.Rare      = 1
+Rate.Creature.HP.Trivial   = 1
+Rate.Creature.HP.MinusMob  = 1
 
 #
 #    Creature.PickPocketRefillDelay
@@ -3535,6 +3556,14 @@ Creature.CheckInvalidPosition = 0
 GameObject.CheckInvalidPosition = 0
 
 #
+#     Loot.EnableAELoot
+#        Description: Enables AE loot which will allow looting all creatures within a 30 yards radius at once
+#        Default:     1  - (AE loot enabled)
+#                     0  - (AE loot disabled)
+
+Loot.EnableAELoot = 1
+
+#
 ###################################################################################################
 
 ###################################################################################################
@@ -4042,10 +4071,10 @@ BlackMarket.Enabled = 1
 #
 #    BlackMarket.MaxAuctions
 #       Description: Maximum amount of auctions present at the same time.
-#       Default:     8
+#       Default:     12
 #
 
-BlackMarket.MaxAuctions = 8
+BlackMarket.MaxAuctions = 12
 
 #
 #    BlackMarket.UpdatePeriod
@@ -4153,7 +4182,7 @@ Logger.root=5,Console Server
 Logger.server=3,Console Server
 Logger.commands.gm=3,Console GM
 Logger.scripts.hotswap=3,Console Server
-Logger.sql.sql=0,Console DBErrors
+Logger.sql.sql=5,Console DBErrors
 Logger.sql.updates=3,Console Server
 Logger.mmaps=3,Server
 
@@ -4363,7 +4392,6 @@ Metric.OverallStatusInterval = 1
 ###################################################################################################
 # PVP SETTINGS
 #
-#
 #    Pvp.FactionBalance.LevelCheckDiff
 #        Description: The amount of levels below the maximum level that accounts people for faction balance.
 #                     That is, if max level is 60 and this has a value of 5, all players that are level 55 and above (including) will be included in the check
@@ -4398,488 +4426,16 @@ Pvp.FactionBalance.Pct20 = 0.8
 ###################################################################################################
 
 ###################################################################################################
-############################------ CUSTOM OPTIONS ------###########################################
-###################################################################################################
-
-###################################################################################################
-# AUTO RESTART WORLDSERVER
+# LOAD SETTINGS
 #
-#	AutoRestartWorldserver.Timer
-#		Automatic server restart by timer. It works when started via a restart,
-#                               otherwise it shuts down the server (instead of restarting).
-#		Default: 0 - disable
-#				 60 - restart 60 seconds after starting the server
-#				 3600 - restart 1 hour after starting the server
-#				 86400 - restart 24 hours after launch
+# These settings control content loading
 #
-
-AutoRestartWorldserver.Timer = 0
-
-#
-###################################################################################################
-
-###################################################################################################
-# SOLO LFG
-#
-#    SoloLFG.Enable
-#        Description: Enable the module.
-#        Default:     1  - (Enabled)
-#                     0  - (Disabled)
-
-SoloLFG.Enable = 1
-
-#    SoloLFG.Announce
-#        Description: Announce the module.
-#        Default:     1  - (Enabled)
-#                     0  - (Disabled)
-
-SoloLFG.Announce = 1
-
-#
-#     DungeonFinder.ForceMinplayers
-#        Description: Force the minimum player count to enter dungeons trough dungeon finder.
-#        Default:     0
-
-DungeonFinder.ForceMinplayers = 0
-
-#
-###################################################################################################
-
-###################################################################################################
-# Mythic+ System #
-##################
-#
-#    	 Mythic.Tab
-#        Description: This setting activates the Mythic window
-#        Default:     1 activate
-
-Mythic.Pluss = 1
-Mythic.Plus.Enabled = 1
-ArgusWowEnable = 1
-Challenge.Enabled = 1
-MythicPlus.CurrentSeason = 19
-
-#        Challenge.Key.Reset
-#        Description: How often should Challenge Key reset (days)
-#        Default:     7
-
-Challenge.Key.Reset = 7
-Challenge.LevelLimit = 30
-Challenge.LevelMax = 15
-Challenge.LevelStep = 2
-Challenge.AddItem = 1533
-Challenge.AddItemType = 1
-Challenge.AddItemCount = 120
-
-# MANUAL MYTHIC AFFIXES
-#
-# To disable this feature all affixes need to be set to 0 or less
-#
-#   Overflowing     = 1,  Healing in excess of a target's maximum health is instead converted to a heal absorption effect.
-#   Skittish        = 2,  Enemies pay far less attention to threat generated by tanks.
-#   Volcanic        = 3,  While in combat, enemies periodically cause gouts of flame to erupt beneath the feet of distant players.
-#   Necrotic        = 4,  All enemies' melee attacks apply a stacking blight that inflicts damage over time and reduces healing received.
-#   Teeming         = 5,  Additional non-boss enemies are present throughout the dungeon.
-#   Raging          = 6,  Non-boss enemies enrage at 30% health remaining, dealing 100% increased damage until defeated.
-#   Bolstering      = 7,  When any non-boss enemy dies, its death cry empowers nearby allies, increasing their maximum health and damage by 20%.
-#   Sanguine        = 8,  When slain, non-boss enemies leave behind a lingering pool of ichor that heals their allies and damages players.
-#   Tyrannical      = 9,  Boss enemies have 40% more health and inflict up to 15% increased damage.
-#   Fortified       = 10, Non-boss enemies have 20% more health and inflict up to 30% increased damage.
-#   Bursting        = 11, When slain, non-boss enemies explode, causing all players to suffer 14% of their max health in damage over 4 sec. This effect stacks.
-#   Grievous        = 12, When injured below 90% health, players will suffer increasing damage over time until healed above 90% health
-#   FelExplosives   = 13, While in combat, enemies periodically summon Explosive Orbs that will detonate if not destroyed.
-#   Quaking         = 14, Periodically, all players emit a shockwave, inflicting damage and interrupting nearby allies.
-#   Relentless      = 15, Non-boss enemies are granted temporary immunity to Loss of Control effects.
-#   Infested        = 16, Some non-boss enemies have been infested with a Spawn of G'huun.
-#   Reaping         = 117, Non-boss enemies are empowered by Bwonsamdi and periodically seek vengeance from beyond the grave.
-#   Beguiling       = 118, Azshara's Emissaries are present throughout the dungeon.
-#   Awakened        = 119, Obelisks throughout the dungeon allow players to enter Ny'alotha and confront powerful servants of N'Zoth. If a servant is not dealt with, they must be faced during the final boss encounter.
-
-Challenge.Manual.Affix1 = 0
-Challenge.Manual.Affix2 = 0
-Challenge.Manual.Affix3 = 0
-Challenge.Manual.Affix4 = 0
-
-#   Great secret affix
-#	KeyStoneAffix.Status
-#        Default:     0 (Load database settings)
-#                     1 (Load configuration file settings)
-#                     2 (Load random settings)
-#
-#   Overflowing     = 1,
-#   Skittish        = 2,
-#   Volcanic        = 3,
-#   Necrotic        = 4,
-#   Teeming         = 5,
-#   Raging          = 6,
-#   Bolstering      = 7,
-#   Sanguine        = 8,
-#   Tyrannical      = 9,
-#   Fortified       = 10,
-#   Bursting        = 11,
-#   Grievous        = 12,
-#   FelExplosives   = 13,
-#   Quaking         = 14,
-
-KeyStoneAffix.Status = 0
-KeyStoneAffix.Affix1 = 0
-KeyStoneAffix.Affix2 = 0
-KeyStoneAffix.Affix3 = 0
-
-Dungeon.ActiveStep = 1
-Dungeon.WeightedMythicKeystone.Enabled = 1
-
-#
-###################################################################################################
-
-###################################################################################################
-# Ingame Shop (BattlePay)
-#
-#   IngameShop.Enabled
-#        Description: Players can buy various products from the ingame shop.
+#    Load.Locales
+#        Description: Toggles the loading of Locales.
 #        Default:     0 - (Disabled)
 #                     1 - (Enabled)
 
-IngameShop.Enabled = 0
-
-#
-#   IngameShop.Currency
-#        Description: Set the payment currency in the ingame shop.
-#        Default:	USD = 1,
-#					GBP = 2,
-#					KRW = 3,
-#					EUR = 4,
-#					RUB = 5,
-#					ARS = 8,
-#					CLP = 9,
-#					MXN = 10,
-#					BRL = 11,
-#					AUD = 12,
-#					CPT = 14,
-#					TPT = 15,
-#					BETA = 16,
-#					JPY = 28,
-#					CAD = 29,
-#					NZD = 30
-
-IngameShop.Currency = 1
-
-#
-###################################################################################################
-###################################################################################################
-# DisplayPromotion #
-####################
-#
-# Option for display promo modal windows on the character selection screen (only once / client start).
-# PromotionID can be found at:
-#  https://wow.tools/dbc/?dbc=marketingpromotionsxlocale
-# To disable set it to 0.
-#
-
-DisplayPromotion.PromotionID = 135
-
-#
-###################################################################################################
-
-###################################################################################################
-# Reward System #
-# - Rewards the player with the selected option and repeats the process within the interval.
-#
-
-#    PlayedTimeReward.Interval
-#		 Description: Time (in minutes) for Reward interval.
-#        Default:     30
-
-PlayedTimeReward.Interval         = 30
-
-#    PlayedTimeReward.Gold
-#		 Description: Amount of money the Player will get
-#        Default:     50
-
-PlayedTimeReward.Gold             = 50
-
-#    PlayedTimeReward.Currency_ID
-#        Description: Item characters will receive 
-#        Default:     1166 (Timewarped Badge)
-#                     2009 (Cosmic Flux
-#                     1813 (Reservoir Anima)
-#                     1191 (Valor)
-
-PlayedTimeReward.Currency_ID      = 1166
-
-#    PlayedTimeReward.Currency_Count
-#		 Description: Amount of Currency the Player will get
-#        Default:     50
-
-PlayedTimeReward.Currency_Count   = 50
-
-#    PlayedTimeReward.BattleCoins
-#		 Description: Amount of BattleCoins the Player will get
-#        Default:     5
-
-PlayedTimeReward.BattleCoins      = 5
-
-#
-###################################################################################################
-
-###################################################################################################
-#  ELUNA SETTINGS
-#
-#    Eluna.Enabled
-#       Enable Eluna LuaEngine
-#       Default: 1 (Enabled)
-#                0 (Disabled)
-#
-
-Eluna.Enabled = 1
-
-#   Eluna.TraceBack
-#       Description: Sets whether to use debug.traceback function on a lua error or not.
-#                    Notice that you can redefine the function.
-#       Default:     false - (use default error output)
-#                    true  - (use debug.traceback function)
-
-Eluna.TraceBack = 0
-
-#
-#   Eluna.ScriptPath
-#       Description: Sets the location of the script folder to load scripts from
-#                    The path can be relative or absolute.
-#       Default:     "lua_scripts"
-#
-
-Eluna.ScriptPath = lua_scripts
-
-#
-###################################################################################################
-
-###################################################################################################
-#  WORLDQUEST
-#
-#
-#    WorldQuest.DailyReset
-#        Description: Enable or disable daily WorldQuest reset occurs.
-#        Default:     1  - (Enabled)
-#                     0  - (Disabled)
-#
-
-WorldQuest.DailyReset = 1
-
-#
-#    WorldQuest.ResetTimeHour
-#        Description: Hour of the day when WorldQuest Reset daily reset occurs.
-#        Range:       0-23
-#        Default:     8 - (08:00 AM))
-
-WorldQuest.ResetTimeHour = 4
-
-#
-###################################################################################################
-
-###################################################################################################
-# FluxPhaseMgr 
-#
-# Custom phase shifting system using database (flux_phasing table).
-#
-# - Quick info:
-# - ID is an identifier with auto increment to separate custom flux_phasings
-# - Method, 0 does nothing, 1 for add phase, 2 for remove phase
-# - PhaseID where creatures or gameobject are visible (phase can be modified in creature/gameobject table)
-# - ActiveQuestID, phase will be activated only when the player has this quest but not completed yet.
-# - QuestObjectiveIndex is the id of quest objective which can be located in quest_objectives table.
-# - QuestObjectiveAmount is the specified progress of quest objective where the phase change will be activated.
-# - CompletedQuestID, phase will be activated only when the player completed this quest.
-# - RewardedQuestID, phase will be activated only when the player turned in this quest and got the reward.
-# - MapID, phase change will occur only on this map. If you leave it on 0 phase will be changed everywhere.
-# - ZoneID, phase change will occur only on this zone. If you leave it on 0 phase will be changed everywhere.
-# - AreaID, phase change will occur only on this area. If you leave it on 0 phase will be changed everywhere.
-# - Phase Check will happen at the following events:
-#    OnMovieComplete, OnSceneComplete, OnSceneCancel, OnUpdateArea, OnQuestStatusChange,
-#    OnPlayerEnterVehicle, OnPlayerExitVehicle, OnPlayerRepop, OnPlayerResurrect, OnLogin, OnGMOff
-# - Comment, where you can add some info about the phase change.
-#
-#        Default:     0  - (Disabled)
-#                     1  - (Enabled)
-#
-
-FluxPhaseMgr.Enable = 0
-FluxPhaseMgr.ConsoleDebug = 0
-
-#
-###################################################################################################
-
-###################################################################################################
-#
-#   ..::ZOLOCRAFT (modified solocraft) by Fluxurion (2022)::..
-#
-#   ZoloCraft is an aura with rewrited solocraft, added more functions and more stat increase.
-# - All stat increase handled by an aura.
-# - Player instantly can be resurrected after killed by a creature or committed suicide in dungeons or raids.
-# - Checking for ZoloCraft Aura when a player enters a dungeon or raid.
-# - Checking for ZoloCraft Aura when a player dies.
-# - Checking for ZoloCraft Aura when a player logs in inside a dungeon or raid.
-# - Available in Normal Dungeon, Heroic Dungeon, Mythic Dungeon, Mythic+ Dungeon, Raid, 25Man Raid, Heroic Raid, Mythic Raid
-# - Increasing the following stats:
-#     basic stats: spell power, agi, str, int, stam, armor
-#     ratings: crit, hit, versatility, leech, etc..
-# - After apply the player gets full hp and full mana.
-# - It has option to remove cooldowns and cast times while it's applied.
-# - Extra buffs can be applied. e.g.: night fae blessings, inspired, amplified, augment rune, well fed..etc
-#
-#   Enable = 1, Disable = 0, Duration is in minute.
-#
-
-ZoloCraft.Enable = 1
-ZoloCraft.StatMultiplier = 10
-ZoloCraft.RatingMultiplier = 5
-ZoloCraft.InstantRess = 1
-ZoloCraft.CooldownCheat = 1
-ZoloCraft.CastTimeCheat = 1
-ZoloCraft.ExtraBuffs = 0
-ZoloCraft.ExtraBuffs.Duration = 120
-ZoloCraft.TeachForGMs = 1
-
-#
-###################################################################################################
-
-###################################################################################################
-# Announcer
-#
-#     Login.Announcer.Enable
-#        Description: Announce every player and bots login
-#        Default:     0 (disabled)
-#                     1 (enabled)
-
-Login.Announcer.Enable = 1
-
-#
-#     Boss.Announcer.Enable
-#        Description: System announce who killed a world boss in global.
-#        Default:     0 (disabled)
-#                     1 (enabled)
-
-Boss.Announcer.Enable = 1
-
-#
-###################################################################################################
-
-###################################################################################################
-# Flux Taxi #
-#############
-#
-# Custom FlightPath Effect simulates oribos in between tunnel in the open world.
-#
-#        Default:     0  - (Disabled)
-#                     1  - (Enabled)
-
-Flux.Taxi.Enable = 0
-Flux.Taxi.Mount = 94451
-Flux.Taxi.Speed = 32
-Flux.Taxi.ScreenEffect.Enable = 1
-
-#
-###################################################################################################
-
-###################################################################################################
-# Covenant Test Custom Npc #
-############################
-#
-# Custom npc for the purpose of testing Covenant previews and choice.
-#	You can spawn it or you can summon it with .covenanttest command.
-#
-#        Default:     0  - (Disabled)
-#                     1  - (Enabled)
-
-CovenantTest.Enable = 0
-
-#
-###################################################################################################
-
-###################################################################################################
-# Guardian Angel Custom Npc #
-#############################
-#
-# Guardian Angel Custom Script - Calling an angel to ress & heal you on the specified maps.
-# 	e.g.: 2175, 2261, 2369 are Exile's Reach
-#
-
-GuardianAngel.Enable = 0
-GuardianAngel.Minutes.For.Assist = 1
-GuardianAngel.AllowedMapIDs = "2175, 2261, 2369"
-
-#
-###################################################################################################
-
-###################################################################################################
-# Level Master Custom Npc #
-###########################
-#
-# Level Master npc for giving some extra levels for you.
-# To summon this creature use command: .lupmaster
-# At this moment only usable by GM's
-#
-
-LevelMaster.Enable = 1
-
-#
-###################################################################################################
-
-###################################################################################################
-# Start Zone Quest Skipper Npc
-#
-#    StartZone.QuestSkipper.Npc.Enable
-#        Description: DH, DK, Pandaren, Goblin, Worgen start zone quest skipper npc.
-#                     Give quest rewards, levels and teleport the player out from startzone.
-#        Default:     1  - (Enabled) (Makes the npc visible.)
-#                     0  - (Disabled) (Makes the npc invisible.)
-
-StartZone.QuestSkipper.Npc.Enable = 1
-
-#
-###################################################################################################
-
-###################################################################################################
-# Console message flood #
-#########################
-#
-# You can disable console messages of "prevented sending" packets or "unimplemented server methods".
-#
-#        Default:     0  - (Disabled)
-#                     1  - (Enabled)
-#
-
-Console.Packet.Messages.Enabled = 0
-Console.NIM.Messages.Enabled = 0
-
-#
-###################################################################################################
-
-Accountwide.Achievements = 0
-
-###################################################################################################
-# Advanced flying #
-#############
-#
-# Customize advanced flying rates
-#
-
-AdvFly.AirFriction = 1.5
-AdvFly.MaxVel = 65.0
-AdvFly.LiftCoef = 0.7
-AdvFly.DoubleJumpVelMod = 5.0
-AdvFly.GlideStartMinHeight = 7.5
-AdvFly.AddImpulseMaxSpeed = 100.0
-AdvFly.MinBankingRate = 140.0
-AdvFly.MaxBankingRate = 270.0
-AdvFly.MinPitchingRateDown = 180.0
-AdvFly.MaxPitchingRateDown = 360.0
-AdvFly.MinPitchingRateUp = 180.0
-AdvFly.MaxPitchingRateUp = 360.0
-AdvFly.MinTurnVelocityThreshold = 45.0
-AdvFly.MaxTurnVelocityThreshold = 65.0
-AdvFly.SurfaceFriction = 2.75
-AdvFly.OverMaxDeceleration = 7.0
-AdvFly.LaunchSpeedCoefficient = 0.4
+Load.Locales = 1
 
 #
 ###################################################################################################

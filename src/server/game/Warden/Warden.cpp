@@ -31,7 +31,7 @@
 #include <charconv>
 
 Warden::Warden() : _session(nullptr), _checkTimer(10 * IN_MILLISECONDS), _clientResponseTimer(0),
-_dataSent(false), _initialized(false)
+                   _dataSent(false), _initialized(false)
 {
 }
 
@@ -113,7 +113,7 @@ void Warden::Update(uint32 diff)
             if (_clientResponseTimer > maxClientResponseDelay * IN_MILLISECONDS)
             {
                 TC_LOG_WARN("warden", "{} (latency: {}, IP: {}) exceeded Warden module response delay ({}) - disconnecting client",
-                    _session->GetPlayerInfo(), _session->GetLatency(), _session->GetRemoteAddress(), secsToTimeString(maxClientResponseDelay, TimeFormat::ShortText));
+                                _session->GetPlayerInfo(), _session->GetLatency(), _session->GetRemoteAddress(), secsToTimeString(maxClientResponseDelay, TimeFormat::ShortText));
                 _session->KickPlayer("Warden::Update Warden module response delay exceeded");
             }
             else
@@ -183,25 +183,25 @@ char const* Warden::ApplyPenalty(WardenCheck const* check)
 
     switch (action)
     {
-    case WARDEN_ACTION_KICK:
-        _session->KickPlayer("Warden::Penalty");
-        break;
-    case WARDEN_ACTION_BAN:
-    {
-        std::string accountName;
-        AccountMgr::GetName(_session->GetAccountId(), accountName);
-        std::string banReason = "Warden Anticheat Violation";
-        // Check can be NULL, for example if the client sent a wrong signature in the warden packet (CHECKSUM FAIL)
-        if (check)
-            banReason += Trinity::StringFormat(": {} (CheckId: {}", check->Comment, check->CheckId);
+        case WARDEN_ACTION_KICK:
+            _session->KickPlayer("Warden::Penalty");
+            break;
+        case WARDEN_ACTION_BAN:
+        {
+            std::string accountName;
+            AccountMgr::GetName(_session->GetAccountId(), accountName);
+            std::string banReason = "Warden Anticheat Violation";
+            // Check can be NULL, for example if the client sent a wrong signature in the warden packet (CHECKSUM FAIL)
+            if (check)
+                banReason += Trinity::StringFormat(": {} (CheckId: {}", check->Comment, check->CheckId);
 
-        sWorld->BanAccount(BAN_ACCOUNT, accountName, sWorld->getIntConfig(CONFIG_WARDEN_CLIENT_BAN_DURATION), banReason, "Server");
+            sWorld->BanAccount(BAN_ACCOUNT, accountName, sWorld->getIntConfig(CONFIG_WARDEN_CLIENT_BAN_DURATION), banReason, "Server");
 
-        break;
-    }
-    case WARDEN_ACTION_LOG:
-    default:
-        return "None";
+            break;
+        }
+        case WARDEN_ACTION_LOG:
+        default:
+            return "None";
     }
     return EnumUtils::ToTitle(action);
 }

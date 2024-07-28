@@ -34,11 +34,10 @@
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
 #include "Player.h"
-#include "Realm.h"
 #include "ScriptMgr.h"
 #include "World.h"
-#include "WorldPacket.h"
 #include "WorldSession.h"
+#include "WowTime.h"
 #include <boost/dynamic_bitset.hpp>
 #include <numeric>
 #include <sstream>
@@ -136,9 +135,9 @@ bool AuctionPosting::IsCommodity() const
 uint32 AuctionPosting::GetTotalItemCount() const
 {
     return std::accumulate(Items.begin(), Items.end(), 0u, [](uint32 totalCount, Item const* item)
-        {
-            return totalCount + item->GetCount();
-        });
+    {
+        return totalCount + item->GetCount();
+    });
 }
 
 void AuctionPosting::BuildAuctionItem(WorldPackets::AuctionHouse::AuctionItem* auctionItem,
@@ -255,16 +254,16 @@ private:
     {
         switch (column)
         {
-        case AuctionHouseSortOrder::Price:
-        case AuctionHouseSortOrder::Bid:
-        case AuctionHouseSortOrder::Buyout:
-            return int64(left->MinPrice) - int64(right->MinPrice);
-        case AuctionHouseSortOrder::Name:
-            return left->FullName[_locale].compare(right->FullName[_locale]);
-        case AuctionHouseSortOrder::Level:
-            return int32(left->SortLevel) - int32(right->SortLevel);
-        default:
-            break;
+            case AuctionHouseSortOrder::Price:
+            case AuctionHouseSortOrder::Bid:
+            case AuctionHouseSortOrder::Buyout:
+                return int64(left->MinPrice) - int64(right->MinPrice);
+            case AuctionHouseSortOrder::Name:
+                return left->FullName[_locale].compare(right->FullName[_locale]);
+            case AuctionHouseSortOrder::Level:
+                return int32(left->SortLevel) - int32(right->SortLevel);
+            default:
+                break;
         }
 
         return 0;
@@ -301,30 +300,30 @@ private:
     {
         switch (column)
         {
-        case AuctionHouseSortOrder::Price:
-        {
-            int64 leftPrice = left->BuyoutOrUnitPrice ? left->BuyoutOrUnitPrice : (left->BidAmount ? left->BidAmount : left->MinBid);
-            int64 rightPrice = right->BuyoutOrUnitPrice ? right->BuyoutOrUnitPrice : (right->BidAmount ? right->BidAmount : right->MinBid);
-            return leftPrice - rightPrice;
-        }
-        case AuctionHouseSortOrder::Name:
-            return left->Bucket->FullName[_locale].compare(right->Bucket->FullName[_locale]);
-        case AuctionHouseSortOrder::Level:
-        {
-            int32 leftLevel = !left->Items[0]->GetModifier(ITEM_MODIFIER_BATTLE_PET_SPECIES_ID)
-                ? left->Bucket->SortLevel
-                : left->Items[0]->GetModifier(ITEM_MODIFIER_BATTLE_PET_LEVEL);
-            int32 rightLevel = !right->Items[0]->GetModifier(ITEM_MODIFIER_BATTLE_PET_SPECIES_ID)
-                ? right->Bucket->SortLevel
-                : right->Items[0]->GetModifier(ITEM_MODIFIER_BATTLE_PET_LEVEL);
-            return leftLevel - rightLevel;
-        }
-        case AuctionHouseSortOrder::Bid:
-            return int64(left->BidAmount) - int64(right->BidAmount);
-        case AuctionHouseSortOrder::Buyout:
-            return int64(left->BuyoutOrUnitPrice) - int64(right->BuyoutOrUnitPrice);
-        default:
-            break;
+            case AuctionHouseSortOrder::Price:
+            {
+                int64 leftPrice = left->BuyoutOrUnitPrice ? left->BuyoutOrUnitPrice : (left->BidAmount ? left->BidAmount : left->MinBid);
+                int64 rightPrice = right->BuyoutOrUnitPrice ? right->BuyoutOrUnitPrice : (right->BidAmount ? right->BidAmount : right->MinBid);
+                return leftPrice - rightPrice;
+            }
+            case AuctionHouseSortOrder::Name:
+                return left->Bucket->FullName[_locale].compare(right->Bucket->FullName[_locale]);
+            case AuctionHouseSortOrder::Level:
+            {
+                int32 leftLevel = !left->Items[0]->GetModifier(ITEM_MODIFIER_BATTLE_PET_SPECIES_ID)
+                    ? left->Bucket->SortLevel
+                    : left->Items[0]->GetModifier(ITEM_MODIFIER_BATTLE_PET_LEVEL);
+                int32 rightLevel = !right->Items[0]->GetModifier(ITEM_MODIFIER_BATTLE_PET_SPECIES_ID)
+                    ? right->Bucket->SortLevel
+                    : right->Items[0]->GetModifier(ITEM_MODIFIER_BATTLE_PET_LEVEL);
+                return leftLevel - rightLevel;
+            }
+            case AuctionHouseSortOrder::Bid:
+                return int64(left->BidAmount) - int64(right->BidAmount);
+            case AuctionHouseSortOrder::Buyout:
+                return int64(left->BuyoutOrUnitPrice) - int64(right->BuyoutOrUnitPrice);
+            default:
+                break;
         }
 
         return 0;
@@ -414,16 +413,16 @@ AuctionHouseObject* AuctionHouseMgr::GetAuctionsById(uint32 auctionHouseId)
 {
     switch (auctionHouseId)
     {
-    case 1:
-        return &mNeutralAuctions;
-    case 2:
-        return &mAllianceAuctions;
-    case 6:
-        return &mHordeAuctions;
-    case 7:
-        return &mGoblinAuctions;
-    default:
-        break;
+        case 1:
+            return &mNeutralAuctions;
+        case 2:
+            return &mAllianceAuctions;
+        case 6:
+            return &mHordeAuctions;
+        case 7:
+            return &mGoblinAuctions;
+        default:
+            break;
     }
     return &mNeutralAuctions;
 }
@@ -530,12 +529,12 @@ void AuctionHouseMgr::LoadAuctions()
             }
 
             Item* item = NewItemOrBag(proto);
-            if (!item->LoadFromDB(itemGuid, ObjectGuid::Create<HighGuid::Player>(fields[51].GetUInt64()), fields, itemEntry))
+            if (!item->LoadFromDB(itemGuid, ObjectGuid::Create<HighGuid::Player>(fields[52].GetUInt64()), fields, itemEntry))
             {
                 delete item;
                 continue;
             }
-            uint32 auctionId = fields[52].GetUInt32();
+            uint32 auctionId = fields[53].GetUInt32();
             itemsByAuction[auctionId].push_back(item);
 
             ++count;
@@ -820,22 +819,22 @@ AuctionHouseEntry const* AuctionHouseMgr::GetAuctionHouseEntry(uint32 factionTem
         // but no easy way convert creature faction to player race faction for specific city
         switch (factionTemplateId)
         {
-        case  120: houseid = 7; break; // booty bay, Blackwater Auction House
-        case  474: houseid = 7; break; // gadgetzan, Blackwater Auction House
-        case  855: houseid = 7; break; // everlook, Blackwater Auction House
-        default:                       // default
-        {
-            FactionTemplateEntry const* u_entry = sFactionTemplateStore.LookupEntry(factionTemplateId);
-            if (!u_entry)
-                houseid = 1; // Auction House
-            else if (u_entry->FactionGroup & FACTION_MASK_ALLIANCE)
-                houseid = 2; // Alliance Auction House
-            else if (u_entry->FactionGroup & FACTION_MASK_HORDE)
-                houseid = 6; // Horde Auction House
-            else
-                houseid = 1; // Auction House
-            break;
-        }
+            case  120: houseid = 7; break; // booty bay, Blackwater Auction House
+            case  474: houseid = 7; break; // gadgetzan, Blackwater Auction House
+            case  855: houseid = 7; break; // everlook, Blackwater Auction House
+            default:                       // default
+            {
+                FactionTemplateEntry const* u_entry = sFactionTemplateStore.LookupEntry(factionTemplateId);
+                if (!u_entry)
+                    houseid = 1; // Auction House
+                else if (u_entry->FactionGroup & FACTION_MASK_ALLIANCE)
+                    houseid = 2; // Alliance Auction House
+                else if (u_entry->FactionGroup & FACTION_MASK_HORDE)
+                    houseid = 6; // Horde Auction House
+                else
+                    houseid = 1; // Auction House
+                break;
+            }
         }
     }
 
@@ -880,29 +879,29 @@ void AuctionHouseObject::AddAuction(CharacterDatabaseTransaction trans, AuctionP
         bucket->RequiredLevel = auction.Items[0]->GetRequiredLevel();
         switch (itemTemplate->GetClass())
         {
-        case ITEM_CLASS_WEAPON:
-        case ITEM_CLASS_ARMOR:
-            bucket->SortLevel = key.ItemLevel;
-            break;
-        case ITEM_CLASS_CONTAINER:
-            bucket->SortLevel = itemTemplate->GetContainerSlots();
-            break;
-        case ITEM_CLASS_GEM:
-        case ITEM_CLASS_ITEM_ENHANCEMENT:
-            bucket->SortLevel = itemTemplate->GetBaseItemLevel();
-            break;
-        case ITEM_CLASS_CONSUMABLE:
-            bucket->SortLevel = std::max<uint8>(1, bucket->RequiredLevel);
-            break;
-        case ITEM_CLASS_MISCELLANEOUS:
-        case ITEM_CLASS_BATTLE_PETS:
-            bucket->SortLevel = 1;
-            break;
-        case ITEM_CLASS_RECIPE:
-            bucket->SortLevel = itemTemplate->GetSubClass() != ITEM_SUBCLASS_BOOK ? itemTemplate->GetRequiredSkillRank() : itemTemplate->GetBaseRequiredLevel();
-            break;
-        default:
-            break;
+            case ITEM_CLASS_WEAPON:
+            case ITEM_CLASS_ARMOR:
+                bucket->SortLevel = key.ItemLevel;
+                break;
+            case ITEM_CLASS_CONTAINER:
+                bucket->SortLevel = itemTemplate->GetContainerSlots();
+                break;
+            case ITEM_CLASS_GEM:
+            case ITEM_CLASS_ITEM_ENHANCEMENT:
+                bucket->SortLevel = itemTemplate->GetBaseItemLevel();
+                break;
+            case ITEM_CLASS_CONSUMABLE:
+                bucket->SortLevel = std::max<uint8>(1, bucket->RequiredLevel);
+                break;
+            case ITEM_CLASS_MISCELLANEOUS:
+            case ITEM_CLASS_BATTLE_PETS:
+                bucket->SortLevel = 1;
+                break;
+            case ITEM_CLASS_RECIPE:
+                bucket->SortLevel = itemTemplate->GetSubClass() != ITEM_SUBCLASS_BOOK ? itemTemplate->GetRequiredSkillRank() : itemTemplate->GetBaseRequiredLevel();
+                break;
+            default:
+                break;
         }
 
         for (LocaleConstant locale = LOCALE_enUS; locale < TOTAL_LOCALES; locale = LocaleConstant(locale + 1))
@@ -1028,40 +1027,37 @@ void AuctionHouseObject::RemoveAuction(CharacterDatabaseTransaction trans, Aucti
         {
             auto itr = std::find_if(bucket->ItemModifiedAppearanceId.begin(), bucket->ItemModifiedAppearanceId.end(),
                 [itemModifiedAppearance](std::pair<uint32, uint32> const& appearance)
-                {
-                    return appearance.first == itemModifiedAppearance->ID;
-                });
+            {
+                return appearance.first == itemModifiedAppearance->ID;
+            });
 
             if (itr != bucket->ItemModifiedAppearanceId.end())
                 if (!--itr->second)
                     itr->first = 0;
         }
 
-        uint32 quality = 0;
+        uint32 quality;
 
-        if (auction->Items[0]->m_itemData->Modifiers->Values.size() > 0)
+        if (!auction->Items[0]->GetModifier(ITEM_MODIFIER_BATTLE_PET_SPECIES_ID))
         {
-            if (!auction->Items[0]->GetModifier(ITEM_MODIFIER_BATTLE_PET_SPECIES_ID))
+            quality = auction->Items[0]->GetQuality();
+        }
+        else
+        {
+            quality = (auction->Items[0]->GetModifier(ITEM_MODIFIER_BATTLE_PET_BREED_DATA) >> 24) & 0xFF;
+            bucket->MinBattlePetLevel = 0;
+            bucket->MaxBattlePetLevel = 0;
+            for (AuctionPosting const* remainingAuction : bucket->Auctions)
             {
-                quality = auction->Items[0]->GetQuality();
-            }
-            else
-            {
-                quality = (auction->Items[0]->GetModifier(ITEM_MODIFIER_BATTLE_PET_BREED_DATA) >> 24) & 0xFF;
-                bucket->MinBattlePetLevel = 0;
-                bucket->MaxBattlePetLevel = 0;
-                for (AuctionPosting const* remainingAuction : bucket->Auctions)
+                for (Item* item : remainingAuction->Items)
                 {
-                    for (Item* item : remainingAuction->Items)
-                    {
-                        uint8 battlePetLevel = item->GetModifier(ITEM_MODIFIER_BATTLE_PET_LEVEL);
-                        if (!bucket->MinBattlePetLevel)
-                            bucket->MinBattlePetLevel = battlePetLevel;
-                        else if (bucket->MinBattlePetLevel > battlePetLevel)
-                            bucket->MinBattlePetLevel = battlePetLevel;
+                    uint8 battlePetLevel = item->GetModifier(ITEM_MODIFIER_BATTLE_PET_LEVEL);
+                    if (!bucket->MinBattlePetLevel)
+                        bucket->MinBattlePetLevel = battlePetLevel;
+                    else if (bucket->MinBattlePetLevel > battlePetLevel)
+                        bucket->MinBattlePetLevel = battlePetLevel;
 
-                        bucket->MaxBattlePetLevel = std::max<uint8>(bucket->MaxBattlePetLevel, battlePetLevel);
-                    }
+                    bucket->MaxBattlePetLevel = std::max<uint8>(bucket->MaxBattlePetLevel, battlePetLevel);
                 }
             }
         }
@@ -1134,20 +1130,25 @@ void AuctionHouseObject::Update()
         {
             SendAuctionExpired(auction, trans);
             sScriptMgr->OnAuctionExpire(this, auction);
+
+            RemoveAuction(trans, auction, &it);
         }
         ///- Or perform the transaction
         else
         {
+            // Copy data before freeing AuctionPosting in auctionHouse->RemoveAuction
+            // Because auctionHouse->SendAuctionWon can unload items if bidder is offline
+            // we need to RemoveAuction before sending mails
+            AuctionPosting copy = *auction;
+            RemoveAuction(trans, auction, &it);
+
             //we should send an "item sold" message if the seller is online
             //we send the item to the winner
             //we send the money to the seller
-            SendAuctionWon(auction, nullptr, trans);
-            SendAuctionSold(auction, nullptr, trans);
+            SendAuctionSold(&copy, nullptr, trans);
+            SendAuctionWon(&copy, nullptr, trans);
             sScriptMgr->OnAuctionSuccessful(this, auction);
         }
-
-        ///- In any case clear the auction
-        RemoveAuction(trans, auction, &it);
     }
 
     // Run DB changes
@@ -1258,9 +1259,9 @@ void AuctionHouseObject::BuildListBuckets(WorldPackets::AuctionHouse::AuctionLis
                     if (player->HasSpell(itemTemplate->Effects[1]->SpellID))
                         continue;
 
-               //     if (BattlePetSpeciesEntry const* battlePetSpecies = BattlePets::BattlePetMgr::GetBattlePetSpeciesBySpell(itemTemplate->Effects[1]->SpellID))
-                     //   if (knownPetSpecies.test(battlePetSpecies->ID))
-                          //  continue;
+                    if (BattlePetSpeciesEntry const* battlePetSpecies = BattlePets::BattlePetMgr::GetBattlePetSpeciesBySpell(itemTemplate->Effects[1]->SpellID))
+                        if (knownPetSpecies.test(battlePetSpecies->ID))
+                            continue;
                 }
             }
         }
@@ -1537,9 +1538,9 @@ bool AuctionHouseObject::BuyCommodity(CharacterDatabaseTransaction trans, Player
     }
 
     std::shared_ptr<std::nullptr_t> removeQuote(nullptr, [this, quote](std::nullptr_t)
-        {
-            _commodityQuotes.erase(quote);
-        });
+    {
+        _commodityQuotes.erase(quote);
+    });
 
     uint64 totalPrice = 0;
     uint32 remainingQuantity = quantity;
@@ -1688,7 +1689,7 @@ bool AuctionHouseObject::BuyCommodity(CharacterDatabaseTransaction trans, Player
     }
 
     player->ModifyMoney(-int64(totalPrice));
-    player->SaveGoldToDB(trans);
+    player->SaveInventoryAndGoldToDB(trans);
 
     for (MailedItemsBatch const& batch : items)
     {
@@ -1919,13 +1920,14 @@ void AuctionHouseObject::SendAuctionInvoice(AuctionPosting const* auction, Playe
     // owner exist (online or offline)
     if ((owner || sCharacterCache->HasCharacterCacheEntry(auction->Owner)) && !sAuctionBotConfig->IsBotChar(auction->Owner))
     {
-        ByteBuffer tempBuffer;
-        tempBuffer.AppendPackedTime(GameTime::GetGameTime() + sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY));
-        uint32 eta = tempBuffer.read<uint32>();
+        WowTime eta = *GameTime::GetUtcWowTime();
+        eta += Seconds(sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY));
+        if (owner)
+            eta += owner->GetSession()->GetTimezoneOffset();
 
         MailDraft(AuctionHouseMgr::BuildItemAuctionMailSubject(AuctionMailType::Invoice, auction),
             AuctionHouseMgr::BuildAuctionInvoiceMailBody(auction->Bidder, auction->BidAmount, auction->BuyoutOrUnitPrice, auction->Deposit,
-                CalculateAuctionHouseCut(auction->BidAmount), sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY), eta))
+                CalculateAuctionHouseCut(auction->BidAmount), sWorld->getIntConfig(CONFIG_MAIL_DELIVERY_DELAY), eta.GetPackedTime()))
             .SendMailTo(trans, MailReceiver(owner, auction->Owner), this, MAIL_CHECK_MASK_COPIED);
     }
 }

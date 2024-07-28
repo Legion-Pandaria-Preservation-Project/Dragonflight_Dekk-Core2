@@ -81,7 +81,8 @@ void OutdoorPvPMgr::InitOutdoorPvP()
         m_OutdoorPvPDatas[typeId] = sObjectMgr->GetScriptId(fields[1].GetString());
 
         ++count;
-    } while (result->NextRow());
+    }
+    while (result->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded {} outdoor PvP definitions in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
 }

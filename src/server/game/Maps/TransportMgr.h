@@ -131,53 +131,53 @@ struct TransportSpawn
 
 class TC_GAME_API TransportMgr
 {
-public:
-    static TransportMgr* instance();
+    public:
+        static TransportMgr* instance();
 
-    void Unload();
+        void Unload();
 
-    void LoadTransportTemplates();
+        void LoadTransportTemplates();
 
-    void LoadTransportAnimationAndRotation();
+        void LoadTransportAnimationAndRotation();
 
-    void LoadTransportSpawns();
+        void LoadTransportSpawns();
 
-    // Creates a transport using given GameObject template entry
-    Transport* CreateTransport(uint32 entry, Map* map, ObjectGuid::LowType guid = 0, uint8 phaseUseFlags = 0, uint32 phaseId = 0, uint32 phaseGroupId = 0);
+        // Creates a transport using given GameObject template entry
+        Transport* CreateTransport(uint32 entry, Map* map, ObjectGuid::LowType guid = 0, uint8 phaseUseFlags = 0, uint32 phaseId = 0, uint32 phaseGroupId = 0);
 
-    // creates all transports for map
-    void CreateTransportsForMap(Map* map);
+        // creates all transports for map
+        void CreateTransportsForMap(Map* map);
 
-    TransportTemplate const* GetTransportTemplate(uint32 entry) const;
+        TransportTemplate const* GetTransportTemplate(uint32 entry) const;
 
-    TransportAnimation const* GetTransportAnimInfo(uint32 entry) const;
+        TransportAnimation const* GetTransportAnimInfo(uint32 entry) const;
 
-    TransportSpawn const* GetTransportSpawn(ObjectGuid::LowType spawnId) const;
+        TransportSpawn const* GetTransportSpawn(ObjectGuid::LowType spawnId) const;
 
-private:
-    TransportMgr();
-    ~TransportMgr();
-    TransportMgr(TransportMgr const&) = delete;
-    TransportMgr(TransportMgr&&) = delete;
-    TransportMgr& operator=(TransportMgr const&) = delete;
-    TransportMgr& operator=(TransportMgr&&) = delete;
+    private:
+        TransportMgr();
+        ~TransportMgr();
+        TransportMgr(TransportMgr const&) = delete;
+        TransportMgr(TransportMgr&&) = delete;
+        TransportMgr& operator=(TransportMgr const&) = delete;
+        TransportMgr& operator=(TransportMgr&&) = delete;
 
-    // Generates and precaches a path for transport to avoid generation each time transport instance is created
-    void GeneratePath(GameObjectTemplate const* goInfo, TransportTemplate* transport);
+        // Generates and precaches a path for transport to avoid generation each time transport instance is created
+        void GeneratePath(GameObjectTemplate const* goInfo, TransportTemplate* transport);
 
-    void AddPathNodeToTransport(uint32 transportEntry, uint32 timeSeg, TransportAnimationEntry const* node);
+        void AddPathNodeToTransport(uint32 transportEntry, uint32 timeSeg, TransportAnimationEntry const* node);
 
-    void AddPathRotationToTransport(uint32 transportEntry, uint32 timeSeg, TransportRotationEntry const* node);
+        void AddPathRotationToTransport(uint32 transportEntry, uint32 timeSeg, TransportRotationEntry const* node);
 
-    // Container storing transport templates
-    std::unordered_map<uint32, TransportTemplate> _transportTemplates;
+        // Container storing transport templates
+        std::unordered_map<uint32, TransportTemplate> _transportTemplates;
 
-    // Container storing transport entries to create for instanced maps
-    std::unordered_map<uint32, std::set<TransportSpawn*>> _transportsByMap;
+        // Container storing transport entries to create for instanced maps
+        std::unordered_map<uint32, std::set<TransportSpawn*>> _transportsByMap;
 
-    std::map<uint32, TransportAnimation> _transportAnimations;
+        std::map<uint32, TransportAnimation> _transportAnimations;
 
-    std::unordered_map<ObjectGuid::LowType, TransportSpawn> _transportSpawns;
+        std::unordered_map<ObjectGuid::LowType, TransportSpawn> _transportSpawns;
 };
 
 #define sTransportMgr TransportMgr::instance()

@@ -58,7 +58,8 @@ void CharacterTemplateDataStore::LoadCharacterTemplates()
             }
 
             characterTemplateClasses[templateId].emplace_back(factionGroup, classID);
-        } while (classesResult->NextRow());
+        }
+        while (classesResult->NextRow());
     }
     else
     {
@@ -90,7 +91,8 @@ void CharacterTemplateDataStore::LoadCharacterTemplates()
         }
 
         _characterTemplateStore[templ.TemplateSetId] = templ;
-    } while (templates->NextRow());
+    }
+    while (templates->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded {} character templates in {} ms.", _characterTemplateStore.size(), GetMSTimeDiffToNow(oldMSTime));
 }

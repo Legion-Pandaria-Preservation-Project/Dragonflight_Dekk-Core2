@@ -84,21 +84,16 @@ namespace WorldPackets
             ObjectGuid TriggerGUID;
         };
 
-        //DekkCore 
-        class UpdateAreatriggerVisual final : public ClientPacket
+        class AreaTriggerPlaySpellVisual final : public ServerPacket
         {
         public:
-            UpdateAreatriggerVisual(WorldPacket&& packet) : ClientPacket(CMSG_UPDATE_AREA_TRIGGER_VISUAL, std::move(packet)) { }
+            AreaTriggerPlaySpellVisual() : ServerPacket(SMSG_AREA_TRIGGER_PLAY_SPELL_VISUAL, 16 + 4) { }
 
-            void Read() override;
+            WorldPacket const* Write() override;
 
-            int32 AreaTriggerID = 0;
-            int32 unk1 = 0;
-            int32 unk2 = 0;
-            ObjectGuid TriggerGUID;
+            ObjectGuid AreaTriggerGUID;
+            uint32 SpellVisualID = 0;
         };
-
-        //DekkCore
     }
 }
 

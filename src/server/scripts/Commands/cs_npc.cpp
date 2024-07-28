@@ -43,6 +43,7 @@ EndScriptData */
 #include "Player.h"
 #include "RBAC.h"
 #include "SmartEnum.h"
+#include "SpellMgr.h"
 #include "Transport.h"
 #include "World.h"
 #include "WorldSession.h"
@@ -289,9 +290,8 @@ public:
             return false;
         }
 
-        creature->SetMaxHealth(100 + 30*lvl);
-        creature->SetHealth(100 + 30*lvl);
         creature->SetLevel(lvl);
+        creature->UpdateLevelDependantStats();
         creature->SaveToDB();
 
         return true;
@@ -482,7 +482,9 @@ public:
         uint32 faction = target->GetFaction();
         uint64 npcflags;
         memcpy(&npcflags, target->m_unitData->NpcFlags.begin(), sizeof(npcflags));
-        uint32 mechanicImmuneMask = cInfo->MechanicImmuneMask;
+        uint64 mechanicImmuneMask = 0;
+        if (CreatureImmunities const* immunities = SpellMgr::GetCreatureImmunities(cInfo->CreatureImmunitiesId))
+            mechanicImmuneMask = immunities->Mechanic.to_ullong();
         uint32 displayid = target->GetDisplayId();
         uint32 nativeid = target->GetNativeDisplayId();
         uint32 entry = target->GetEntry();
@@ -538,8 +540,8 @@ public:
         handler->PSendSysMessage(LANG_NPCINFO_ARMOR, target->GetArmor());
         handler->PSendSysMessage(LANG_NPCINFO_POSITION, target->GetPositionX(), target->GetPositionY(), target->GetPositionZ());
         handler->PSendSysMessage(LANG_OBJECTINFO_AIINFO, target->GetAIName().c_str(), target->GetScriptName().c_str());
-        handler->PSendSysMessage(LANG_OBJECTINFO_STRINGIDS, STRING_VIEW_FMT_ARG(target->GetStringIds()[0]),
-            STRING_VIEW_FMT_ARG(target->GetStringIds()[1]), STRING_VIEW_FMT_ARG(target->GetStringIds()[2]));
+        handler->PSendSysMessage(LANG_OBJECTINFO_STRINGIDS, STRING_VIEW_FMT_ARG(target->GetStringId(StringIdType::Template)),
+            STRING_VIEW_FMT_ARG(target->GetStringId(StringIdType::Spawn)), STRING_VIEW_FMT_ARG(target->GetStringId(StringIdType::Script)));
         handler->PSendSysMessage(LANG_NPCINFO_REACTSTATE, DescribeReactState(target->GetReactState()));
         if (CreatureAI const* ai = target->AI())
             handler->PSendSysMessage(LANG_OBJECTINFO_AITYPE, Trinity::GetTypeName(*ai).c_str());
@@ -557,9 +559,9 @@ public:
             if (target->HasNpcFlag2(flag))
                 handler->PSendSysMessage("* %s (0x%X)", EnumUtils::ToTitle(flag), flag);
 
-        handler->PSendSysMessage(LANG_NPCINFO_MECHANIC_IMMUNE, mechanicImmuneMask);
+        handler->PSendSysMessage(LANG_NPCINFO_MECHANIC_IMMUNE, Trinity::StringFormat("0x{:X}", mechanicImmuneMask).c_str());
         for (Mechanics m : EnumUtils::Iterate<Mechanics>())
-            if (m && (mechanicImmuneMask & (1 << (m - 1))))
+            if (m && (mechanicImmuneMask & (UI64LIT(1) << m)))
                 handler->PSendSysMessage("%s (0x%X)", EnumUtils::ToTitle(m), m);
 
         return true;
@@ -599,7 +601,7 @@ public:
                 if (!creatureTemplate)
                     continue;
 
-                handler->PSendSysMessage(LANG_CREATURE_LIST_CHAT, std::to_string(guid).c_str(), entry, creatureTemplate->Name.c_str(), x, y, z, mapId, "", "");
+                handler->PSendSysMessage(LANG_CREATURE_LIST_CHAT, std::to_string(guid).c_str(), std::to_string(guid).c_str(), creatureTemplate->Name.c_str(), x, y, z, mapId, "", "");
 
                 ++count;
             }
@@ -1140,7 +1142,7 @@ public:
         return true;
     }
 
-    static bool HandleNpcEvadeCommand(ChatHandler* handler, Optional<CreatureAI::EvadeReason> why, Optional<EXACT_SEQUENCE("force")> force)
+    static bool HandleNpcEvadeCommand(ChatHandler* handler, Optional<EvadeReason> why, Optional<EXACT_SEQUENCE("force")> force)
     {
         Creature* creatureTarget = handler->getSelectedCreature();
         if (!creatureTarget || creatureTarget->IsPet())
@@ -1159,7 +1161,7 @@ public:
 
         if (force)
             creatureTarget->ClearUnitState(UNIT_STATE_EVADE);
-        creatureTarget->AI()->EnterEvadeMode(why.value_or(CreatureAI::EVADE_REASON_OTHER));
+        creatureTarget->AI()->EnterEvadeMode(why.value_or(EvadeReason::Other));
 
         return true;
     }
@@ -1225,7 +1227,7 @@ public:
         {
             handler->PSendSysMessage(LANG_COMMAND_NPC_SHOWLOOT_LABEL, "Standard items", loot->items.size());
             for (LootItem const& item : loot->items)
-                if (!item.is_looted && !item.freeforall && item.conditions.empty())
+                if (!item.is_looted && !item.freeforall && item.conditions.IsEmpty())
                     _ShowLootEntry(handler, item.itemid, item.count);
 
             if (!loot->GetPlayerFFAItems().empty())

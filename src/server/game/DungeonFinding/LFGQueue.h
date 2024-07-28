@@ -66,10 +66,6 @@ struct LfgQueueData
     LfgDungeonSet dungeons;                                ///< Selected Player/Group Dungeon/s
     LfgRolesMap roles;                                     ///< Selected Player Role/s
     std::string bestCompatible;                            ///< Best compatible combination of people queued
-
-    //DekkCore
-    uint8 subType;                                         ///< Queue dungeon subtype
-    //dekkcore
 };
 
 struct LfgWaitTime

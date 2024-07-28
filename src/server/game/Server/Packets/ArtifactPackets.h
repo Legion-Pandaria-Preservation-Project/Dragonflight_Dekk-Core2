@@ -99,20 +99,6 @@ namespace WorldPackets
             ObjectGuid ArtifactGUID;
             uint64 Amount = 0;
         };
-
-        //DEkkCore
-        class ArtifactEndgamePowersRefunded final : public ServerPacket
-        {
-        public:
-            ArtifactEndgamePowersRefunded() : ServerPacket(SMSG_ARTIFACT_ENDGAME_POWERS_REFUNDED, 16 + 8) { }
-
-            WorldPacket const* Write() override;
-
-            ObjectGuid Guid;
-            uint32 UnkInt = 0;
-            uint32 UnkInt2 = 0;
-        };
-        //DekkCore 
     }
 }
 

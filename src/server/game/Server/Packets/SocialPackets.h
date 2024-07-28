@@ -164,17 +164,6 @@ namespace WorldPackets
 
             bool ShowSocialContract = false;
         };
-        //DekkCore
-        class QuickJoinAutoAcceptRequests final : public ClientPacket
-        {
-        public:
-            QuickJoinAutoAcceptRequests(WorldPacket&& packet) : ClientPacket(CMSG_QUICK_JOIN_AUTO_ACCEPT_REQUESTS, std::move(packet)) { }
-
-            void Read() override;
-
-            bool EnableAutoAccept = false;
-        };
-        //DekkCore
     }
 }
 

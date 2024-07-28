@@ -17,7 +17,6 @@
 
 #include "ScriptMgr.h"
 #include "ScriptedCreature.h"
-#include "Spell.h"
 #include "SpellInfo.h"
 #include "the_botanica.h"
 
@@ -82,7 +81,7 @@ struct boss_warp_splinter : public BossAI
         Talk(SAY_DEATH);
     }
 
-   void OnSpellCast(SpellInfo const* spell) override
+    void OnSpellCast(SpellInfo const* spell) override
     {
         if (spell->Id == SPELL_SUMMON_SAPLINGS)
         {
@@ -138,8 +137,6 @@ struct boss_warp_splinter : public BossAI
             if (me->HasUnitState(UNIT_STATE_CASTING))
                 return;
         }
-
-        DoMeleeAttackIfReady();
     }
 };
 
@@ -161,14 +158,6 @@ struct npc_warp_splinter_sapling : public ScriptedAI
             DoCastSelf(SPELL_MOONFIRE_VISUAL);
             me->DespawnOrUnsummon(2s);
         }
-    }
-
-    void UpdateAI(uint32 /*diff*/) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        DoMeleeAttackIfReady();
     }
 };
 

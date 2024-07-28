@@ -100,10 +100,10 @@ WorldPacket const* WorldPackets::AreaTrigger::AreaTriggerRePath::Write()
     return &_worldPacket;
 }
 
-void WorldPackets::AreaTrigger::UpdateAreatriggerVisual::Read()
+WorldPacket const* WorldPackets::AreaTrigger::AreaTriggerPlaySpellVisual::Write()
 {
-    _worldPacket >> AreaTriggerID;
-    _worldPacket >> unk1;
-    _worldPacket >> unk2;
-    _worldPacket >> TriggerGUID;
+    _worldPacket << AreaTriggerGUID;
+    _worldPacket << uint32(SpellVisualID);
+
+    return &_worldPacket;
 }

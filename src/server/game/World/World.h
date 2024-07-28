@@ -27,6 +27,7 @@
 #include "DatabaseEnvFwd.h"
 #include "LockedQueue.h"
 #include "ObjectGuid.h"
+#include "Optional.h"
 #include "SharedDefines.h"
 #include "Timer.h"
 
@@ -94,7 +95,6 @@ enum WorldTimers
     WUPDATE_CHECK_FILECHANGES,
     WUPDATE_WHO_LIST,
     WUPDATE_CHANNEL_SAVE,
-    WUPDATE_WORLD_QUEST,
     WUPDATE_COUNT
 };
 
@@ -196,13 +196,9 @@ enum WorldBoolConfigs
     CONFIG_REGEN_HP_CANNOT_REACH_TARGET_IN_RAID,
     CONFIG_ALLOW_LOGGING_IP_ADDRESSES_IN_DATABASE,
     CONFIG_CHARACTER_CREATING_DISABLE_ALLIED_RACE_ACHIEVEMENT_REQUIREMENT,
-
-    CONFIG_BATTLE_PAY_ENABLED, // < Fluxurion
-    CONFIG_FEATURE_SYSTEM_BATTLE_PAY_AVAILABLE, // < Fluxurion
-    CONFIG_ARGUSWOW_ENABLE, // < DekkCore
-    CONFIG_CHALLENGE_ENABLED,// < DekkCore
-    CONFIG_LFG_FORCE_MINPLAYERS, // TrinityCoreCustomChanges
-
+    CONFIG_BATTLEGROUNDMAP_LOAD_GRIDS,
+    CONFIG_ENABLE_AE_LOOT,
+    CONFIG_LOAD_LOCALES,
     BOOL_CONFIG_VALUE_COUNT
 };
 
@@ -230,23 +226,6 @@ enum WorldFloatConfigs
     CONFIG_CALL_TO_ARMS_5_PCT,
     CONFIG_CALL_TO_ARMS_10_PCT,
     CONFIG_CALL_TO_ARMS_20_PCT,
-    CONFIG_ADV_FLY_AIR_FRICTION,
-    CONFIG_ADV_FLY_MAX_VEL,
-    CONFIG_ADV_FLY_LIFT_COEF,
-    CONFIG_ADV_FLY_DOUBLE_JUMP_VEL_MOD,
-    CONFIG_ADV_FLY_GLIDE_START_MIN_HEIGHT,
-    CONFIG_ADV_FLY_ADD_IMPULSE_MAX_SPEED,
-    CONFIG_ADV_FLY_MIN_BANKING_RATE,
-    CONFIG_ADV_FLY_MAX_BANKING_RATE,
-    CONFIG_ADV_FLY_MIN_PITCHING_RATE_DOWN,
-    CONFIG_ADV_FLY_MAX_PITCHING_RATE_DOWN,
-    CONFIG_ADV_FLY_MIN_PITCHING_RATE_UP,
-    CONFIG_ADV_FLY_MAX_PITCHING_RATE_UP,
-    CONFIG_ADV_FLY_MIN_TURN_VELOCITY_THRESHOLD,
-    CONFIG_ADV_FLY_MAX_TURN_VELOCITY_THRESHOLD,
-    CONFIG_ADV_FLY_SURFACE_FRICTION,
-    CONFIG_ADV_FLY_OVER_MAX_DECELERATION,
-    CONFIG_ADV_FLY_LAUNCH_SPEED_COEFFICIENT ,
     FLOAT_CONFIG_VALUE_COUNT
 };
 
@@ -283,7 +262,7 @@ enum WorldIntConfigs
     CONFIG_START_PLAYER_LEVEL,
     CONFIG_START_DEATH_KNIGHT_PLAYER_LEVEL,
     CONFIG_START_DEMON_HUNTER_PLAYER_LEVEL,
-    CONFIG_START_DRACTHYR_PLAYER_LEVEL,
+    CONFIG_START_EVOKER_PLAYER_LEVEL,
     CONFIG_START_ALLIED_RACE_LEVEL,
     CONFIG_START_PLAYER_MONEY,
     CONFIG_CURRENCY_START_APEXIS_CRYSTALS,
@@ -350,10 +329,12 @@ enum WorldIntConfigs
     CONFIG_AUCTION_LEVEL_REQ,
     CONFIG_MAIL_LEVEL_REQ,
     CONFIG_CORPSE_DECAY_NORMAL,
-    CONFIG_CORPSE_DECAY_RARE,
     CONFIG_CORPSE_DECAY_ELITE,
     CONFIG_CORPSE_DECAY_RAREELITE,
-    CONFIG_CORPSE_DECAY_WORLDBOSS,
+    CONFIG_CORPSE_DECAY_OBSOLETE,
+    CONFIG_CORPSE_DECAY_RARE,
+    CONFIG_CORPSE_DECAY_TRIVIAL,
+    CONFIG_CORPSE_DECAY_MINUSMOB,
     CONFIG_DEATH_SICKNESS_LEVEL,
     CONFIG_INSTANT_LOGOUT,
     CONFIG_DISABLE_BREATHING,
@@ -393,7 +374,6 @@ enum WorldIntConfigs
     CONFIG_CHARDELETE_DEMON_HUNTER_MIN_LEVEL,
     CONFIG_AUTOBROADCAST_CENTER,
     CONFIG_AUTOBROADCAST_INTERVAL,
-    CONFIG_AUTORESTART_WORLDSERVER, //Dekkcore
     CONFIG_MAX_RESULTS_LOOKUP_COMMANDS,
     CONFIG_DB_PING_INTERVAL,
     CONFIG_PRESERVE_CUSTOM_CHANNEL_DURATION,
@@ -459,28 +439,6 @@ enum WorldIntConfigs
     CONFIG_BLACKMARKET_MAXAUCTIONS,
     CONFIG_BLACKMARKET_UPDATE_PERIOD,
     CONFIG_FACTION_BALANCE_LEVEL_CHECK_DIFF,
-    // < DekkCore
-    CONFIG_CHALLENGE_LEVEL_LIMIT,
-    CONFIG_CHALLENGE_LEVEL_MAX,
-    CONFIG_CHALLENGE_LEVEL_STEP,
-    CONFIG_CHALLENGE_ADD_ITEM,
-    CONFIG_CHALLENGE_ADD_ITEM_TYPE,
-    CONFIG_CHALLENGE_ADD_ITEM_COUNT,
-    CONFIG_CHALLENGE_MANUAL_AFFIX1,
-    CONFIG_CHALLENGE_MANUAL_AFFIX2,
-    CONFIG_CHALLENGE_MANUAL_AFFIX3,
-    CONFIG_CHALLENGE_MANUAL_AFFIX4,
-    CONFIG_CHALLENGE_MANUAL_AFFIX5,
-    CONFIG_WEIGHTED_MYTHIC_KEYSTONE,
-    CONFIG_MYTHIC_PLUS_CURRENT_SEASON,
-    CONFIG_DUNGEON_ACTIVE_STEP,
-    CONFIG_CHALLENGE_KEY_RESET,
-    CONFIG_WORLD_QUEST_RESET_TIME_HOUR,
-    CONFIG_WORLD_QUEST_DAILY_RESET,
-    // < DekkCore
-    // Fluxurion >
-    CONFIG_BATTLE_PAY_CURRENCY,
-    // < Fluxurion
     INT_CONFIG_VALUE_COUNT
 };
 
@@ -533,21 +491,27 @@ enum Rates
     RATE_REPUTATION_LOWLEVEL_KILL,
     RATE_REPUTATION_LOWLEVEL_QUEST,
     RATE_REPUTATION_RECRUIT_A_FRIEND_BONUS,
-    RATE_CREATURE_NORMAL_HP,
-    RATE_CREATURE_ELITE_ELITE_HP,
-    RATE_CREATURE_ELITE_RAREELITE_HP,
-    RATE_CREATURE_ELITE_WORLDBOSS_HP,
-    RATE_CREATURE_ELITE_RARE_HP,
-    RATE_CREATURE_NORMAL_DAMAGE,
-    RATE_CREATURE_ELITE_ELITE_DAMAGE,
-    RATE_CREATURE_ELITE_RAREELITE_DAMAGE,
-    RATE_CREATURE_ELITE_WORLDBOSS_DAMAGE,
-    RATE_CREATURE_ELITE_RARE_DAMAGE,
-    RATE_CREATURE_NORMAL_SPELLDAMAGE,
-    RATE_CREATURE_ELITE_ELITE_SPELLDAMAGE,
-    RATE_CREATURE_ELITE_RAREELITE_SPELLDAMAGE,
-    RATE_CREATURE_ELITE_WORLDBOSS_SPELLDAMAGE,
-    RATE_CREATURE_ELITE_RARE_SPELLDAMAGE,
+    RATE_CREATURE_HP_NORMAL,
+    RATE_CREATURE_HP_ELITE,
+    RATE_CREATURE_HP_RAREELITE,
+    RATE_CREATURE_HP_OBSOLETE,
+    RATE_CREATURE_HP_RARE,
+    RATE_CREATURE_HP_TRIVIAL,
+    RATE_CREATURE_HP_MINUSMOB,
+    RATE_CREATURE_DAMAGE_NORMAL,
+    RATE_CREATURE_DAMAGE_ELITE,
+    RATE_CREATURE_DAMAGE_RAREELITE,
+    RATE_CREATURE_DAMAGE_OBSOLETE,
+    RATE_CREATURE_DAMAGE_RARE,
+    RATE_CREATURE_DAMAGE_TRIVIAL,
+    RATE_CREATURE_DAMAGE_MINUSMOB,
+    RATE_CREATURE_SPELLDAMAGE_NORMAL,
+    RATE_CREATURE_SPELLDAMAGE_ELITE,
+    RATE_CREATURE_SPELLDAMAGE_RAREELITE,
+    RATE_CREATURE_SPELLDAMAGE_OBSOLETE,
+    RATE_CREATURE_SPELLDAMAGE_RARE,
+    RATE_CREATURE_SPELLDAMAGE_TRIVIAL,
+    RATE_CREATURE_SPELLDAMAGE_MINUSMOB,
     RATE_CREATURE_AGGRO,
     RATE_REST_INGAME,
     RATE_REST_OFFLINE_IN_TAVERN_OR_CITY,
@@ -570,48 +534,6 @@ enum Rates
     RATE_MONEY_QUEST,
     RATE_MONEY_MAX_LEVEL_QUEST,
     MAX_RATES
-};
-
-enum RealmZone
-{
-    REALM_ZONE_UNKNOWN       = 0,                           // any language
-    REALM_ZONE_DEVELOPMENT   = 1,                           // any language
-    REALM_ZONE_UNITED_STATES = 2,                           // extended-Latin
-    REALM_ZONE_OCEANIC       = 3,                           // extended-Latin
-    REALM_ZONE_LATIN_AMERICA = 4,                           // extended-Latin
-    REALM_ZONE_TOURNAMENT_5  = 5,                           // basic-Latin at create, any at login
-    REALM_ZONE_KOREA         = 6,                           // East-Asian
-    REALM_ZONE_TOURNAMENT_7  = 7,                           // basic-Latin at create, any at login
-    REALM_ZONE_ENGLISH       = 8,                           // extended-Latin
-    REALM_ZONE_GERMAN        = 9,                           // extended-Latin
-    REALM_ZONE_FRENCH        = 10,                          // extended-Latin
-    REALM_ZONE_SPANISH       = 11,                          // extended-Latin
-    REALM_ZONE_RUSSIAN       = 12,                          // Cyrillic
-    REALM_ZONE_TOURNAMENT_13 = 13,                          // basic-Latin at create, any at login
-    REALM_ZONE_TAIWAN        = 14,                          // East-Asian
-    REALM_ZONE_TOURNAMENT_15 = 15,                          // basic-Latin at create, any at login
-    REALM_ZONE_CHINA         = 16,                          // East-Asian
-    REALM_ZONE_CN1           = 17,                          // basic-Latin at create, any at login
-    REALM_ZONE_CN2           = 18,                          // basic-Latin at create, any at login
-    REALM_ZONE_CN3           = 19,                          // basic-Latin at create, any at login
-    REALM_ZONE_CN4           = 20,                          // basic-Latin at create, any at login
-    REALM_ZONE_CN5           = 21,                          // basic-Latin at create, any at login
-    REALM_ZONE_CN6           = 22,                          // basic-Latin at create, any at login
-    REALM_ZONE_CN7           = 23,                          // basic-Latin at create, any at login
-    REALM_ZONE_CN8           = 24,                          // basic-Latin at create, any at login
-    REALM_ZONE_TOURNAMENT_25 = 25,                          // basic-Latin at create, any at login
-    REALM_ZONE_TEST_SERVER   = 26,                          // any language
-    REALM_ZONE_TOURNAMENT_27 = 27,                          // basic-Latin at create, any at login
-    REALM_ZONE_QA_SERVER     = 28,                          // any language
-    REALM_ZONE_CN9           = 29,                          // basic-Latin at create, any at login
-    REALM_ZONE_TEST_SERVER_2 = 30,                          // any language
-    REALM_ZONE_CN10          = 31,                          // basic-Latin at create, any at login
-    REALM_ZONE_CTC           = 32,
-    REALM_ZONE_CNC           = 33,
-    REALM_ZONE_CN1_4         = 34,                          // basic-Latin at create, any at login
-    REALM_ZONE_CN2_6_9       = 35,                          // basic-Latin at create, any at login
-    REALM_ZONE_CN3_7         = 36,                          // basic-Latin at create, any at login
-    REALM_ZONE_CN5_8         = 37                           // basic-Latin at create, any at login
 };
 
 struct PersistentWorldVariable;
@@ -715,23 +637,10 @@ class TC_GAME_API World
         /// Get the path where data (dbc, maps) are stored on disk
         std::string const& GetDataPath() const { return m_dataPath; }
 
-        //DekkCore
-          /// When server started?
-        time_t const& GetStartTime() const { return m_startTime; }
-        /// What time is it?
-        time_t const& GetGameTime() const { return m_gameTime; }
-        /// Uptime (in secs)
-        uint32 GetUptime() const { return uint32(m_gameTime - m_startTime); }
-        /// Update time
-        uint32 GetUpdateTime() const { return m_updateTime; }
-     //   void SetRecordDiffInterval(int32 t) { if (t >= 0) m_int_configs[CONFIG_INTERVAL_LOG_UPDATE] = static_cast<uint32>(t); }
-        //DEkkCore
-
         /// Next daily quests and random bg reset time
         time_t GetNextDailyQuestsResetTime() const { return m_NextDailyQuestReset; }
         time_t GetNextWeeklyQuestsResetTime() const { return m_NextWeeklyQuestReset; }
         time_t GetNextRandomBGResetTime() const { return m_NextRandomBGReset; }
-        time_t getNextChallengeKeyReset() { return m_NextChallengeKeyReset; }
 
         /// Get the maximum skill level a player can reach
         uint16 GetConfigMaxSkillValue() const
@@ -740,20 +649,17 @@ class TC_GAME_API World
             return lvl > 60 ? 300 + ((lvl - 60) * 75) / 10 : lvl * 5;
         }
 
-        void SetInitialWorldSettings();
+        bool SetInitialWorldSettings();
         void LoadConfigSettings(bool reload = false);
 
         void SendWorldText(uint32 string_id, ...);
         void SendGlobalText(char const* text, WorldSession* self);
         void SendGMText(uint32 string_id, ...);
-        void SendMapText(uint32 mapid, uint32 string_id, ...);
-        void SendServerMessage(ServerMessageType messageID, std::string stringParam = "", Player* player = nullptr);
-        void SendGlobalMessage(WorldPacket const* packet, WorldSession* self = nullptr, uint32 team = 0);
-        void SendMapMessage(uint32 mapid, WorldPacket const* packet, WorldSession* self = nullptr, uint32 team = 0);
-        void SendGlobalGMMessage(WorldPacket const* packet, WorldSession* self = nullptr, uint32 team = 0);
-        bool SendZoneMessage(uint32 zone, WorldPacket const* packet, WorldSession* self = nullptr, uint32 team = 0);
-        bool SendAreaIDMessage(uint32 areaID, WorldPacket const* packet, WorldSession* self = nullptr, uint32 team = 0);
-        void SendZoneText(uint32 zone, const char *text, WorldSession* self = nullptr, uint32 team = 0);
+        void SendServerMessage(ServerMessageType messageID, std::string_view stringParam = {}, Player const* player = nullptr);
+        void SendGlobalMessage(WorldPacket const* packet, WorldSession* self = nullptr, Optional<Team> team = { });
+        void SendGlobalGMMessage(WorldPacket const* packet, WorldSession* self = nullptr, Optional<Team> team = { });
+        bool SendZoneMessage(uint32 zone, WorldPacket const* packet, WorldSession* self = nullptr, Optional<Team> team = { });
+        void SendZoneText(uint32 zone, const char *text, WorldSession* self = nullptr, Optional<Team> team = { });
 
         /// Are we in the middle of a shutdown?
         bool IsShuttingDown() const { return m_ShutdownTimer > 0; }
@@ -826,10 +732,6 @@ class TC_GAME_API World
         static PersistentWorldVariable const NextDailyQuestResetTimeVarId;                  // Next daily quest reset time
         static PersistentWorldVariable const NextOldCalendarEventDeletionTimeVarId;         // Next daily calendar deletions of old events time
         static PersistentWorldVariable const NextGuildWeeklyResetTimeVarId;                 // Next guild week reset time
-        static PersistentWorldVariable const Challengeaffix1ResetTime;
-        static PersistentWorldVariable const Challengeaffix2ResetTime;
-        static PersistentWorldVariable const Challengeaffix3ResetTime;
-        static PersistentWorldVariable const Challengeaffix4ResetTime;
 
         int32 GetPersistentWorldVariable(PersistentWorldVariable const& var) const;
         void SetPersistentWorldVariable(PersistentWorldVariable const& var, int32 value);
@@ -863,7 +765,7 @@ class TC_GAME_API World
 
         void ForceGameEventUpdate();
 
-        void UpdateRealmCharCount(uint32 accid);
+        void UpdateRealmCharCount(uint32 accountId);
 
         LocaleConstant GetAvailableDbcLocale(LocaleConstant locale) const { if (m_availableDbcLocaleMask & (1 << locale)) return locale; else return m_defaultDbcLocale; }
 
@@ -900,10 +802,8 @@ class TC_GAME_API World
         void _UpdateRealmCharCount(PreparedQueryResult resultCharCount);
 
         void InitQuestResetTimes();
-        void InitWorldQuestDailyResetTime();
         void CheckScheduledResetTimes();
         void InitCurrencyResetTime();
-        void InitChallengeKeyResetTime();
         void DailyReset();
         void ResetWeeklyQuests();
         void ResetMonthlyQuests();
@@ -915,7 +815,6 @@ class TC_GAME_API World
         void CalendarDeleteOldEvents();
         void ResetGuildCap();
         void ResetCurrencyWeekCap();
-        void ChallengeKeyResetTime();
     private:
         World();
         ~World();
@@ -929,12 +828,6 @@ class TC_GAME_API World
 
         bool m_isClosed;
 
-        //DekkCore
-        time_t m_startTime;
-        time_t m_gameTime;
-        uint32 m_updateTime, m_updateTimeSum;
-        uint32 m_updateTimeCount;
-        //DekkCore
         IntervalTimer m_timers[WUPDATE_COUNT];
         time_t mail_timer;
         time_t mail_timer_expires;
@@ -987,9 +880,6 @@ class TC_GAME_API World
         time_t m_NextCalendarOldEventsDeletionTime;
         time_t m_NextGuildReset;
         time_t m_NextCurrencyReset;
-        time_t m_NextChallengeKeyReset;
-        time_t m_NextWorldQuestHourlyReset;
-        time_t m_NextWorldQuestDailyReset;
 
         //Player Queue
         Queue m_QueuedPlayer;

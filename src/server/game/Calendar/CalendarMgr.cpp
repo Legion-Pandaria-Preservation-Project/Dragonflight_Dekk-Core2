@@ -24,12 +24,15 @@
 #include "GuildMgr.h"
 #include "Log.h"
 #include "Mail.h"
+#include "MapUtils.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
-#include <sstream>
+#include "StringConvert.h"
+#include "WorldSession.h"
+#include "WowTime.h"
 
 CalendarInvite::CalendarInvite() : _inviteId(1), _eventId(0), _invitee(), _senderGUID(), _responseTime(0),
-_status(CALENDAR_STATUS_INVITED), _rank(CALENDAR_RANK_PLAYER), _note("") { }
+_status(CALENDAR_STATUS_INVITED), _rank(CALENDAR_RANK_PLAYER), _note() { }
 
 CalendarInvite::~CalendarInvite()
 {
@@ -48,11 +51,11 @@ CalendarMgr::CalendarMgr() : _maxEventId(0), _maxInviteId(0) { }
 CalendarMgr::~CalendarMgr()
 {
     for (CalendarEventStore::iterator itr = _events.begin(); itr != _events.end(); ++itr)
-        delete* itr;
+        delete *itr;
 
     for (CalendarEventInviteStore::iterator itr = _invites.begin(); itr != _invites.end(); ++itr)
         for (CalendarInviteStore::iterator itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2)
-            delete* itr2;
+            delete *itr2;
 }
 
 CalendarMgr* CalendarMgr::instance()
@@ -75,15 +78,15 @@ void CalendarMgr::LoadFromDB()
         {
             Field* fields = result->Fetch();
 
-            uint64 eventID = fields[0].GetUInt64();
-            ObjectGuid ownerGUID = ObjectGuid::Create<HighGuid::Player>(fields[1].GetUInt64());
-            std::string title = fields[2].GetString();
+            uint64 eventID          = fields[0].GetUInt64();
+            ObjectGuid ownerGUID    = ObjectGuid::Create<HighGuid::Player>(fields[1].GetUInt64());
+            std::string title       = fields[2].GetString();
             std::string description = fields[3].GetString();
-            CalendarEventType type = CalendarEventType(fields[4].GetUInt8());
-            int32 textureID = fields[5].GetInt32();
-            time_t date = fields[6].GetInt64();
-            uint32 flags = fields[7].GetUInt32();
-            time_t lockDate = fields[8].GetInt64();
+            CalendarEventType type  = CalendarEventType(fields[4].GetUInt8());
+            int32 textureID         = fields[5].GetInt32();
+            time_t date             = fields[6].GetInt64();
+            uint32 flags            = fields[7].GetUInt32();
+            time_t lockDate         = fields[8].GetInt64();
             ObjectGuid::LowType guildID = UI64LIT(0);
 
             if (flags & CALENDAR_FLAG_GUILD_EVENT || flags & CALENDAR_FLAG_WITHOUT_INVITES)
@@ -95,44 +98,46 @@ void CalendarMgr::LoadFromDB()
             _maxEventId = std::max(_maxEventId, eventID);
 
             ++count;
-        } while (result->NextRow());
+        }
+        while (result->NextRow());
 
-        TC_LOG_INFO("server.loading", ">> Loaded {} calendar events in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
-        count = 0;
-        oldMSTime = getMSTime();
+    TC_LOG_INFO("server.loading", ">> Loaded {} calendar events in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+    count = 0;
+    oldMSTime = getMSTime();
 
-        //                                                       0         1        2        3       4       5             6               7
-        if (QueryResult result = CharacterDatabase.Query("SELECT InviteID, EventID, Invitee, Sender, Status, ResponseTime, ModerationRank, Note FROM calendar_invites"))
-            do
-            {
-                Field* fields = result->Fetch();
+    //                                                       0         1        2        3       4       5             6               7
+    if (QueryResult result = CharacterDatabase.Query("SELECT InviteID, EventID, Invitee, Sender, Status, ResponseTime, ModerationRank, Note FROM calendar_invites"))
+        do
+        {
+            Field* fields = result->Fetch();
 
-                uint64 inviteId = fields[0].GetUInt64();
-                uint64 eventId = fields[1].GetUInt64();
-                ObjectGuid invitee = ObjectGuid::Create<HighGuid::Player>(fields[2].GetUInt64());
-                ObjectGuid senderGUID = ObjectGuid::Create<HighGuid::Player>(fields[3].GetUInt64());
-                CalendarInviteStatus status = CalendarInviteStatus(fields[4].GetUInt8());
-                time_t responseTime = fields[5].GetInt64();
-                CalendarModerationRank rank = CalendarModerationRank(fields[6].GetUInt8());
-                std::string note = fields[7].GetString();
+            uint64 inviteId             = fields[0].GetUInt64();
+            uint64 eventId              = fields[1].GetUInt64();
+            ObjectGuid invitee          = ObjectGuid::Create<HighGuid::Player>(fields[2].GetUInt64());
+            ObjectGuid senderGUID       = ObjectGuid::Create<HighGuid::Player>(fields[3].GetUInt64());
+            CalendarInviteStatus status = CalendarInviteStatus(fields[4].GetUInt8());
+            time_t responseTime         = fields[5].GetInt64();
+            CalendarModerationRank rank = CalendarModerationRank(fields[6].GetUInt8());
+            std::string note            = fields[7].GetString();
 
-                CalendarInvite* invite = new CalendarInvite(inviteId, eventId, invitee, senderGUID, responseTime, status, rank, note);
-                _invites[eventId].push_back(invite);
+            CalendarInvite* invite = new CalendarInvite(inviteId, eventId, invitee, senderGUID, responseTime, status, rank, note);
+            _invites[eventId].push_back(invite);
 
-                _maxInviteId = std::max(_maxInviteId, inviteId);
+            _maxInviteId = std::max(_maxInviteId, inviteId);
 
-                ++count;
-            } while (result->NextRow());
+            ++count;
+        }
+        while (result->NextRow());
 
-            TC_LOG_INFO("server.loading", ">> Loaded {} calendar invites in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+    TC_LOG_INFO("server.loading", ">> Loaded {} calendar invites in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
 
-            for (uint64 i = 1; i < _maxEventId; ++i)
-                if (!GetEvent(i))
-                    _freeEventIds.push_back(i);
+    for (uint64 i = 1; i < _maxEventId; ++i)
+        if (!GetEvent(i))
+            _freeEventIds.push_back(i);
 
-            for (uint64 i = 1; i < _maxInviteId; ++i)
-                if (!GetInvite(i))
-                    _freeInviteIds.push_back(i);
+    for (uint64 i = 1; i < _maxInviteId; ++i)
+        if (!GetInvite(i))
+            _freeInviteIds.push_back(i);
 }
 
 void CalendarMgr::AddEvent(CalendarEvent* calendarEvent, CalendarSendEventType sendType)
@@ -182,7 +187,6 @@ void CalendarMgr::RemoveEvent(CalendarEvent* calendarEvent, ObjectGuid remover)
 
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
     CharacterDatabasePreparedStatement* stmt;
-    MailDraft mail(calendarEvent->BuildCalendarMailSubject(remover), calendarEvent->BuildCalendarMailBody());
 
     CalendarInviteStore& eventInvites = _invites[calendarEvent->GetEventId()];
     for (size_t i = 0; i < eventInvites.size(); ++i)
@@ -195,7 +199,10 @@ void CalendarMgr::RemoveEvent(CalendarEvent* calendarEvent, ObjectGuid remover)
         // guild events only? check invite status here?
         // When an event is deleted, all invited (accepted/declined? - verify) guildies are notified via in-game mail. (wowwiki)
         if (!remover.IsEmpty() && invite->GetInviteeGUID() != remover)
+        {
+            MailDraft mail(calendarEvent->BuildCalendarMailSubject(remover), calendarEvent->BuildCalendarMailBody(ObjectAccessor::FindConnectedPlayer(invite->GetInviteeGUID())));
             mail.SendMailTo(trans, MailReceiver(invite->GetInviteeGUID().GetCounter()), calendarEvent, MAIL_CHECK_MASK_COPIED);
+        }
 
         delete invite;
     }
@@ -242,7 +249,7 @@ void CalendarMgr::RemoveInvite(uint64 inviteId, uint64 eventId, ObjectGuid /*rem
     //    MailDraft(calendarEvent->BuildCalendarMailSubject(remover), calendarEvent->BuildCalendarMailBody())
     //        .SendMailTo(trans, MailReceiver((*itr)->GetInvitee()), calendarEvent, MAIL_CHECK_MASK_COPIED);
 
-    delete* itr;
+    delete *itr;
     _invites[eventId].erase(itr);
 }
 
@@ -373,7 +380,7 @@ void CalendarMgr::DeleteOldEvents()
     }
 }
 
-CalendarEventStore CalendarMgr::GetEventsCreatedBy(ObjectGuid guid, bool includeGuildEvents)
+CalendarEventStore CalendarMgr::GetEventsCreatedBy(ObjectGuid guid, bool includeGuildEvents) const
 {
     CalendarEventStore result;
     for (CalendarEventStore::const_iterator itr = _events.begin(); itr != _events.end(); ++itr)
@@ -383,7 +390,7 @@ CalendarEventStore CalendarMgr::GetEventsCreatedBy(ObjectGuid guid, bool include
     return result;
 }
 
-CalendarEventStore CalendarMgr::GetGuildEvents(ObjectGuid::LowType guildId)
+CalendarEventStore CalendarMgr::GetGuildEvents(ObjectGuid::LowType guildId) const
 {
     CalendarEventStore result;
 
@@ -398,7 +405,7 @@ CalendarEventStore CalendarMgr::GetGuildEvents(ObjectGuid::LowType guildId)
     return result;
 }
 
-CalendarEventStore CalendarMgr::GetPlayerEvents(ObjectGuid guid)
+CalendarEventStore CalendarMgr::GetPlayerEvents(ObjectGuid guid) const
 {
     CalendarEventStore events;
 
@@ -417,12 +424,16 @@ CalendarEventStore CalendarMgr::GetPlayerEvents(ObjectGuid guid)
     return events;
 }
 
-CalendarInviteStore const& CalendarMgr::GetEventInvites(uint64 eventId)
+CalendarInviteStore CalendarMgr::GetEventInvites(uint64 eventId) const
 {
-    return _invites[eventId];
+    CalendarInviteStore invites;
+    if (CalendarInviteStore const* invitesStore = Trinity::Containers::MapGetValuePtr(_invites, eventId))
+        invites = *invitesStore;
+
+    return invites;
 }
 
-CalendarInviteStore CalendarMgr::GetPlayerInvites(ObjectGuid guid)
+CalendarInviteStore CalendarMgr::GetPlayerInvites(ObjectGuid guid) const
 {
     CalendarInviteStore invites;
 
@@ -443,13 +454,13 @@ uint32 CalendarMgr::GetPlayerNumPending(ObjectGuid guid)
     {
         switch ((*itr)->GetStatus())
         {
-        case CALENDAR_STATUS_INVITED:
-        case CALENDAR_STATUS_TENTATIVE:
-        case CALENDAR_STATUS_NOT_SIGNED_UP:
-            ++pendingNum;
-            break;
-        default:
-            break;
+            case CALENDAR_STATUS_INVITED:
+            case CALENDAR_STATUS_TENTATIVE:
+            case CALENDAR_STATUS_NOT_SIGNED_UP:
+                ++pendingNum;
+                break;
+            default:
+                break;
         }
     }
 
@@ -458,25 +469,20 @@ uint32 CalendarMgr::GetPlayerNumPending(ObjectGuid guid)
 
 std::string CalendarEvent::BuildCalendarMailSubject(ObjectGuid remover) const
 {
-    std::ostringstream strm;
-    strm << remover.ToString() << ':' << _title;
-    return strm.str();
+    return Trinity::StringFormat("{}:{}", remover.ToString(), _title);
 }
 
-std::string CalendarEvent::BuildCalendarMailBody() const
+std::string CalendarEvent::BuildCalendarMailBody(Player const* invitee) const
 {
-    WorldPacket data;
-    uint32 time;
-    std::ostringstream strm;
+    WowTime time;
+    time.SetUtcTimeFromUnixTime(_date);
+    if (invitee)
+        time += invitee->GetSession()->GetTimezoneOffset();
 
-    // we are supposed to send PackedTime so i used WorldPacket to pack it
-    data.AppendPackedTime(_date);
-    data >> time;
-    strm << time;
-    return strm.str();
+    return Trinity::ToString(time.GetPackedTime());
 }
 
-void CalendarMgr::SendCalendarEventInvite(CalendarInvite const& invite)
+void CalendarMgr::SendCalendarEventInvite(CalendarInvite const& invite) const
 {
     CalendarEvent* calendarEvent = GetEvent(invite.GetEventId());
 
@@ -485,71 +491,103 @@ void CalendarMgr::SendCalendarEventInvite(CalendarInvite const& invite)
 
     uint8 level = player ? player->GetLevel() : sCharacterCache->GetCharacterLevelByGuid(invitee);
 
-    WorldPackets::Calendar::CalendarInviteAdded packet;
-    packet.EventID = calendarEvent ? calendarEvent->GetEventId() : 0;
-    packet.InviteGuid = invitee;
-    packet.InviteID = calendarEvent ? invite.GetInviteId() : 0;
-    packet.Level = level;
-    packet.ResponseTime = invite.GetResponseTime();
-    packet.Status = invite.GetStatus();
-    packet.Type = calendarEvent ? calendarEvent->IsGuildEvent() : 0; // Correct ?
-    packet.ClearPending = calendarEvent ? !calendarEvent->IsGuildEvent() : true; // Correct ?
+    auto packetBuilder = [&](Player const* receiver)
+    {
+        WorldPackets::Calendar::CalendarInviteAdded packet;
+        packet.EventID = calendarEvent ? calendarEvent->GetEventId() : 0;
+        packet.InviteGuid = invitee;
+        packet.InviteID = calendarEvent ? invite.GetInviteId() : 0;
+        packet.Level = level;
+        packet.ResponseTime.SetUtcTimeFromUnixTime(invite.GetResponseTime());
+        packet.ResponseTime += receiver->GetSession()->GetTimezoneOffset();
+        packet.Status = invite.GetStatus();
+        packet.Type = calendarEvent ? calendarEvent->IsGuildEvent() : 0; // Correct ?
+        packet.ClearPending = calendarEvent ? !calendarEvent->IsGuildEvent() : true; // Correct ?
+
+        receiver->SendDirectMessage(packet.Write());
+    };
 
     if (!calendarEvent) // Pre-invite
     {
         if (Player* playerSender = ObjectAccessor::FindConnectedPlayer(invite.GetSenderGUID()))
-            playerSender->SendDirectMessage(packet.Write());
+            packetBuilder(playerSender);
     }
     else
     {
         if (calendarEvent->GetOwnerGUID() != invite.GetInviteeGUID()) // correct?
-            SendPacketToAllEventRelatives(packet.Write(), *calendarEvent);
+            for (Player* receiver : GetAllEventRelatives(*calendarEvent))
+                packetBuilder(receiver);
     }
 }
 
-void CalendarMgr::SendCalendarEventUpdateAlert(CalendarEvent const& calendarEvent, time_t originalDate)
+void CalendarMgr::SendCalendarEventUpdateAlert(CalendarEvent const& calendarEvent, time_t originalDate) const
 {
-    WorldPackets::Calendar::CalendarEventUpdatedAlert packet;
-    packet.ClearPending = true; // FIXME
-    packet.Date = calendarEvent.GetDate();
-    packet.Description = calendarEvent.GetDescription();
-    packet.EventClubID = calendarEvent.GetGuildId();
-    packet.EventID = calendarEvent.GetEventId();
-    packet.EventName = calendarEvent.GetTitle();
-    packet.EventType = calendarEvent.GetType();
-    packet.Flags = calendarEvent.GetFlags();
-    packet.LockDate = calendarEvent.GetLockDate(); // Always 0 ?
-    packet.OriginalDate = originalDate;
-    packet.TextureID = calendarEvent.GetTextureId();
+    auto packetBuilder = [&](Player const* receiver)
+    {
+        WorldPackets::Calendar::CalendarEventUpdatedAlert packet;
+        packet.ClearPending = calendarEvent.GetOwnerGUID() == receiver->GetGUID();
+        packet.Date.SetUtcTimeFromUnixTime(calendarEvent.GetDate());
+        packet.Date += receiver->GetSession()->GetTimezoneOffset();
+        packet.Description = calendarEvent.GetDescription();
+        packet.EventClubID = calendarEvent.GetGuildId();
+        packet.EventID = calendarEvent.GetEventId();
+        packet.EventName = calendarEvent.GetTitle();
+        packet.EventType = calendarEvent.GetType();
+        packet.Flags = calendarEvent.GetFlags();
+        packet.LockDate.SetUtcTimeFromUnixTime(calendarEvent.GetLockDate()); // Always 0 ?
+        if (calendarEvent.GetLockDate())
+            packet.LockDate += receiver->GetSession()->GetTimezoneOffset();
+        packet.OriginalDate.SetUtcTimeFromUnixTime(originalDate);
+        packet.OriginalDate += receiver->GetSession()->GetTimezoneOffset();
+        packet.TextureID = calendarEvent.GetTextureId();
 
-    SendPacketToAllEventRelatives(packet.Write(), calendarEvent);
+        receiver->SendDirectMessage(packet.Write());
+    };
+
+    for (Player* receiver : GetAllEventRelatives(calendarEvent))
+        packetBuilder(receiver);
 }
 
-void CalendarMgr::SendCalendarEventStatus(CalendarEvent const& calendarEvent, CalendarInvite const& invite)
+void CalendarMgr::SendCalendarEventStatus(CalendarEvent const& calendarEvent, CalendarInvite const& invite) const
 {
-    WorldPackets::Calendar::CalendarInviteStatus packet;
-    packet.ClearPending = true; // FIXME
-    packet.Date = calendarEvent.GetDate();
-    packet.EventID = calendarEvent.GetEventId();
-    packet.Flags = calendarEvent.GetFlags();
-    packet.InviteGuid = invite.GetInviteeGUID();
-    packet.ResponseTime = invite.GetResponseTime();
-    packet.Status = invite.GetStatus();
+    auto packetBuilder = [&](Player const* receiver)
+    {
+        WorldPackets::Calendar::CalendarInviteStatus packet;
+        packet.ClearPending = invite.GetInviteeGUID() == receiver->GetGUID();
+        packet.Date.SetUtcTimeFromUnixTime(calendarEvent.GetDate());
+        packet.Date += receiver->GetSession()->GetTimezoneOffset();
+        packet.EventID = calendarEvent.GetEventId();
+        packet.Flags = calendarEvent.GetFlags();
+        packet.InviteGuid = invite.GetInviteeGUID();
+        packet.ResponseTime.SetUtcTimeFromUnixTime(invite.GetResponseTime());
+        packet.ResponseTime += receiver->GetSession()->GetTimezoneOffset();
+        packet.Status = invite.GetStatus();
 
-    SendPacketToAllEventRelatives(packet.Write(), calendarEvent);
+        receiver->SendDirectMessage(packet.Write());
+    };
+
+    for (Player* receiver : GetAllEventRelatives(calendarEvent))
+        packetBuilder(receiver);
 }
 
-void CalendarMgr::SendCalendarEventRemovedAlert(CalendarEvent const& calendarEvent)
+void CalendarMgr::SendCalendarEventRemovedAlert(CalendarEvent const& calendarEvent) const
 {
-    WorldPackets::Calendar::CalendarEventRemovedAlert packet;
-    packet.ClearPending = true; // FIXME
-    packet.Date = calendarEvent.GetDate();
-    packet.EventID = calendarEvent.GetEventId();
+    auto packetBuilder = [&](Player const* receiver)
+    {
+        WorldPackets::Calendar::CalendarEventRemovedAlert packet;
+        packet.ClearPending = calendarEvent.GetOwnerGUID() == receiver->GetGUID();
+        packet.Date.SetUtcTimeFromUnixTime(calendarEvent.GetDate());
+        packet.Date += receiver->GetSession()->GetTimezoneOffset();
+        packet.EventID = calendarEvent.GetEventId();
 
-    SendPacketToAllEventRelatives(packet.Write(), calendarEvent);
+        receiver->SendDirectMessage(packet.Write());
+    };
+
+    for (Player* receiver : GetAllEventRelatives(calendarEvent))
+        packetBuilder(receiver);
 }
 
-void CalendarMgr::SendCalendarEventInviteRemove(CalendarEvent const& calendarEvent, CalendarInvite const& invite, uint32 flags)
+void CalendarMgr::SendCalendarEventInviteRemove(CalendarEvent const& calendarEvent, CalendarInvite const& invite, uint32 flags) const
 {
     WorldPackets::Calendar::CalendarInviteRemoved packet;
     packet.ClearPending = true; // FIXME
@@ -560,7 +598,7 @@ void CalendarMgr::SendCalendarEventInviteRemove(CalendarEvent const& calendarEve
     SendPacketToAllEventRelatives(packet.Write(), calendarEvent);
 }
 
-void CalendarMgr::SendCalendarEventModeratorStatusAlert(CalendarEvent const& calendarEvent, CalendarInvite const& invite)
+void CalendarMgr::SendCalendarEventModeratorStatusAlert(CalendarEvent const& calendarEvent, CalendarInvite const& invite) const
 {
     WorldPackets::Calendar::CalendarModeratorStatus packet;
     packet.ClearPending = true; // FIXME
@@ -571,82 +609,94 @@ void CalendarMgr::SendCalendarEventModeratorStatusAlert(CalendarEvent const& cal
     SendPacketToAllEventRelatives(packet.Write(), calendarEvent);
 }
 
-void CalendarMgr::SendCalendarEventInviteAlert(CalendarEvent const& calendarEvent, CalendarInvite const& invite)
+void CalendarMgr::SendCalendarEventInviteAlert(CalendarEvent const& calendarEvent, CalendarInvite const& invite) const
 {
-    WorldPackets::Calendar::CalendarInviteAlert packet;
-    packet.Date = calendarEvent.GetDate();
-    packet.EventID = calendarEvent.GetEventId();
-    packet.EventName = calendarEvent.GetTitle();
-    packet.EventType = calendarEvent.GetType();
-    packet.Flags = calendarEvent.GetFlags();
-    packet.InviteID = invite.GetInviteId();
-    packet.InvitedByGuid = invite.GetSenderGUID();
-    packet.ModeratorStatus = invite.GetRank();
-    packet.OwnerGuid = calendarEvent.GetOwnerGUID();
-    packet.Status = invite.GetStatus();
-    packet.TextureID = calendarEvent.GetTextureId();
-    packet.EventClubID = calendarEvent.GetGuildId();
+    auto packetBuilder = [&](Player const* receiver)
+    {
+        WorldPackets::Calendar::CalendarInviteAlert packet;
+        packet.Date.SetUtcTimeFromUnixTime(calendarEvent.GetDate());
+        packet.Date += receiver->GetSession()->GetTimezoneOffset();
+        packet.EventID = calendarEvent.GetEventId();
+        packet.EventName = calendarEvent.GetTitle();
+        packet.EventType = calendarEvent.GetType();
+        packet.Flags = calendarEvent.GetFlags();
+        packet.InviteID = invite.GetInviteId();
+        packet.InvitedByGuid = invite.GetSenderGUID();
+        packet.ModeratorStatus = invite.GetRank();
+        packet.OwnerGuid = calendarEvent.GetOwnerGUID();
+        packet.Status = invite.GetStatus();
+        packet.TextureID = calendarEvent.GetTextureId();
+        packet.EventClubID = calendarEvent.GetGuildId();
+
+        receiver->SendDirectMessage(packet.Write());
+    };
 
     if (calendarEvent.IsGuildEvent() || calendarEvent.IsGuildAnnouncement())
     {
         if (Guild* guild = sGuildMgr->GetGuildById(calendarEvent.GetGuildId()))
-            guild->BroadcastPacket(packet.Write());
+            guild->BroadcastWorker(packetBuilder);
     }
     else if (Player* player = ObjectAccessor::FindConnectedPlayer(invite.GetInviteeGUID()))
-        player->SendDirectMessage(packet.Write());
+        packetBuilder(player);
 }
 
-void CalendarMgr::SendCalendarEvent(ObjectGuid guid, CalendarEvent const& calendarEvent, CalendarSendEventType sendType)
+void CalendarMgr::SendCalendarEvent(ObjectGuid guid, CalendarEvent const& calendarEvent, CalendarSendEventType sendType) const
 {
     Player* player = ObjectAccessor::FindConnectedPlayer(guid);
     if (!player)
         return;
 
-    CalendarInviteStore const& eventInviteeList = _invites[calendarEvent.GetEventId()];
-
     WorldPackets::Calendar::CalendarSendEvent packet;
-    packet.Date = calendarEvent.GetDate();
+    packet.Date.SetUtcTimeFromUnixTime(calendarEvent.GetDate());
+    packet.Date += player->GetSession()->GetTimezoneOffset();
     packet.Description = calendarEvent.GetDescription();
     packet.EventID = calendarEvent.GetEventId();
     packet.EventName = calendarEvent.GetTitle();
     packet.EventType = sendType;
     packet.Flags = calendarEvent.GetFlags();
     packet.GetEventType = calendarEvent.GetType();
-    packet.LockDate = calendarEvent.GetLockDate(); // Always 0 ?
+    packet.LockDate.SetUtcTimeFromUnixTime(calendarEvent.GetLockDate()); // Always 0 ?
+    if (calendarEvent.GetLockDate())
+        packet.LockDate += player->GetSession()->GetTimezoneOffset();
     packet.OwnerGuid = calendarEvent.GetOwnerGUID();
     packet.TextureID = calendarEvent.GetTextureId();
     packet.EventClubID = calendarEvent.GetGuildId();
 
-    for (auto const& calendarInvite : eventInviteeList)
+    if (CalendarInviteStore const* eventInviteeList = Trinity::Containers::MapGetValuePtr(_invites, calendarEvent.GetEventId()))
     {
-        ObjectGuid inviteeGuid = calendarInvite->GetInviteeGUID();
-        Player* invitee = ObjectAccessor::FindPlayer(inviteeGuid);
+        for (CalendarInvite const* calendarInvite : *eventInviteeList)
+        {
+            ObjectGuid inviteeGuid = calendarInvite->GetInviteeGUID();
+            Player* invitee = ObjectAccessor::FindPlayer(inviteeGuid);
 
-        uint8 inviteeLevel = invitee ? invitee->GetLevel() : sCharacterCache->GetCharacterLevelByGuid(inviteeGuid);
-        ObjectGuid::LowType inviteeGuildId = invitee ? invitee->GetGuildId() : sCharacterCache->GetCharacterGuildIdByGuid(inviteeGuid);
+            uint8 inviteeLevel = invitee ? invitee->GetLevel() : sCharacterCache->GetCharacterLevelByGuid(inviteeGuid);
+            ObjectGuid::LowType inviteeGuildId = invitee ? invitee->GetGuildId() : sCharacterCache->GetCharacterGuildIdByGuid(inviteeGuid);
 
-        WorldPackets::Calendar::CalendarEventInviteInfo inviteInfo;
-        inviteInfo.Guid = inviteeGuid;
-        inviteInfo.Level = inviteeLevel;
-        inviteInfo.Status = calendarInvite->GetStatus();
-        inviteInfo.Moderator = calendarInvite->GetRank();
-        inviteInfo.InviteType = calendarEvent.IsGuildEvent() && calendarEvent.GetGuildId() == inviteeGuildId;
-        inviteInfo.InviteID = calendarInvite->GetInviteId();
-        inviteInfo.ResponseTime = calendarInvite->GetResponseTime();
-        inviteInfo.Notes = calendarInvite->GetNote();
+            WorldPackets::Calendar::CalendarEventInviteInfo inviteInfo;
+            inviteInfo.Guid = inviteeGuid;
+            inviteInfo.Level = inviteeLevel;
+            inviteInfo.Status = calendarInvite->GetStatus();
+            inviteInfo.Moderator = calendarInvite->GetRank();
+            inviteInfo.InviteType = calendarEvent.IsGuildEvent() && calendarEvent.GetGuildId() == inviteeGuildId;
+            inviteInfo.InviteID = calendarInvite->GetInviteId();
+            inviteInfo.ResponseTime.SetUtcTimeFromUnixTime(calendarInvite->GetResponseTime());
+            inviteInfo.ResponseTime += player->GetSession()->GetTimezoneOffset();
+            inviteInfo.Notes = calendarInvite->GetNote();
 
-        packet.Invites.push_back(inviteInfo);
+            packet.Invites.push_back(inviteInfo);
+        }
     }
 
     player->SendDirectMessage(packet.Write());
 }
 
-void CalendarMgr::SendCalendarEventInviteRemoveAlert(ObjectGuid guid, CalendarEvent const& calendarEvent, CalendarInviteStatus status)
+void CalendarMgr::SendCalendarEventInviteRemoveAlert(ObjectGuid guid, CalendarEvent const& calendarEvent, CalendarInviteStatus status) const
 {
     if (Player* player = ObjectAccessor::FindConnectedPlayer(guid))
     {
         WorldPackets::Calendar::CalendarInviteRemovedAlert packet;
-        packet.Date = calendarEvent.GetDate();
+        packet.Date.SetUtcTimeFromUnixTime(calendarEvent.GetDate());
+        packet.Date += player->GetSession()->GetTimezoneOffset();
         packet.EventID = calendarEvent.GetEventId();
         packet.Flags = calendarEvent.GetFlags();
         packet.Status = status;
@@ -655,13 +705,13 @@ void CalendarMgr::SendCalendarEventInviteRemoveAlert(ObjectGuid guid, CalendarEv
     }
 }
 
-void CalendarMgr::SendCalendarClearPendingAction(ObjectGuid guid)
+void CalendarMgr::SendCalendarClearPendingAction(ObjectGuid guid) const
 {
     if (Player* player = ObjectAccessor::FindConnectedPlayer(guid))
         player->SendDirectMessage(WorldPackets::Calendar::CalendarClearPendingAction().Write());
 }
 
-void CalendarMgr::SendCalendarCommandResult(ObjectGuid guid, CalendarError err, char const* param /*= nullptr*/)
+void CalendarMgr::SendCalendarCommandResult(ObjectGuid guid, CalendarError err, char const* param /*= nullptr*/) const
 {
     if (Player* player = ObjectAccessor::FindConnectedPlayer(guid))
     {
@@ -671,30 +721,48 @@ void CalendarMgr::SendCalendarCommandResult(ObjectGuid guid, CalendarError err, 
 
         switch (err)
         {
-        case CALENDAR_ERROR_OTHER_INVITES_EXCEEDED:
-        case CALENDAR_ERROR_ALREADY_INVITED_TO_EVENT_S:
-        case CALENDAR_ERROR_IGNORING_YOU_S:
-            packet.Name = param;
-            break;
-        default:
-            break;
+            case CALENDAR_ERROR_OTHER_INVITES_EXCEEDED:
+            case CALENDAR_ERROR_ALREADY_INVITED_TO_EVENT_S:
+            case CALENDAR_ERROR_IGNORING_YOU_S:
+                packet.Name = param;
+                break;
+            default:
+                break;
         }
 
         player->SendDirectMessage(packet.Write());
     }
 }
 
-void CalendarMgr::SendPacketToAllEventRelatives(WorldPacket const* packet, CalendarEvent const& calendarEvent)
+void CalendarMgr::SendPacketToAllEventRelatives(WorldPacket const* packet, CalendarEvent const& calendarEvent) const
 {
+    for (Player* player : GetAllEventRelatives(calendarEvent))
+        player->SendDirectMessage(packet);
+}
+
+std::vector<Player*> CalendarMgr::GetAllEventRelatives(CalendarEvent const& calendarEvent) const
+{
+    std::vector<Player*> relatedPlayers;
+
     // Send packet to all guild members
     if (calendarEvent.IsGuildEvent() || calendarEvent.IsGuildAnnouncement())
+    {
         if (Guild* guild = sGuildMgr->GetGuildById(calendarEvent.GetGuildId()))
-            guild->BroadcastPacket(packet);
+        {
+            auto memberCollector = [&](Player* player) { relatedPlayers.push_back(player); };
+            guild->BroadcastWorker(memberCollector);
+        }
+    }
 
     // Send packet to all invitees if event is non-guild, in other case only to non-guild invitees (packet was broadcasted for them)
-    CalendarInviteStore invites = _invites[calendarEvent.GetEventId()];
-    for (CalendarInviteStore::iterator itr = invites.begin(); itr != invites.end(); ++itr)
-        if (Player* player = ObjectAccessor::FindConnectedPlayer((*itr)->GetInviteeGUID()))
-            if (!calendarEvent.IsGuildEvent() || player->GetGuildId() != calendarEvent.GetGuildId())
-                player->SendDirectMessage(packet);
+    if (auto itr =_invites.find(calendarEvent.GetEventId()); itr != _invites.end())
+    {
+        CalendarInviteStore invites = itr->second;
+        for (CalendarInvite const* invite : invites)
+            if (Player* player = ObjectAccessor::FindConnectedPlayer(invite->GetInviteeGUID()))
+                if (!calendarEvent.IsGuildEvent() || player->GetGuildId() != calendarEvent.GetGuildId())
+                    relatedPlayers.push_back(player);
+    }
+
+    return relatedPlayers;
 }

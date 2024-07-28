@@ -151,8 +151,11 @@ void Quest::LoadRewardDisplaySpell(Field* fields)
 
     if (playerConditionId && !sPlayerConditionStore.LookupEntry(playerConditionId))
     {
-        TC_LOG_ERROR("sql.sql", "Table `quest_reward_display_spell` has non-existing PlayerCondition ({}) set for quest {} and spell {}. Set to 0.", playerConditionId, fields[0].GetUInt32(), spellId);
-        playerConditionId = 0;
+        if (!sConditionMgr->HasConditionsForNotGroupedEntry(CONDITION_SOURCE_TYPE_PLAYER_CONDITION, playerConditionId))
+        {
+            TC_LOG_ERROR("sql.sql", "Table `quest_reward_display_spell` has serverside PlayerCondition ({}) set for quest {} and spell {} without conditions. Set to 0.", playerConditionId, fields[0].GetUInt32(), spellId);
+            playerConditionId = 0;
+        }
     }
 
     if (type >= AsUnderlyingType(QuestCompleteSpellType::Max))
@@ -176,7 +179,7 @@ void Quest::LoadQuestDetails(Field* fields)
     {
         if (!sEmotesStore.LookupEntry(fields[1 + i].GetUInt16()))
         {
-            TC_LOG_ERROR("sql.sql", "Table `quest_details` has non-existing Emote{} ({}) set for quest {}. Skipped.", 1 + i, fields[1 + i].GetUInt16(), fields[0].GetUInt32());
+            TC_LOG_ERROR("sql.sql", "Table `quest_details` has non-existing Emote{} ({}) set for quest {}. Skipped.", 1+i, fields[1+i].GetUInt16(), fields[0].GetUInt32());
             continue;
         }
 
@@ -209,7 +212,7 @@ void Quest::LoadQuestOfferReward(Field* fields)
     {
         if (!sEmotesStore.LookupEntry(fields[1 + i].GetUInt16()))
         {
-            TC_LOG_DEBUG("sql.sql", "Table `quest_offer_reward` has non-existing Emote{} ({}) set for quest {}. Skipped.", 1 + i, fields[1 + i].GetUInt16(), fields[0].GetUInt32());
+            TC_LOG_ERROR("sql.sql", "Table `quest_offer_reward` has non-existing Emote{} ({}) set for quest {}. Skipped.", 1+i, fields[1+i].GetUInt16(), fields[0].GetUInt32());
             continue;
         }
 
@@ -306,6 +309,9 @@ void Quest::LoadQuestObjectiveVisualEffect(Field* fields)
 void Quest::LoadConditionalConditionalQuestDescription(Field* fields)
 {
     LocaleConstant locale = GetLocaleByName(fields[4].GetStringView());
+    if (!sWorld->getBoolConfig(CONFIG_LOAD_LOCALES) && locale != DEFAULT_LOCALE)
+        return;
+
     if (locale >= TOTAL_LOCALES)
     {
         TC_LOG_ERROR("sql.sql", "Table `quest_description_conditional` has invalid locale {} set for quest {}. Skipped.", fields[4].GetCString(), fields[0].GetUInt32());
@@ -313,9 +319,9 @@ void Quest::LoadConditionalConditionalQuestDescription(Field* fields)
     }
 
     auto itr = std::find_if(_conditionalQuestDescription.begin(), _conditionalQuestDescription.end(), [fields](QuestConditionalText const& text)
-        {
-            return text.PlayerConditionId == fields[1].GetInt32() && text.QuestgiverCreatureId == fields[2].GetInt32();
-        });
+    {
+        return text.PlayerConditionId == fields[1].GetInt32() && text.QuestgiverCreatureId == fields[2].GetInt32();
+    });
 
     QuestConditionalText& text = itr != _conditionalQuestDescription.end() ? *itr : _conditionalQuestDescription.emplace_back();
     text.PlayerConditionId = fields[1].GetInt32();
@@ -326,6 +332,9 @@ void Quest::LoadConditionalConditionalQuestDescription(Field* fields)
 void Quest::LoadConditionalConditionalRequestItemsText(Field* fields)
 {
     LocaleConstant locale = GetLocaleByName(fields[4].GetStringView());
+    if (!sWorld->getBoolConfig(CONFIG_LOAD_LOCALES) && locale != DEFAULT_LOCALE)
+        return;
+
     if (locale >= TOTAL_LOCALES)
     {
         TC_LOG_ERROR("sql.sql", "Table `quest_request_items_conditional` has invalid locale {} set for quest {}. Skipped.", fields[4].GetCString(), fields[0].GetUInt32());
@@ -333,9 +342,9 @@ void Quest::LoadConditionalConditionalRequestItemsText(Field* fields)
     }
 
     auto itr = std::find_if(_conditionalRequestItemsText.begin(), _conditionalRequestItemsText.end(), [fields](QuestConditionalText const& text)
-        {
-            return text.PlayerConditionId == fields[1].GetInt32() && text.QuestgiverCreatureId == fields[2].GetInt32();
-        });
+    {
+        return text.PlayerConditionId == fields[1].GetInt32() && text.QuestgiverCreatureId == fields[2].GetInt32();
+    });
 
     QuestConditionalText& text = itr != _conditionalRequestItemsText.end() ? *itr : _conditionalRequestItemsText.emplace_back();
     text.PlayerConditionId = fields[1].GetInt32();
@@ -346,6 +355,9 @@ void Quest::LoadConditionalConditionalRequestItemsText(Field* fields)
 void Quest::LoadConditionalConditionalOfferRewardText(Field* fields)
 {
     LocaleConstant locale = GetLocaleByName(fields[4].GetStringView());
+    if (!sWorld->getBoolConfig(CONFIG_LOAD_LOCALES) && locale != DEFAULT_LOCALE)
+        return;
+
     if (locale >= TOTAL_LOCALES)
     {
         TC_LOG_ERROR("sql.sql", "Table `quest_offer_reward_conditional` has invalid locale {} set for quest {}. Skipped.", fields[4].GetCString(), fields[0].GetUInt32());
@@ -353,9 +365,9 @@ void Quest::LoadConditionalConditionalOfferRewardText(Field* fields)
     }
 
     auto itr = std::find_if(_conditionalOfferRewardText.begin(), _conditionalOfferRewardText.end(), [fields](QuestConditionalText const& text)
-        {
-            return text.PlayerConditionId == fields[1].GetInt32() && text.QuestgiverCreatureId == fields[2].GetInt32();
-        });
+    {
+        return text.PlayerConditionId == fields[1].GetInt32() && text.QuestgiverCreatureId == fields[2].GetInt32();
+    });
 
     QuestConditionalText& text = itr != _conditionalOfferRewardText.end() ? *itr : _conditionalOfferRewardText.emplace_back();
     text.PlayerConditionId = fields[1].GetInt32();
@@ -366,6 +378,9 @@ void Quest::LoadConditionalConditionalOfferRewardText(Field* fields)
 void Quest::LoadConditionalConditionalQuestCompletionLog(Field* fields)
 {
     LocaleConstant locale = GetLocaleByName(fields[4].GetStringView());
+    if (!sWorld->getBoolConfig(CONFIG_LOAD_LOCALES) && locale != DEFAULT_LOCALE)
+        return;
+
     if (locale >= TOTAL_LOCALES)
     {
         TC_LOG_ERROR("sql.sql", "Table `quest_completion_log_conditional` has invalid locale {} set for quest {}. Skipped.", fields[4].GetCString(), fields[0].GetUInt32());
@@ -373,9 +388,9 @@ void Quest::LoadConditionalConditionalQuestCompletionLog(Field* fields)
     }
 
     auto itr = std::find_if(_conditionalQuestCompletionLog.begin(), _conditionalQuestCompletionLog.end(), [fields](QuestConditionalText const& text)
-        {
-            return text.PlayerConditionId == fields[1].GetInt32() && text.QuestgiverCreatureId == fields[2].GetInt32();
-        });
+    {
+        return text.PlayerConditionId == fields[1].GetInt32() && text.QuestgiverCreatureId == fields[2].GetInt32();
+    });
 
     QuestConditionalText& text = itr != _conditionalQuestCompletionLog.end() ? *itr : _conditionalQuestCompletionLog.emplace_back();
     text.PlayerConditionId = fields[1].GetInt32();
@@ -472,58 +487,6 @@ bool Quest::IsImportant() const
     return false;
 }
 
-bool Quest::IsWorldQuest() const
-{
-    if (HasFlagEx(QUEST_FLAGS_EX_IS_WORLD_QUEST))
-        return true;
-
-    switch (GetQuestInfoID())
-    {
-        case QUEST_INFO_WORLD_QUEST:
-        case QUEST_INFO_EPIC_WORLD_QUEST:
-        case QUEST_INFO_ELITE_WORLD_QUEST:
-        case QUEST_INFO_EPIC_ELITE_WORLD_QUEST:
-        case QUEST_INFO_PVP_WORLD_QUEST:
-        case QUEST_INFO_FIRST_AID_WORLD_QUEST:
-        case QUEST_INFO_BATTLE_PET_WORLD_QUEST:
-        case QUEST_INFO_BLACKSMITHING_WORLD_QUEST:
-        case QUEST_INFO_LEATHERWORKING_WORLD_QUEST:
-        case QUEST_INFO_ALCHEMY_WORLD_QUEST:
-        case QUEST_INFO_HERBALISM_WORLD_QUEST:
-        case QUEST_INFO_MINING_WORLD_QUEST:
-        case QUEST_INFO_TAILORING_WORLD_QUEST:
-        case QUEST_INFO_ENGINEERING_WORLD_QUEST:
-        case QUEST_INFO_ENCHANTING_WORLD_QUEST:
-        case QUEST_INFO_SKINNING_WORLD_QUEST:
-        case QUEST_INFO_JEWELCRAFTING_WORLD_QUEST:
-        case QUEST_INFO_INSCRIPTION_WORLD_QUEST:
-        case QUEST_INFO_ARCHEOLOGY_WORLD_QUEST:
-        case QUEST_INFO_FISHING_WORLD_QUEST:
-        case QUEST_INFO_COOKING_WORLD_QUEST:
-        case QUEST_INFO_RARE_WORLD_QUEST:
-        case QUEST_INFO_RARE_ELITE_WORLD_QUEST:
-        case QUEST_INFO_DUNGEON_WORLD_QUEST:
-        case QUEST_INFO_LEGION_INVASION_WORLD_QUEST:
-        case QUEST_INFO_RAID_WORLD_QUEST:
-        case QUEST_INFO_LEGION_INVASION_ELITE_WORLD_QUEST:
-        case QUEST_INFO_LEGIONFALL_WORLD_QUEST:
-        case QUEST_INFO_LEGIONFALL_DUNGEON_WORLD_QUEST:
-        case QUEST_INFO_LEGION_INVASION_WORLD_QUEST_WRAPPER:
-        case QUEST_INFO_MAGNI_WORLD_QUEST_AZERITE:
-        case QUEST_INFO_TORTOLLAN_WORLD_QUEST:
-        case QUEST_INFO_FACTION_ASSAULT_WORLD_QUEST:
-        case QUEST_INFO_FACTION_ASSAULT_ELITE_WORLD_QUEST:
-        case QUEST_INFO_PVP_ELITE_WORLD_Q:
-        case QUEST_INFO_CALLING_QUEST:
-        case QUEST_INFO_THREAT_EMISSARY_QUEST:
-            return true;
-        default:
-            break;
-    }
-
-    return HasFlagEx(QUEST_FLAGS_EX_IS_WORLD_QUEST);
-}
-
 void Quest::BuildQuestRewards(WorldPackets::Quest::QuestRewards& rewards, Player* player) const
 {
     rewards.ChoiceItemCount         = GetRewChoiceItemsCount();
@@ -536,9 +499,8 @@ void Quest::BuildQuestRewards(WorldPackets::Quest::QuestRewards& rewards, Player
     auto displaySpellItr = rewards.SpellCompletionDisplayID.begin();
     for (QuestRewardDisplaySpell displaySpell : RewardDisplaySpell)
     {
-        if (PlayerConditionEntry const* playerCondition = sPlayerConditionStore.LookupEntry(displaySpell.PlayerConditionId))
-            if (!ConditionMgr::IsPlayerMeetingCondition(player, playerCondition))
-                continue;
+        if (!ConditionMgr::IsPlayerMeetingCondition(player, displaySpell.PlayerConditionId))
+            continue;
 
         *displaySpellItr = displaySpell.SpellId;
         if (++displaySpellItr == rewards.SpellCompletionDisplayID.end())
@@ -654,7 +616,12 @@ bool Quest::CanIncreaseRewardedQuestCounters() const
 void Quest::InitializeQueryData()
 {
     for (uint8 loc = LOCALE_enUS; loc < TOTAL_LOCALES; ++loc)
+    {
+        if (!sWorld->getBoolConfig(CONFIG_LOAD_LOCALES) && loc != DEFAULT_LOCALE)
+            continue;
+
         QueryData[loc] = BuildQueryData(static_cast<LocaleConstant>(loc), nullptr);
+    }
 }
 
 WorldPacket Quest::BuildQueryData(LocaleConstant loc, Player* player) const
@@ -674,18 +641,18 @@ WorldPacket Quest::BuildQueryData(LocaleConstant loc, Player* player) const
     response.Info.PortraitTurnInText = GetPortraitTurnInText();
     response.Info.PortraitTurnInName = GetPortraitTurnInName();
     std::transform(GetConditionalQuestDescription().begin(), GetConditionalQuestDescription().end(), std::back_inserter(response.Info.ConditionalQuestDescription), [loc](QuestConditionalText const& text)
-        {
-            std::string_view content = text.Text[LOCALE_enUS];
-            ObjectMgr::GetLocaleString(text.Text, loc, content);
-            return WorldPackets::Quest::ConditionalQuestText{ text.PlayerConditionId, text.QuestgiverCreatureId, content };
-        });
+    {
+        std::string_view content = text.Text[LOCALE_enUS];
+        ObjectMgr::GetLocaleString(text.Text, loc, content);
+        return WorldPackets::Quest::ConditionalQuestText { text.PlayerConditionId, text.QuestgiverCreatureId, content };
+    });
 
     std::transform(GetConditionalQuestCompletionLog().begin(), GetConditionalQuestCompletionLog().end(), std::back_inserter(response.Info.ConditionalQuestCompletionLog), [loc](QuestConditionalText const& text)
-        {
-            std::string_view content = text.Text[LOCALE_enUS];
-            ObjectMgr::GetLocaleString(text.Text, loc, content);
-            return WorldPackets::Quest::ConditionalQuestText{ text.PlayerConditionId, text.QuestgiverCreatureId, content };
-        });
+    {
+        std::string_view content = text.Text[LOCALE_enUS];
+        ObjectMgr::GetLocaleString(text.Text, loc, content);
+        return WorldPackets::Quest::ConditionalQuestText { text.PlayerConditionId, text.QuestgiverCreatureId, content };
+    });
 
     if (loc != LOCALE_enUS)
     {
@@ -829,4 +796,3 @@ uint32 Quest::RoundXPValue(uint32 xp)
     else
         return 50 * ((xp + 25) / 50);
 }
-

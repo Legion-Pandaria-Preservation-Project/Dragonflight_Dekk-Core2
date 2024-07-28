@@ -1,198 +1,201 @@
 /*
-* Copyright 2023 DekkCore
-*
-* This program is free software; you can redistribute it and/or modify it
-* under the terms of the GNU General Public License as published by the
-* Free Software Foundation; either version 2 of the License, or (at your
-* option) any later version.
-*
-* This program is distributed in the hope that it will be useful, but WITHOUT
-* ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-* FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
-* more details.
-*
-* You should have received a copy of the GNU General Public License along
-* with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
+ * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 
-#include "GameObject.h"
-#include "lost_city_of_the_tolvir.h"
 #include "ScriptMgr.h"
+#include "Containers.h"
+#include "Creature.h"
+#include "CreatureAI.h"
+#include "EventMap.h"
+#include "InstanceScript.h"
+#include "lost_city_of_the_tolvir.h"
+#include "Map.h"
 
-enum eScriptText
+static constexpr ObjectData const creatureData[] =
 {
-    YELL_FREE = 0,
+    { NPC_GENERAL_HUSAM,        BOSS_GENERAL_HUSAM       },
+    { NPC_LOCKMAW,              BOSS_LOCKMAW             },
+    { NPC_HIGH_PROPHET_BARIM,   BOSS_HIGH_PROPHET_BARIM  },
+    { NPC_SIAMAT,               BOSS_SIAMAT              },
+    { NPC_DUST_FLAIL,           DATA_DUST_FLAIL          },
+    { 0,                        0                        } // End
+};
+
+static constexpr DungeonEncounterData const encounters[] =
+{
+    { BOSS_GENERAL_HUSAM,       {{ 1052 }} },
+    { BOSS_LOCKMAW,             {{ 1054 }} },
+    { BOSS_HIGH_PROPHET_BARIM,  {{ 1053 }} },
+    { BOSS_SIAMAT,              {{ 1055 }} }
+};
+
+enum LCTEvents
+{
+    EVENT_SPAWN_HEROIC_AUGH = 1
+};
+
+enum LCTSpawnGroups
+{
+    SPAWN_GROUP_ID_SIAMAT_WIND_TUNNEL   = 1036,
+    SPAWN_GROUP_ID_AUGH_HEROIC          = 1037
 };
 
 class instance_lost_city_of_the_tolvir : public InstanceMapScript
 {
-    public:
-        instance_lost_city_of_the_tolvir() : InstanceMapScript("instance_lost_city_of_the_tolvir", 755) { }
+public:
+    instance_lost_city_of_the_tolvir() : InstanceMapScript(LCTScriptName, 755) { }
 
-        InstanceScript* GetInstanceScript(InstanceMap* map) const override
+    struct instance_lost_city_of_the_tolvir_InstanceMapScript : public InstanceScript
+    {
+        instance_lost_city_of_the_tolvir_InstanceMapScript(InstanceMap* map) : InstanceScript(map), _heroicAughDespawned(false)
         {
-            return new instance_lost_city_of_the_tolvir_InstanceMapScript(map);
+            SetHeaders(DataHeader);
+            SetBossNumber(EncounterCount);
+            LoadDungeonEncounterData(encounters);
+            LoadObjectData(creatureData, nullptr);
         }
 
-        struct instance_lost_city_of_the_tolvir_InstanceMapScript : public InstanceScript
+        void OnCreatureCreate(Creature* creature) override
         {
-            instance_lost_city_of_the_tolvir_InstanceMapScript(InstanceMap* map) : InstanceScript(map) { Initialize(); }
+            InstanceScript::OnCreatureCreate(creature);
 
-            uint32 Encounter[MAX_ENCOUNTER];
-            ObjectGuid uiTunnelGUID[6];
-            uint8 uiTunnelFlag;
-            ObjectGuid uiHusamGUID;
-            ObjectGuid uiLockmawGUID;
-            ObjectGuid uiAughGUID;
-            ObjectGuid uiBarimGUID;
-            ObjectGuid uiBlazeGUID;
-            ObjectGuid uiHarbingerGUID;
-            ObjectGuid uiSiamatGUID;
-            ObjectGuid uiSiamatPlatformGUID;
-            uint32 uiUpdateTimer;
-            bool BarimIsDone;
-
-            void Initialize() 
+            switch (creature->GetEntry())
             {
-                memset(&Encounter, 0, sizeof(Encounter));
-                uiTunnelFlag = 0;
-                uiUpdateTimer = 7000;
-                BarimIsDone = false;
-            }
-
-            void SiamatFree()
-            {
-                if (GameObject* platform = instance->GetGameObject(uiSiamatPlatformGUID))
-                {
-                    platform->RemoveFlag(GO_FLAG_DAMAGED);
-                    platform->SetFlag(GO_FLAG_DESTROYED);
-                }
-
-                for (int i = 0; i < 6; ++i)
-                    if (Creature* tunnel = instance->GetCreature(uiTunnelGUID[i]))
-                        tunnel->SetVisible(true);
-            }
-
-            void Update(uint32 diff) override
-            {
-            //    UpdateOperations(diff);
-
-                if (BarimIsDone)
-                {
-                    if (uiUpdateTimer <= diff)
-                    {
-                        BarimIsDone = false;
-                        SiamatFree();
-
-                        if (Creature* siamat = instance->GetCreature(uiSiamatGUID))
-                            siamat->AI()->Talk(YELL_FREE);
-                    }
-                    else
-                        uiUpdateTimer -= diff;
-                    }
-            }
-
-            bool IsEncounterInProgress() const override
-            {
-                for (uint8 i = 0; i < MAX_ENCOUNTER; ++i)
-                    if (Encounter[i] == IN_PROGRESS) return true;
-
-                return false;
-            }
-
-            void OnGameObjectCreate(GameObject* go) override
-            {
-                if (go->GetEntry() == SIAMAT_PLATFORM)
-                {
-                    go->setActive(true);
-                    uiSiamatPlatformGUID = go->GetGUID();
-                }
-            }
-
-            void OnCreatureCreate(Creature* creature) override
-            {
-                switch (creature->GetEntry())
-                {
-                    case BOSS_GENERAL_HUSAM:
-                        uiHusamGUID = creature->GetGUID();
-                        break;
-                    case BOSS_LOCKMAW:
-                        uiLockmawGUID = creature->GetGUID();
-                        break;
-                    case BOSS_AUGH:
-                        uiAughGUID = creature->GetGUID();
-                        break;
-                    case BOSS_HIGH_PROPHET_BARIM:
-                        uiBarimGUID = creature->GetGUID();
-                        break;
-                    case BOSS_SIAMAT:
-                        uiSiamatGUID = creature->GetGUID();
-                        break;
-                    case NPC_WIND_TUNNEL:
-                    {
-                        creature->SetVisible(false);
-                        creature->SetCanFly(true);
-                        uiTunnelGUID[uiTunnelFlag] = creature->GetGUID();
-                        ++uiTunnelFlag;
-
-                        if (uiTunnelFlag >= 6)
-                            uiTunnelFlag = 0;
+                case NPC_ADD_STALKER:
+                    _lockmawAddStalkerGUIDs.push_back(creature->GetGUID());
                     break;
-                    }
-                }
+                case NPC_FRENZIED_CROCOLISK:
+                case NPC_AUGH_ADD_1:
+                case NPC_AUGH_ADD_2:
+                    // Some adds are spawned by Add Stalkers so we have to register them via instance script for Lockmaw to clean up
+                    if (Creature* lockmaw = GetCreature(BOSS_LOCKMAW))
+                        if (CreatureAI* ai = lockmaw->AI())
+                            ai->JustSummoned(creature);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        bool SetBossState(uint32 id, EncounterState state) override
+        {
+            if (!InstanceScript::SetBossState(id, state))
+                return false;
+
+            switch (id)
+            {
+                case BOSS_LOCKMAW:
+                    if (state == DONE && (instance->IsHeroic() || instance->IsTimewalking()))
+                        _events.ScheduleEvent(EVENT_SPAWN_HEROIC_AUGH, 1ms);
+                    break;
+                default:
+                    break;
             }
 
-            ObjectGuid GetGuidData(uint32 type) const override
+            if (GetBossState(BOSS_GENERAL_HUSAM) == DONE && GetBossState(BOSS_LOCKMAW) == DONE && GetBossState(BOSS_HIGH_PROPHET_BARIM) == DONE)
+                EnableSiamat();
+
+            return true;
+        }
+
+        void SetData(uint32 type, uint32 value) override
+        {
+            switch (type)
             {
-                switch (type)
+                case DATA_SHUFFLE_ADD_STALKERS:
+                    Trinity::Containers::RandomShuffle(_lockmawAddStalkerGUIDs);
+                    break;
+                case DATA_HEROIC_AUGH_DESPAWNED:
+                    _heroicAughDespawned = value != 0 ? true : false;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        uint32 GetData(uint32 type) const override
+        {
+            switch (type)
+            {
+                case DATA_HEROIC_AUGH_DESPAWNED:
+                    return static_cast<uint8>(_heroicAughDespawned);
+                default:
+                    return 0;
+            }
+
+            return 0;
+        }
+
+        void Update(uint32 diff) override
+        {
+            InstanceScript::Update(diff);
+
+            _events.Update(diff);
+            while (uint32 eventId = _events.ExecuteEvent())
+            {
+                switch (eventId)
                 {
-                    case DATA_GENERAL_HUSAM:      return uiSiamatGUID;
-                    case DATA_LOCKMAW:            return uiLockmawGUID;
-                    case DATA_AUGH:               return uiAughGUID;
-                    case DATA_HIGH_PROPHET_BARIM: return uiBarimGUID;
-                    case DATA_BLAZE:              return uiBlazeGUID;
-                    case DATA_HARBINGER:          return uiHarbingerGUID;
-                    case DATA_SIAMAT:             return uiSiamatGUID;
-                }
-
-                return ObjectGuid::Empty;
-            }
-
-            uint32 GetData(uint32 type) const override
-            {
-                return Encounter[type];
-            }
-
-            void SetGuidData(uint32 type, ObjectGuid data) override
-            {
-                switch (type)
-                {
-                    case DATA_HARBINGER:
-                        uiHarbingerGUID = data;
+                    case EVENT_SPAWN_HEROIC_AUGH:
+                        instance->SpawnGroupSpawn(SPAWN_GROUP_ID_AUGH_HEROIC);
                         break;
-                    case DATA_BLAZE:
-                        uiBlazeGUID = data;
+                    default:
                         break;
                 }
             }
+        }
 
-            void SetData(uint32 type, uint32 data) override
+        void AfterDataLoad() override
+        {
+            if (GetBossState(BOSS_GENERAL_HUSAM) == DONE && GetBossState(BOSS_LOCKMAW) == DONE && GetBossState(BOSS_HIGH_PROPHET_BARIM) == DONE)
+                EnableSiamat();
+        }
+
+        ObjectGuid GetGuidData(uint32 type) const override
+        {
+            switch (type)
             {
-                Encounter[type] = data;
-
-                if (type == DATA_HIGH_PROPHET_BARIM && data == DONE)
-                    if (Encounter[DATA_SIAMAT] != DONE)
-                        BarimIsDone = true;
-
-                if (type == DATA_SIAMAT && data == DONE)
-                {
-                    SiamatFree();
-                }
-
-             //   if (data == DONE)
-               //     SaveToDB();
+                case DATA_ADD_STALKER_1:
+                case DATA_ADD_STALKER_2:
+                case DATA_ADD_STALKER_3:
+                case DATA_ADD_STALKER_4:
+                    if (_lockmawAddStalkerGUIDs.size() >= (type - DATA_ADD_STALKER_1 + 1))
+                        return _lockmawAddStalkerGUIDs[(type - DATA_ADD_STALKER_1)];
+                    else
+                        return ObjectGuid::Empty;
+                default:
+                    return InstanceScript::GetGuidData(type);
             }
-        };
+
+            return InstanceScript::GetGuidData(type);
+        }
+    private:
+        EventMap _events;
+        std::vector<ObjectGuid> _lockmawAddStalkerGUIDs;
+        bool _heroicAughDespawned;
+
+        void EnableSiamat()
+        {
+            instance->SpawnGroupSpawn(SPAWN_GROUP_ID_SIAMAT_WIND_TUNNEL);
+        }
+    };
+
+    InstanceScript* GetInstanceScript(InstanceMap* map) const override
+    {
+        return new instance_lost_city_of_the_tolvir_InstanceMapScript(map);
+    }
 };
 
 void AddSC_instance_lost_city_of_the_tolvir()

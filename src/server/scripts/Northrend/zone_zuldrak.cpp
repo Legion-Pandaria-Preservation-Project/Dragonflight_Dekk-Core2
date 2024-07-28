@@ -30,9 +30,9 @@
 #include "TemporarySummon.h"
 #include "Vehicle.h"
 
- /*####
- ## npc_released_offspring_harkoa
- ####*/
+/*####
+## npc_released_offspring_harkoa
+####*/
 
 struct npc_released_offspring_harkoa : public ScriptedAI
 {
@@ -59,15 +59,15 @@ struct npc_released_offspring_harkoa : public ScriptedAI
 
 enum CrusadeRecruit
 {
-    SPELL_QUEST_CREDIT = 50633,
-    QUEST_TROLL_PATROL_INTESTINAL_FORTITUDE = 12509,
-    SAY_RECRUIT = 0
+    SPELL_QUEST_CREDIT                       = 50633,
+    QUEST_TROLL_PATROL_INTESTINAL_FORTITUDE  = 12509,
+    SAY_RECRUIT                              = 0
 };
 
 enum CrusadeRecruitEvents
 {
-    EVENT_RECRUIT_1 = 1,
-    EVENT_RECRUIT_2 = 2
+    EVENT_RECRUIT_1                          = 1,
+    EVENT_RECRUIT_2                          = 2
 };
 
 struct npc_crusade_recruit : public ScriptedAI
@@ -97,19 +97,19 @@ struct npc_crusade_recruit : public ScriptedAI
         {
             switch (eventId)
             {
-            case EVENT_RECRUIT_1:
-                me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-                me->SetEmoteState(EMOTE_ONESHOT_NONE);
-                Talk(SAY_RECRUIT);
-                _events.ScheduleEvent(EVENT_RECRUIT_2, 3s);
-                break;
-            case EVENT_RECRUIT_2:
-                me->SetWalk(true);
-                me->GetMotionMaster()->MovePoint(0, me->GetPositionX() + (std::cos(_heading) * 10), me->GetPositionY() + (std::sin(_heading) * 10), me->GetPositionZ());
-                me->DespawnOrUnsummon(5s);
-                break;
-            default:
-                break;
+                case EVENT_RECRUIT_1:
+                    me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+                    me->SetEmoteState(EMOTE_ONESHOT_NONE);
+                    Talk(SAY_RECRUIT);
+                    _events.ScheduleEvent(EVENT_RECRUIT_2, 3s);
+                    break;
+                case EVENT_RECRUIT_2:
+                    me->SetWalk(true);
+                    me->GetMotionMaster()->MovePoint(0, me->GetPositionX() + (std::cos(_heading) * 10), me->GetPositionY() + (std::sin(_heading) * 10), me->GetPositionZ());
+                    me->DespawnOrUnsummon(5s);
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -138,131 +138,131 @@ private:
 enum Finklestein
 {
     // Creature
-    NPC_FINKLESTEIN = 28205,
+    NPC_FINKLESTEIN                          = 28205,
     // Item
-    ITEM_KNOTROOT = 38338,
-    ITEM_PICKLED_EAGLE_EGG = 38341,
-    ITEM_SPECKLED_GUANO = 38337,
-    ITEM_WITHERED_BATWING = 38339,
-    ITEM_SEASONED_SLIDER_CIDER = 38381,
-    ITEM_PULVERIZED_GARGOYLE_TEETH = 38384,
-    ITEM_MUDDY_MIRE_MAGGOT = 38386,
-    ITEM_SPIKY_SPIDER_EGG = 38393,
-    ITEM_HAIRY_HERRING_HEAD = 38396,
-    ITEM_PUTRID_PIRATE_PERSPIRATION = 38397,
-    ITEM_ICECROWN_BOTTLED_WATER = 38398,
-    ITEM_WASPS_WINGS = 38369,
-    ITEM_PRISMATIC_MOJO = 38343,
-    ITEM_RAPTOR_CLAW = 38370,
-    ITEM_AMBERSEED = 38340,
-    ITEM_SHRUNKEN_DRAGONS_CLAW = 38344,
-    ITEM_CHILLED_SERPENT_MUCUS = 38346,
-    ITEM_CRYSTALLIZED_HOGSNOT = 38336,
-    ITEM_CRUSHED_BASILISK_CRYSTALS = 38379,
-    ITEM_TROLLBANE = 38342,
-    ITEM_FROZEN_SPIDER_ICHOR = 38345,
+    ITEM_KNOTROOT                            = 38338,
+    ITEM_PICKLED_EAGLE_EGG                   = 38341,
+    ITEM_SPECKLED_GUANO                      = 38337,
+    ITEM_WITHERED_BATWING                    = 38339,
+    ITEM_SEASONED_SLIDER_CIDER               = 38381,
+    ITEM_PULVERIZED_GARGOYLE_TEETH           = 38384,
+    ITEM_MUDDY_MIRE_MAGGOT                   = 38386,
+    ITEM_SPIKY_SPIDER_EGG                    = 38393,
+    ITEM_HAIRY_HERRING_HEAD                  = 38396,
+    ITEM_PUTRID_PIRATE_PERSPIRATION          = 38397,
+    ITEM_ICECROWN_BOTTLED_WATER              = 38398,
+    ITEM_WASPS_WINGS                         = 38369,
+    ITEM_PRISMATIC_MOJO                      = 38343,
+    ITEM_RAPTOR_CLAW                         = 38370,
+    ITEM_AMBERSEED                           = 38340,
+    ITEM_SHRUNKEN_DRAGONS_CLAW               = 38344,
+    ITEM_CHILLED_SERPENT_MUCUS               = 38346,
+    ITEM_CRYSTALLIZED_HOGSNOT                = 38336,
+    ITEM_CRUSHED_BASILISK_CRYSTALS           = 38379,
+    ITEM_TROLLBANE                           = 38342,
+    ITEM_FROZEN_SPIDER_ICHOR                 = 38345,
     // Quest
-    QUEST_THE_ALCHEMIST_APPRENTICE_DAILY = 12541,
+    QUEST_THE_ALCHEMIST_APPRENTICE_DAILY     = 12541,
     // Spells
-    SPELL_ALCHEMIST_APPRENTICE_INVISBUFF = 51216,
-    SPELL_RANDOM_INGREDIENT_EASY_AURA = 51015,
-    SPELL_RANDOM_INGREDIENT_MEDIUM_AURA = 51154,
-    SPELL_RANDOM_INGREDIENT_HARD_AURA = 51157,
-    SPELL_RANDOM_INGREDIENT_EASY = 51134,
-    SPELL_RANDOM_INGREDIENT_MEDIUM = 51105,
-    SPELL_RANDOM_INGREDIENT_HARD = 51107,
-    SPELL_NEXT_INGREDIENT = 51049,
-    SPELL_POT_CHECK = 51046,
-    SPELL_THROW_INGREDIENT = 51025,
-    SPELL_KILL_CREDIT = 51111,
+    SPELL_ALCHEMIST_APPRENTICE_INVISBUFF     = 51216,
+    SPELL_RANDOM_INGREDIENT_EASY_AURA        = 51015,
+    SPELL_RANDOM_INGREDIENT_MEDIUM_AURA      = 51154,
+    SPELL_RANDOM_INGREDIENT_HARD_AURA        = 51157,
+    SPELL_RANDOM_INGREDIENT_EASY             = 51134,
+    SPELL_RANDOM_INGREDIENT_MEDIUM           = 51105,
+    SPELL_RANDOM_INGREDIENT_HARD             = 51107,
+    SPELL_NEXT_INGREDIENT                    = 51049,
+    SPELL_POT_CHECK                          = 51046,
+    SPELL_THROW_INGREDIENT                   = 51025,
+    SPELL_KILL_CREDIT                        = 51111,
     // Spell Fetch Easy
-    SPELL_FETCH_KNOTROOT = 51018,
-    SPELL_FETCH_PICKLED_EAGLE_EGG = 51055,
-    SPELL_FETCH_SPECKLED_GUANO = 51057,
-    SPELL_FETCH_WITHERED_BATWING = 51059,
-    SPELL_FETCH_SEASONED_SLIDER_CIDER = 51062,
-    SPELL_FETCH_PULVERIZED_GARGOYLE_TEETH = 51064,
-    SPELL_FETCH_MUDDY_MIRE_MAGGOT = 51067,
-    SPELL_FETCH_SPIKY_SPIDER_EGG = 51069,
-    SPELL_FETCH_HAIRY_HERRING_HEAD = 51072,
-    SPELL_FETCH_PUTRID_PIRATE_PERSPIRATION = 51077,
-    SPELL_FETCH_ICECROWN_BOTTLED_WATER = 51079,
+    SPELL_FETCH_KNOTROOT                     = 51018,
+    SPELL_FETCH_PICKLED_EAGLE_EGG            = 51055,
+    SPELL_FETCH_SPECKLED_GUANO               = 51057,
+    SPELL_FETCH_WITHERED_BATWING             = 51059,
+    SPELL_FETCH_SEASONED_SLIDER_CIDER        = 51062,
+    SPELL_FETCH_PULVERIZED_GARGOYLE_TEETH    = 51064,
+    SPELL_FETCH_MUDDY_MIRE_MAGGOT            = 51067,
+    SPELL_FETCH_SPIKY_SPIDER_EGG             = 51069,
+    SPELL_FETCH_HAIRY_HERRING_HEAD           = 51072,
+    SPELL_FETCH_PUTRID_PIRATE_PERSPIRATION   = 51077,
+    SPELL_FETCH_ICECROWN_BOTTLED_WATER       = 51079,
     // Spell Have Easy
-    SPELL_HAVE_KNOTROOT = 51047,
-    SPELL_HAVE_PICKLED_EAGLE_EGG = 51056,
-    SPELL_HAVE_SPECKLED_GUANO = 51058,
-    SPELL_HAVE_WITHERED_BATWING = 51060,
-    SPELL_HAVE_SEASONED_SLIDER_CIDER = 51063,
-    SPELL_HAVE_PULVERIZED_GARGOYLE_TEETH = 51065,
-    SPELL_HAVE_MUDDY_MIRE_MAGGOT = 51068,
-    SPELL_HAVE_SPIKY_SPIDER_EGG = 51070,
-    SPELL_HAVE_HAIRY_HERRING_HEAD = 51075,
-    SPELL_HAVE_PUTRID_PIRATE_PERSPIRATION = 51078,
-    SPELL_HAVE_ICECROWN_BOTTLED_WATER = 51080,
+    SPELL_HAVE_KNOTROOT                      = 51047,
+    SPELL_HAVE_PICKLED_EAGLE_EGG             = 51056,
+    SPELL_HAVE_SPECKLED_GUANO                = 51058,
+    SPELL_HAVE_WITHERED_BATWING              = 51060,
+    SPELL_HAVE_SEASONED_SLIDER_CIDER         = 51063,
+    SPELL_HAVE_PULVERIZED_GARGOYLE_TEETH     = 51065,
+    SPELL_HAVE_MUDDY_MIRE_MAGGOT             = 51068,
+    SPELL_HAVE_SPIKY_SPIDER_EGG              = 51070,
+    SPELL_HAVE_HAIRY_HERRING_HEAD            = 51075,
+    SPELL_HAVE_PUTRID_PIRATE_PERSPIRATION    = 51078,
+    SPELL_HAVE_ICECROWN_BOTTLED_WATER        = 51080,
     // Spell Fetch Medium
-    SPELL_FETCH_WASPS_WINGS = 51081,
-    SPELL_FETCH_PRISMATIC_MOJO = 51083,
-    SPELL_FETCH_RAPTOR_CLAW = 51085,
-    SPELL_FETCH_AMBERSEED = 51087,
-    SPELL_FETCH_SHRUNKEN_DRAGONS_CLAW = 51091,
+    SPELL_FETCH_WASPS_WINGS                  = 51081,
+    SPELL_FETCH_PRISMATIC_MOJO               = 51083,
+    SPELL_FETCH_RAPTOR_CLAW                  = 51085,
+    SPELL_FETCH_AMBERSEED                    = 51087,
+    SPELL_FETCH_SHRUNKEN_DRAGONS_CLAW        = 51091,
     // Spell Have Medium
-    SPELL_HAVE_WASPS_WINGS = 51082,
-    SPELL_HAVE_PRISMATIC_MOJO = 51084,
-    SPELL_HAVE_RAPTOR_CLAW = 51086,
-    SPELL_HAVE_AMBERSEED = 51088,
-    SPELL_HAVE_SHRUNKEN_DRAGONS_CLAW = 51092,
+    SPELL_HAVE_WASPS_WINGS                   = 51082,
+    SPELL_HAVE_PRISMATIC_MOJO                = 51084,
+    SPELL_HAVE_RAPTOR_CLAW                   = 51086,
+    SPELL_HAVE_AMBERSEED                     = 51088,
+    SPELL_HAVE_SHRUNKEN_DRAGONS_CLAW         = 51092,
     // Spell Fetch Hard
-    SPELL_FETCH_CHILLED_SERPENT_MUCUS = 51093,
-    SPELL_FETCH_CRYSTALLIZED_HOGSNOT = 51095,
-    SPELL_FETCH_CRUSHED_BASILISK_CRYSTALS = 51097,
-    SPELL_FETCH_TROLLBANE = 51100,
-    SPELL_FETCH_FROZEN_SPIDER_ICHOR = 51102,
+    SPELL_FETCH_CHILLED_SERPENT_MUCUS        = 51093,
+    SPELL_FETCH_CRYSTALLIZED_HOGSNOT         = 51095,
+    SPELL_FETCH_CRUSHED_BASILISK_CRYSTALS    = 51097,
+    SPELL_FETCH_TROLLBANE                    = 51100,
+    SPELL_FETCH_FROZEN_SPIDER_ICHOR          = 51102,
     // Spell Have Hard
-    SPELL_HAVE_CHILLED_SERPENT_MUCUS = 51094,
-    SPELL_HAVE_CRYSTALLIZED_HOGSNOT = 51096,
-    SPELL_HAVE_CRUSHED_BASILISK_CRYSTALS = 51098,
-    SPELL_HAVE_TROLLBANE = 51101,
-    SPELL_HAVE_FROZEN_SPIDER_ICHOR = 51104,
+    SPELL_HAVE_CHILLED_SERPENT_MUCUS         = 51094,
+    SPELL_HAVE_CRYSTALLIZED_HOGSNOT          = 51096,
+    SPELL_HAVE_CRUSHED_BASILISK_CRYSTALS     = 51098,
+    SPELL_HAVE_TROLLBANE                     = 51101,
+    SPELL_HAVE_FROZEN_SPIDER_ICHOR           = 51104,
     // Text
-    SAY_EASY_123 = 0,
-    SAY_MEDIUM_4 = 1,
-    SAY_MEDIUM_5 = 2,
-    SAY_HARD_6 = 3,
-    SAY_RUINED = 4,
+    SAY_EASY_123                             = 0,
+    SAY_MEDIUM_4                             = 1,
+    SAY_MEDIUM_5                             = 2,
+    SAY_HARD_6                               = 3,
+    SAY_RUINED                               = 4,
     // Text Easy
-    SAY_KNOTROOT = 5,
-    SAY_PICKLED_EAGLE_EGG = 6,
-    SAY_SPECKLED_GUANO = 7,
-    SAY_WITHERED_BATWING = 8,
-    SAY_SEASONED_SLIDER_CIDER = 9,
-    SAY_PULVERIZED_GARGOYLE_TEETH = 10,
-    SAY_MUDDY_MIRE_MAGGOT = 11,
-    SAY_SPIKY_SPIDER_EGG = 12,
-    SAY_HAIRY_HERRING_HEAD = 13,
-    SAY_PUTRID_PIRATE_PERSPIRATION = 14,
-    SAY_ICECROWN_BOTTLED_WATER = 15,
+    SAY_KNOTROOT                             = 5,
+    SAY_PICKLED_EAGLE_EGG                    = 6,
+    SAY_SPECKLED_GUANO                       = 7,
+    SAY_WITHERED_BATWING                     = 8,
+    SAY_SEASONED_SLIDER_CIDER                = 9,
+    SAY_PULVERIZED_GARGOYLE_TEETH            = 10,
+    SAY_MUDDY_MIRE_MAGGOT                    = 11,
+    SAY_SPIKY_SPIDER_EGG                     = 12,
+    SAY_HAIRY_HERRING_HEAD                   = 13,
+    SAY_PUTRID_PIRATE_PERSPIRATION           = 14,
+    SAY_ICECROWN_BOTTLED_WATER               = 15,
     // Text Medium
-    SAY_WASPS_WINGS = 16,
-    SAY_PRISMATIC_MOJO = 17,
-    SAY_RAPTOR_CLAW = 18,
-    SAY_AMBERSEED = 19,
-    SAY_SHRUNKEN_DRAGONS_CLAW = 20,
+    SAY_WASPS_WINGS                          = 16,
+    SAY_PRISMATIC_MOJO                       = 17,
+    SAY_RAPTOR_CLAW                          = 18,
+    SAY_AMBERSEED                            = 19,
+    SAY_SHRUNKEN_DRAGONS_CLAW                = 20,
     // Text Hard
-    SAY_CHILLED_SERPENT_MUCUS = 21,
-    SAY_CRYSTALLIZED_HOGSNOT = 22,
-    SAY_CRUSHED_BASILISK_CRYSTALS = 23,
-    SAY_TROLLBANE = 24,
-    SAY_FROZEN_SPIDER_ICHOR = 25
+    SAY_CHILLED_SERPENT_MUCUS                = 21,
+    SAY_CRYSTALLIZED_HOGSNOT                 = 22,
+    SAY_CRUSHED_BASILISK_CRYSTALS            = 23,
+    SAY_TROLLBANE                            = 24,
+    SAY_FROZEN_SPIDER_ICHOR                  = 25
 };
 
 enum FinklesteinEvents
 {
-    EVENT_TURN_TO_POT = 1,
-    EVENT_TURN_BACK = 2,
-    EVENT_EASY_123 = 3,
-    EVENT_MEDIUM_4 = 4,
-    EVENT_MEDIUM_5 = 5,
-    EVENT_HARD_6 = 6
+    EVENT_TURN_TO_POT                      = 1,
+    EVENT_TURN_BACK                        = 2,
+    EVENT_EASY_123                         = 3,
+    EVENT_MEDIUM_4                         = 4,
+    EVENT_MEDIUM_5                         = 5,
+    EVENT_HARD_6                           = 6
 };
 
 struct npc_alchemist_finklestein : public ScriptedAI
@@ -283,22 +283,22 @@ struct npc_alchemist_finklestein : public ScriptedAI
     {
         if (type == 1 && data == 1)
             switch (_getingredienttry)
-            {
-            case 2:
-            case 3:
-                _events.ScheduleEvent(EVENT_EASY_123, 100ms);
-                break;
-            case 4:
-                _events.ScheduleEvent(EVENT_MEDIUM_4, 100ms);
-                break;
-            case 5:
-                _events.ScheduleEvent(EVENT_MEDIUM_5, 100ms);
-                break;
-            case 6:
-                _events.ScheduleEvent(EVENT_HARD_6, 100ms);
-                break;
-            default:
-                break;
+           {
+                case 2:
+                case 3:
+                    _events.ScheduleEvent(EVENT_EASY_123, 100ms);
+                    break;
+                case 4:
+                    _events.ScheduleEvent(EVENT_MEDIUM_4, 100ms);
+                    break;
+                case 5:
+                    _events.ScheduleEvent(EVENT_MEDIUM_5, 100ms);
+                    break;
+                case 6:
+                    _events.ScheduleEvent(EVENT_HARD_6, 100ms);
+                    break;
+                default:
+                    break;
             }
     }
 
@@ -310,50 +310,50 @@ struct npc_alchemist_finklestein : public ScriptedAI
         {
             switch (eventId)
             {
-            case EVENT_TURN_TO_POT:
-                me->SetFacingTo(6.230825f);
-                me->SetEmoteState(EMOTE_STATE_USE_STANDING_NO_SHEATHE);
-                _events.ScheduleEvent(EVENT_TURN_BACK, 11s);
-                break;
-            case EVENT_TURN_BACK:
-                me->SetFacingTo(4.886922f);
-                me->SetEmoteState(EMOTE_STATE_NONE);
-                _events.ScheduleEvent(EVENT_TURN_TO_POT, 25s, 41s);
-                break;
-            case EVENT_EASY_123:
-                if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
-                {
-                    Talk(SAY_EASY_123, player);
-                    DoCast(player, SPELL_RANDOM_INGREDIENT_EASY_AURA);
-                    ++_getingredienttry;
-                }
-                break;
-            case EVENT_MEDIUM_4:
-                if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
-                {
-                    Talk(SAY_MEDIUM_4, player);
-                    DoCast(player, SPELL_RANDOM_INGREDIENT_MEDIUM_AURA);
-                    ++_getingredienttry;
-                }
-                break;
-            case EVENT_MEDIUM_5:
-                if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
-                {
-                    Talk(SAY_MEDIUM_5, player);
-                    DoCast(player, SPELL_RANDOM_INGREDIENT_MEDIUM_AURA);
-                    ++_getingredienttry;
-                }
-                break;
-            case EVENT_HARD_6:
-                if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
-                {
-                    Talk(SAY_HARD_6, player);
-                    DoCast(player, SPELL_RANDOM_INGREDIENT_HARD_AURA);
-                    ++_getingredienttry;
-                }
-                break;
-            default:
-                break;
+                case EVENT_TURN_TO_POT:
+                    me->SetFacingTo(6.230825f);
+                    me->SetEmoteState(EMOTE_STATE_USE_STANDING_NO_SHEATHE);
+                    _events.ScheduleEvent(EVENT_TURN_BACK, 11s);
+                    break;
+                case EVENT_TURN_BACK:
+                    me->SetFacingTo(4.886922f);
+                    me->SetEmoteState(EMOTE_STATE_NONE);
+                    _events.ScheduleEvent(EVENT_TURN_TO_POT, 25s, 41s);
+                    break;
+                case EVENT_EASY_123:
+                    if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
+                    {
+                        Talk(SAY_EASY_123, player);
+                        DoCast(player, SPELL_RANDOM_INGREDIENT_EASY_AURA);
+                        ++_getingredienttry;
+                    }
+                    break;
+                case EVENT_MEDIUM_4:
+                    if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
+                    {
+                        Talk(SAY_MEDIUM_4, player);
+                        DoCast(player, SPELL_RANDOM_INGREDIENT_MEDIUM_AURA);
+                        ++_getingredienttry;
+                    }
+                    break;
+                case EVENT_MEDIUM_5:
+                    if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
+                    {
+                        Talk(SAY_MEDIUM_5, player);
+                        DoCast(player, SPELL_RANDOM_INGREDIENT_MEDIUM_AURA);
+                        ++_getingredienttry;
+                    }
+                    break;
+                case EVENT_HARD_6:
+                    if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
+                    {
+                        Talk(SAY_HARD_6, player);
+                        DoCast(player, SPELL_RANDOM_INGREDIENT_HARD_AURA);
+                        ++_getingredienttry;
+                    }
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -415,31 +415,29 @@ uint32 const FetchIngredients[21][4] =
 // 51157 - Random Ingredient Hard Aura
 class spell_random_ingredient_aura : public AuraScript
 {
-    PrepareAuraScript(spell_random_ingredient_aura);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo(
-            {
-                SPELL_RANDOM_INGREDIENT_EASY,
-                SPELL_RANDOM_INGREDIENT_MEDIUM,
-                SPELL_RANDOM_INGREDIENT_HARD
-            });
+        {
+            SPELL_RANDOM_INGREDIENT_EASY,
+            SPELL_RANDOM_INGREDIENT_MEDIUM,
+            SPELL_RANDOM_INGREDIENT_HARD
+        });
     }
 
     void PeriodicTick(AuraEffect const* /*aurEff*/)
     {
         switch (GetSpellInfo()->Id)
         {
-        case SPELL_RANDOM_INGREDIENT_EASY_AURA:
-            GetTarget()->CastSpell(GetTarget(), SPELL_RANDOM_INGREDIENT_EASY);
-            break;
-        case SPELL_RANDOM_INGREDIENT_MEDIUM_AURA:
-            GetTarget()->CastSpell(GetTarget(), SPELL_RANDOM_INGREDIENT_MEDIUM);
-            break;
-        case SPELL_RANDOM_INGREDIENT_HARD_AURA:
-            GetTarget()->CastSpell(GetTarget(), SPELL_RANDOM_INGREDIENT_HARD);
-            break;
+            case SPELL_RANDOM_INGREDIENT_EASY_AURA:
+                GetTarget()->CastSpell(GetTarget(), SPELL_RANDOM_INGREDIENT_EASY);
+                break;
+            case SPELL_RANDOM_INGREDIENT_MEDIUM_AURA:
+                GetTarget()->CastSpell(GetTarget(), SPELL_RANDOM_INGREDIENT_MEDIUM);
+                break;
+            case SPELL_RANDOM_INGREDIENT_HARD_AURA:
+                GetTarget()->CastSpell(GetTarget(), SPELL_RANDOM_INGREDIENT_HARD);
+                break;
         }
     }
 
@@ -454,34 +452,32 @@ class spell_random_ingredient_aura : public AuraScript
 // 51134 - Random Ingredient Easy
 class spell_random_ingredient : public SpellScript
 {
-    PrepareSpellScript(spell_random_ingredient);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo(
-            {
-                SPELL_FETCH_KNOTROOT,                   SPELL_HAVE_KNOTROOT,
-                SPELL_FETCH_PICKLED_EAGLE_EGG,          SPELL_HAVE_PICKLED_EAGLE_EGG,
-                SPELL_FETCH_SPECKLED_GUANO,             SPELL_HAVE_SPECKLED_GUANO,
-                SPELL_FETCH_WITHERED_BATWING,           SPELL_HAVE_WITHERED_BATWING,
-                SPELL_FETCH_SEASONED_SLIDER_CIDER,      SPELL_HAVE_SEASONED_SLIDER_CIDER,
-                SPELL_FETCH_PULVERIZED_GARGOYLE_TEETH,  SPELL_HAVE_PULVERIZED_GARGOYLE_TEETH,
-                SPELL_FETCH_MUDDY_MIRE_MAGGOT,          SPELL_HAVE_MUDDY_MIRE_MAGGOT,
-                SPELL_FETCH_SPIKY_SPIDER_EGG,           SPELL_HAVE_SPIKY_SPIDER_EGG,
-                SPELL_FETCH_HAIRY_HERRING_HEAD,         SPELL_HAVE_HAIRY_HERRING_HEAD,
-                SPELL_FETCH_PUTRID_PIRATE_PERSPIRATION, SPELL_HAVE_PUTRID_PIRATE_PERSPIRATION,
-                SPELL_FETCH_ICECROWN_BOTTLED_WATER,     SPELL_HAVE_ICECROWN_BOTTLED_WATER,
-                SPELL_FETCH_WASPS_WINGS,                SPELL_HAVE_WASPS_WINGS,
-                SPELL_FETCH_PRISMATIC_MOJO,             SPELL_HAVE_PRISMATIC_MOJO,
-                SPELL_FETCH_RAPTOR_CLAW,                SPELL_HAVE_RAPTOR_CLAW,
-                SPELL_FETCH_AMBERSEED,                  SPELL_HAVE_AMBERSEED,
-                SPELL_FETCH_SHRUNKEN_DRAGONS_CLAW,      SPELL_HAVE_SHRUNKEN_DRAGONS_CLAW,
-                SPELL_FETCH_CHILLED_SERPENT_MUCUS,      SPELL_HAVE_CHILLED_SERPENT_MUCUS,
-                SPELL_FETCH_CRYSTALLIZED_HOGSNOT,       SPELL_HAVE_CRYSTALLIZED_HOGSNOT,
-                SPELL_FETCH_CRUSHED_BASILISK_CRYSTALS,  SPELL_HAVE_CRUSHED_BASILISK_CRYSTALS,
-                SPELL_FETCH_TROLLBANE,                  SPELL_HAVE_TROLLBANE,
-                SPELL_FETCH_FROZEN_SPIDER_ICHOR,        SPELL_HAVE_FROZEN_SPIDER_ICHOR,
-            });
+        {
+            SPELL_FETCH_KNOTROOT,                   SPELL_HAVE_KNOTROOT,
+            SPELL_FETCH_PICKLED_EAGLE_EGG,          SPELL_HAVE_PICKLED_EAGLE_EGG,
+            SPELL_FETCH_SPECKLED_GUANO,             SPELL_HAVE_SPECKLED_GUANO,
+            SPELL_FETCH_WITHERED_BATWING,           SPELL_HAVE_WITHERED_BATWING,
+            SPELL_FETCH_SEASONED_SLIDER_CIDER,      SPELL_HAVE_SEASONED_SLIDER_CIDER,
+            SPELL_FETCH_PULVERIZED_GARGOYLE_TEETH,  SPELL_HAVE_PULVERIZED_GARGOYLE_TEETH,
+            SPELL_FETCH_MUDDY_MIRE_MAGGOT,          SPELL_HAVE_MUDDY_MIRE_MAGGOT,
+            SPELL_FETCH_SPIKY_SPIDER_EGG,           SPELL_HAVE_SPIKY_SPIDER_EGG,
+            SPELL_FETCH_HAIRY_HERRING_HEAD,         SPELL_HAVE_HAIRY_HERRING_HEAD,
+            SPELL_FETCH_PUTRID_PIRATE_PERSPIRATION, SPELL_HAVE_PUTRID_PIRATE_PERSPIRATION,
+            SPELL_FETCH_ICECROWN_BOTTLED_WATER,     SPELL_HAVE_ICECROWN_BOTTLED_WATER,
+            SPELL_FETCH_WASPS_WINGS,                SPELL_HAVE_WASPS_WINGS,
+            SPELL_FETCH_PRISMATIC_MOJO,             SPELL_HAVE_PRISMATIC_MOJO,
+            SPELL_FETCH_RAPTOR_CLAW,                SPELL_HAVE_RAPTOR_CLAW,
+            SPELL_FETCH_AMBERSEED,                  SPELL_HAVE_AMBERSEED,
+            SPELL_FETCH_SHRUNKEN_DRAGONS_CLAW,      SPELL_HAVE_SHRUNKEN_DRAGONS_CLAW,
+            SPELL_FETCH_CHILLED_SERPENT_MUCUS,      SPELL_HAVE_CHILLED_SERPENT_MUCUS,
+            SPELL_FETCH_CRYSTALLIZED_HOGSNOT,       SPELL_HAVE_CRYSTALLIZED_HOGSNOT,
+            SPELL_FETCH_CRUSHED_BASILISK_CRYSTALS,  SPELL_HAVE_CRUSHED_BASILISK_CRYSTALS,
+            SPELL_FETCH_TROLLBANE,                  SPELL_HAVE_TROLLBANE,
+            SPELL_FETCH_FROZEN_SPIDER_ICHOR,        SPELL_HAVE_FROZEN_SPIDER_ICHOR,
+        });
     }
 
     void HandleScriptEffect(SpellEffIndex /* effIndex */)
@@ -492,15 +488,15 @@ class spell_random_ingredient : public SpellScript
 
             switch (GetSpellInfo()->Id)
             {
-            case SPELL_RANDOM_INGREDIENT_EASY:
-                ingredient = urand(0, 10);
-                break;
-            case SPELL_RANDOM_INGREDIENT_MEDIUM:
-                ingredient = urand(11, 15);
-                break;
-            case SPELL_RANDOM_INGREDIENT_HARD:
-                ingredient = urand(16, 20);
-                break;
+                case SPELL_RANDOM_INGREDIENT_EASY:
+                    ingredient = urand(0, 10);
+                    break;
+                case SPELL_RANDOM_INGREDIENT_MEDIUM:
+                    ingredient = urand(11, 15);
+                    break;
+                case SPELL_RANDOM_INGREDIENT_HARD:
+                    ingredient = urand(16, 20);
+                    break;
             }
 
             if (Creature* finklestein = GetClosestCreatureWithEntry(player, NPC_FINKLESTEIN, 25.0f))
@@ -524,34 +520,32 @@ class spell_random_ingredient : public SpellScript
 // 51046 - Pot Check
 class spell_pot_check : public SpellScript
 {
-    PrepareSpellScript(spell_pot_check);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo(
-            {
-                SPELL_FETCH_KNOTROOT,                   SPELL_HAVE_KNOTROOT,
-                SPELL_FETCH_PICKLED_EAGLE_EGG,          SPELL_HAVE_PICKLED_EAGLE_EGG,
-                SPELL_FETCH_SPECKLED_GUANO,             SPELL_HAVE_SPECKLED_GUANO,
-                SPELL_FETCH_WITHERED_BATWING,           SPELL_HAVE_WITHERED_BATWING,
-                SPELL_FETCH_SEASONED_SLIDER_CIDER,      SPELL_HAVE_SEASONED_SLIDER_CIDER,
-                SPELL_FETCH_PULVERIZED_GARGOYLE_TEETH,  SPELL_HAVE_PULVERIZED_GARGOYLE_TEETH,
-                SPELL_FETCH_MUDDY_MIRE_MAGGOT,          SPELL_HAVE_MUDDY_MIRE_MAGGOT,
-                SPELL_FETCH_SPIKY_SPIDER_EGG,           SPELL_HAVE_SPIKY_SPIDER_EGG,
-                SPELL_FETCH_HAIRY_HERRING_HEAD,         SPELL_HAVE_HAIRY_HERRING_HEAD,
-                SPELL_FETCH_PUTRID_PIRATE_PERSPIRATION, SPELL_HAVE_PUTRID_PIRATE_PERSPIRATION,
-                SPELL_FETCH_ICECROWN_BOTTLED_WATER,     SPELL_HAVE_ICECROWN_BOTTLED_WATER,
-                SPELL_FETCH_WASPS_WINGS,                SPELL_HAVE_WASPS_WINGS,
-                SPELL_FETCH_PRISMATIC_MOJO,             SPELL_HAVE_PRISMATIC_MOJO,
-                SPELL_FETCH_RAPTOR_CLAW,                SPELL_HAVE_RAPTOR_CLAW,
-                SPELL_FETCH_AMBERSEED,                  SPELL_HAVE_AMBERSEED,
-                SPELL_FETCH_SHRUNKEN_DRAGONS_CLAW,      SPELL_HAVE_SHRUNKEN_DRAGONS_CLAW,
-                SPELL_FETCH_CHILLED_SERPENT_MUCUS,      SPELL_HAVE_CHILLED_SERPENT_MUCUS,
-                SPELL_FETCH_CRYSTALLIZED_HOGSNOT,       SPELL_HAVE_CRYSTALLIZED_HOGSNOT,
-                SPELL_FETCH_CRUSHED_BASILISK_CRYSTALS,  SPELL_HAVE_CRUSHED_BASILISK_CRYSTALS,
-                SPELL_FETCH_TROLLBANE,                  SPELL_HAVE_TROLLBANE,
-                SPELL_FETCH_FROZEN_SPIDER_ICHOR,        SPELL_HAVE_FROZEN_SPIDER_ICHOR,
-            });
+        {
+            SPELL_FETCH_KNOTROOT,                   SPELL_HAVE_KNOTROOT,
+            SPELL_FETCH_PICKLED_EAGLE_EGG,          SPELL_HAVE_PICKLED_EAGLE_EGG,
+            SPELL_FETCH_SPECKLED_GUANO,             SPELL_HAVE_SPECKLED_GUANO,
+            SPELL_FETCH_WITHERED_BATWING,           SPELL_HAVE_WITHERED_BATWING,
+            SPELL_FETCH_SEASONED_SLIDER_CIDER,      SPELL_HAVE_SEASONED_SLIDER_CIDER,
+            SPELL_FETCH_PULVERIZED_GARGOYLE_TEETH,  SPELL_HAVE_PULVERIZED_GARGOYLE_TEETH,
+            SPELL_FETCH_MUDDY_MIRE_MAGGOT,          SPELL_HAVE_MUDDY_MIRE_MAGGOT,
+            SPELL_FETCH_SPIKY_SPIDER_EGG,           SPELL_HAVE_SPIKY_SPIDER_EGG,
+            SPELL_FETCH_HAIRY_HERRING_HEAD,         SPELL_HAVE_HAIRY_HERRING_HEAD,
+            SPELL_FETCH_PUTRID_PIRATE_PERSPIRATION, SPELL_HAVE_PUTRID_PIRATE_PERSPIRATION,
+            SPELL_FETCH_ICECROWN_BOTTLED_WATER,     SPELL_HAVE_ICECROWN_BOTTLED_WATER,
+            SPELL_FETCH_WASPS_WINGS,                SPELL_HAVE_WASPS_WINGS,
+            SPELL_FETCH_PRISMATIC_MOJO,             SPELL_HAVE_PRISMATIC_MOJO,
+            SPELL_FETCH_RAPTOR_CLAW,                SPELL_HAVE_RAPTOR_CLAW,
+            SPELL_FETCH_AMBERSEED,                  SPELL_HAVE_AMBERSEED,
+            SPELL_FETCH_SHRUNKEN_DRAGONS_CLAW,      SPELL_HAVE_SHRUNKEN_DRAGONS_CLAW,
+            SPELL_FETCH_CHILLED_SERPENT_MUCUS,      SPELL_HAVE_CHILLED_SERPENT_MUCUS,
+            SPELL_FETCH_CRYSTALLIZED_HOGSNOT,       SPELL_HAVE_CRYSTALLIZED_HOGSNOT,
+            SPELL_FETCH_CRUSHED_BASILISK_CRYSTALS,  SPELL_HAVE_CRUSHED_BASILISK_CRYSTALS,
+            SPELL_FETCH_TROLLBANE,                  SPELL_HAVE_TROLLBANE,
+            SPELL_FETCH_FROZEN_SPIDER_ICHOR,        SPELL_HAVE_FROZEN_SPIDER_ICHOR,
+        });
     }
 
     void HandleScriptEffect(SpellEffIndex /* effIndex */)
@@ -615,8 +609,6 @@ class spell_pot_check : public SpellScript
 
 class spell_fetch_ingredient_aura : public AuraScript
 {
-    PrepareAuraScript(spell_fetch_ingredient_aura);
-
     void OnRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         Unit* target = GetTarget();
@@ -637,11 +629,11 @@ class spell_fetch_ingredient_aura : public AuraScript
 
 enum StormCloud
 {
-    STORM_COULD = 29939,
-    HEALING_WINDS = 55549,
-    STORM_VISUAL = 55708,
-    GYMERS_GRAB = 55516,
-    RIDE_VEHICLE = 43671
+    STORM_COULD         = 29939,
+    HEALING_WINDS       = 55549,
+    STORM_VISUAL        = 55708,
+    GYMERS_GRAB         = 55516,
+    RIDE_VEHICLE        = 43671
 };
 
 struct npc_storm_cloud : public ScriptedAI
@@ -680,18 +672,16 @@ struct npc_storm_cloud : public ScriptedAI
 
 enum ScourgeDisguise
 {
-    SPELL_SCOURGE_DISGUISE = 51966,
+    SPELL_SCOURGE_DISGUISE             = 51966,
     SPELL_SCOURGE_DISGUISE_INSTABILITY = 51971,
-    SPELL_SCOURGE_DISGUISE_EXPIRING = 52010,
-    SPELL_DROP_DISGUISE = 54089,
-    TEXT_DISGUISE_WARNING = 28891
+    SPELL_SCOURGE_DISGUISE_EXPIRING    = 52010,
+    SPELL_DROP_DISGUISE                = 54089,
+    TEXT_DISGUISE_WARNING              = 28891
 };
 
 // 51966 - Scourge Disguise
 class spell_zuldrak_scourge_disguise : public AuraScript
 {
-    PrepareAuraScript(spell_zuldrak_scourge_disguise);
-
     void ApplyEffect(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         Unit* target = GetTarget();
@@ -714,8 +704,6 @@ class spell_zuldrak_scourge_disguise : public AuraScript
 // 51971 - Scourge Disguise Instability
 class spell_zuldrak_scourge_disguise_instability : public AuraScript
 {
-    PrepareAuraScript(spell_zuldrak_scourge_disguise_instability);
-
     void CalcPeriodic(AuraEffect const* /*aurEff*/, bool& isPeriodic, int32& amplitude)
     {
         isPeriodic = true;
@@ -743,8 +731,6 @@ class spell_zuldrak_scourge_disguise_instability : public AuraScript
 // 52010 - Scourge Disguise Expiring
 class spell_zuldrak_scourge_disguise_expiring : public AuraScript
 {
-    PrepareAuraScript(spell_zuldrak_scourge_disguise_expiring);
-
     void OnApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         if (Player* player = GetTarget()->ToPlayer())
@@ -768,8 +754,6 @@ class spell_zuldrak_scourge_disguise_expiring : public AuraScript
 // 54089 - Drop Disguise
 class spell_zuldrak_drop_disguise : public SpellScript
 {
-    PrepareSpellScript(spell_zuldrak_drop_disguise);
-
     void HandleHit()
     {
         if (Unit* target = GetHitUnit())
@@ -789,15 +773,13 @@ class spell_zuldrak_drop_disguise : public SpellScript
 
 enum Cocooned
 {
-    SPELL_SUMMON_SCOURGED_CAPTIVE = 51597,
-    SPELL_SUMMON_CAPTIVE_FOOTMAN = 51599
+    SPELL_SUMMON_SCOURGED_CAPTIVE      = 51597,
+    SPELL_SUMMON_CAPTIVE_FOOTMAN       = 51599
 };
 
 // 51596 - Cocooned: Player Not On Quest
 class spell_zuldrak_cocooned_not_on_quest : public SpellScript
 {
-    PrepareSpellScript(spell_zuldrak_cocooned_not_on_quest);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo({ SPELL_SUMMON_SCOURGED_CAPTIVE });
@@ -817,8 +799,6 @@ class spell_zuldrak_cocooned_not_on_quest : public SpellScript
 // 51598 - Cocooned: Player On Quest
 class spell_zuldrak_cocooned_on_quest : public SpellScript
 {
-    PrepareSpellScript(spell_zuldrak_cocooned_on_quest);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo({ SPELL_SUMMON_SCOURGED_CAPTIVE, SPELL_SUMMON_CAPTIVE_FOOTMAN });
@@ -841,26 +821,24 @@ class spell_zuldrak_cocooned_on_quest : public SpellScript
 
 enum Sabotage
 {
-    SPELL_EXPLODE_SCOURGEWAGON_ROLLER = 52325,
-    SPELL_EXPLODE_SCOURGEWAGON_FRAME = 52329,
-    SPELL_EXPLODE_SCOURGEWAGON_GRILL = 52330,
-    SPELL_EXPLODE_SCOURGEWAGON_WHEEL = 52332
+    SPELL_EXPLODE_SCOURGEWAGON_ROLLER    = 52325,
+    SPELL_EXPLODE_SCOURGEWAGON_FRAME     = 52329,
+    SPELL_EXPLODE_SCOURGEWAGON_GRILL     = 52330,
+    SPELL_EXPLODE_SCOURGEWAGON_WHEEL     = 52332
 };
 
 // 52324 - Scourgewagon Explosion
 class spell_zuldrak_scourgewagon_explosion : public SpellScript
 {
-    PrepareSpellScript(spell_zuldrak_scourgewagon_explosion);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo(
-            {
-                SPELL_EXPLODE_SCOURGEWAGON_ROLLER,
-                SPELL_EXPLODE_SCOURGEWAGON_FRAME,
-                SPELL_EXPLODE_SCOURGEWAGON_GRILL,
-                SPELL_EXPLODE_SCOURGEWAGON_WHEEL
-            });
+        {
+            SPELL_EXPLODE_SCOURGEWAGON_ROLLER,
+            SPELL_EXPLODE_SCOURGEWAGON_FRAME,
+            SPELL_EXPLODE_SCOURGEWAGON_GRILL,
+            SPELL_EXPLODE_SCOURGEWAGON_WHEEL
+        });
     }
 
     void HandleScript(SpellEffIndex /*effIndex*/)
@@ -888,8 +866,6 @@ class spell_zuldrak_scourgewagon_explosion : public SpellScript
 // 54990 - Chains of the Scourge
 class spell_zuldrak_chains_of_the_scourge : public SpellScript
 {
-    PrepareSpellScript(spell_zuldrak_chains_of_the_scourge);
-
     bool Validate(SpellInfo const* spellInfo) override
     {
         return ValidateSpellInfo({ uint32(spellInfo->GetEffect(EFFECT_1).CalcValue()) });

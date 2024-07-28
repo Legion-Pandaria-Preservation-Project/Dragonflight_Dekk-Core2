@@ -75,6 +75,7 @@ public:
             { "movie",              HandleDebugPlayMovieCommand,            rbac::RBAC_PERM_COMMAND_DEBUG,  Console::No },
             { "sound",              HandleDebugPlaySoundCommand,            rbac::RBAC_PERM_COMMAND_DEBUG,  Console::No },
             { "music",              HandleDebugPlayMusicCommand,            rbac::RBAC_PERM_COMMAND_DEBUG,  Console::No },
+            { "objectsound",        HandleDebugPlayObjectSoundCommand,      rbac::RBAC_PERM_COMMAND_DEBUG,  Console::No },
         };
         static ChatCommandTable debugSendCommandTable =
         {
@@ -270,6 +271,23 @@ public:
         player->PlayDirectMusic(musicId, player);
 
         handler->PSendSysMessage(LANG_YOU_HEAR_SOUND, musicId);
+        return true;
+    }
+
+    static bool HandleDebugPlayObjectSoundCommand(ChatHandler* handler, int32 soundKitId, Optional<int32> broadcastTextId)
+    {
+        if (!sSoundKitStore.LookupEntry(soundKitId))
+        {
+            handler->PSendSysMessage(LANG_SOUND_NOT_EXIST, soundKitId);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        Player* player = handler->GetPlayer();
+
+        player->PlayObjectSound(soundKitId, player->GetGUID(), player, broadcastTextId.has_value() ? *broadcastTextId : 0);
+
+        handler->PSendSysMessage(LANG_YOU_HEAR_SOUND, soundKitId);
         return true;
     }
 
@@ -1400,15 +1418,11 @@ public:
 
         if (linked)
         {
-            if (Battleground* bg = player->GetBattleground())
-                nearestLoc = bg->GetClosestGraveyard(player);
+
+            if (Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(player->GetMap(), player->GetZoneId()))
+                nearestLoc = bf->GetClosestGraveyard(player);
             else
-            {
-                if (Battlefield* bf = sBattlefieldMgr->GetBattlefieldToZoneId(player->GetMap(), player->GetZoneId()))
-                    nearestLoc = bf->GetClosestGraveyard(player);
-                else
-                    nearestLoc = sObjectMgr->GetClosestGraveyard(*player, player->GetTeam(), player);
-            }
+                nearestLoc = sObjectMgr->GetClosestGraveyard(*player, player->GetTeam(), player);
         }
         else
         {
@@ -1598,11 +1612,7 @@ public:
             return false;
         }
 
-        PlayerConditionEntry const* playerConditionEntry = sPlayerConditionStore.LookupEntry(playerConditionId);
-        if (!playerConditionEntry)
-            return false;
-
-        if (ConditionMgr::IsPlayerMeetingCondition(target, playerConditionEntry))
+        if (ConditionMgr::IsPlayerMeetingCondition(target, playerConditionId))
             handler->PSendSysMessage("PlayerCondition %u met", playerConditionId);
         else
             handler->PSendSysMessage("PlayerCondition %u not met", playerConditionId);
@@ -1616,7 +1626,7 @@ public:
         uint8 stack_array[10] = {};
         int size = 10;
 
-        handler->PSendSysMessage("Triggered an array out of bounds read at address %p, value %u", stack_array + size, stack_array[size]);
+        handler->PSendSysMessage("Triggered an array out of bounds read at address %p, value %u", static_cast<void*>(stack_array + size), stack_array[size]);
 #endif
         return true;
     }
@@ -1625,7 +1635,7 @@ public:
     {
 #ifdef ASAN
         uint8* leak = new uint8();
-        handler->PSendSysMessage("Leaked 1 uint8 object at address %p", leak);
+        handler->PSendSysMessage("Leaked 1 uint8 object at address %p", static_cast<void*>(leak));
 #endif
         return true;
     }

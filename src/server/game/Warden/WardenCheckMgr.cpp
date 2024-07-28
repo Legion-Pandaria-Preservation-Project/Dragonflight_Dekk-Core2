@@ -51,7 +51,7 @@ void WardenCheckMgr::LoadWardenChecks()
 
     uint16 maxCheckId = fields[0].GetUInt16();
 
-    _checks.resize(maxCheckId + 1);
+    _checks.resize(maxCheckId+1);
 
     //                                    0    1     2     3        4       5      6      7
     result = WorldDatabase.Query("SELECT id, type, data, result, address, length, str, comment FROM warden_checks ORDER BY id ASC");
@@ -61,7 +61,7 @@ void WardenCheckMgr::LoadWardenChecks()
     {
         fields = result->Fetch();
 
-        uint16 const id = fields[0].GetUInt16();
+        uint16 const id  = fields[0].GetUInt16();
         WardenCheckType const type = static_cast<WardenCheckType>(fields[1].GetUInt8());
         WardenCheckCategory const category = GetWardenCheckCategory(type);
 
@@ -119,7 +119,8 @@ void WardenCheckMgr::LoadWardenChecks()
 
         _pools[category].push_back(id);
         ++count;
-    } while (result->NextRow());
+    }
+    while (result->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded {} warden checks in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
 }
@@ -151,7 +152,7 @@ void WardenCheckMgr::LoadWardenOverrides()
         Field* fields = result->Fetch();
 
         uint16 checkId = fields[0].GetUInt16();
-        uint8  action = fields[1].GetUInt8();
+        uint8  action  = fields[1].GetUInt8();
 
         // Check if action value is in range (0-2, see WardenActions enum)
         if (action > WARDEN_ACTION_BAN)
@@ -164,7 +165,8 @@ void WardenCheckMgr::LoadWardenOverrides()
             _checks[checkId].Action = WardenActions(action);
             ++count;
         }
-    } while (result->NextRow());
+    }
+    while (result->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded {} warden action overrides in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
 }
@@ -177,13 +179,13 @@ WardenCheckMgr* WardenCheckMgr::instance()
 
 WardenCheck const& WardenCheckMgr::GetCheckData(uint16 Id) const
 {
-    ASSERT(Id < _checks.size(), "Requested Warden data for invalid check ID {}", uint32(Id));
+    ASSERT(Id < _checks.size(), "Requested Warden data for invalid check ID %u", uint32(Id));
     return _checks[Id];
 }
 
 WardenCheckResult const& WardenCheckMgr::GetCheckResult(uint16 Id) const
 {
     auto it = _checkResults.find(Id);
-    ASSERT(it != _checkResults.end(), "Requested Warden result for invalid check ID {}", uint32(Id));
+    ASSERT(it != _checkResults.end(), "Requested Warden result for invalid check ID %u", uint32(Id));
     return it->second;
 }

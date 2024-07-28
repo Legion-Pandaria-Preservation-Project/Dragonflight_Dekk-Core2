@@ -29,7 +29,7 @@
 #include <fstream>
 #include <sstream>
 
- // static data
+// static data
 enum GuidType : uint8
 {
     // 32 bit long guids
@@ -155,23 +155,23 @@ uint32 const DUMP_TABLE_COUNT = std::extent<decltype(DumpTables)>::value;
 // helper class to dump sql queries to a printable string
 class StringTransaction
 {
-public:
-    StringTransaction() : _buf() { }
+    public:
+        StringTransaction() : _buf() { }
 
-    void Append(char const* sql)
-    {
-        std::ostringstream oss;
-        oss << sql << '\n';
-        _buf += oss.str();
-    }
+        void Append(char const* sql)
+        {
+            std::ostringstream oss;
+            oss << sql << '\n';
+            _buf += oss.str();
+        }
 
-    char const* GetBuffer() const
-    {
-        return _buf.c_str();
-    }
+        char const* GetBuffer() const
+        {
+            return _buf.c_str();
+        }
 
-private:
-    std::string _buf;
+    private:
+        std::string _buf;
 };
 
 // dynamic data, loaded at startup
@@ -212,9 +212,9 @@ inline bool StringsEqualCaseInsensitive(std::string const& left, std::string con
 inline auto FindColumnByName(TableStruct& tableStruct, std::string const& columnName) -> decltype(tableStruct.TableFields.begin())
 {
     return std::find_if(tableStruct.TableFields.begin(), tableStruct.TableFields.end(), [columnName](TableField const& tableField) -> bool
-        {
-            return StringsEqualCaseInsensitive(tableField.FieldName, columnName);
-        });
+    {
+        return StringsEqualCaseInsensitive(tableField.FieldName, columnName);
+    });
 }
 
 inline int32 GetColumnIndexByName(TableStruct const& tableStruct, std::string const& columnName)
@@ -268,9 +268,9 @@ inline void MarkWhereField(TableStruct& tableStruct, std::string const& whereFie
 inline void AssertBaseTable(BaseTable const& baseTable)
 {
     auto itr = std::find_if(CharacterTables.begin(), CharacterTables.end(), [baseTable](TableStruct const& tableStruct) -> bool
-        {
-            return StringsEqualCaseInsensitive(tableStruct.TableName, baseTable.TableName);
-        });
+    {
+        return StringsEqualCaseInsensitive(tableStruct.TableName, baseTable.TableName);
+    });
 
     ASSERT(itr != CharacterTables.end());
 
@@ -313,97 +313,97 @@ void PlayerDump::InitializeTables()
 
         switch (dumpTable.Type)
         {
-        case DTT_CHARACTER:
-            MarkWhereField(t, "guid");
+            case DTT_CHARACTER:
+                MarkWhereField(t, "guid");
 
-            MarkDependentColumn(t, "guid", GUID_TYPE_CHAR);
-            MarkDependentColumn(t, "account", GUID_TYPE_ACCOUNT);
+                MarkDependentColumn(t, "guid", GUID_TYPE_CHAR);
+                MarkDependentColumn(t, "account", GUID_TYPE_ACCOUNT);
 
-            MarkDependentColumn(t, "deleteInfos_Account", GUID_TYPE_NULL);
-            MarkDependentColumn(t, "deleteInfos_Name", GUID_TYPE_NULL);
-            MarkDependentColumn(t, "deleteDate", GUID_TYPE_NULL);
-            break;
-        case DTT_CHAR_TABLE:
-            MarkWhereField(t, "guid");
+                MarkDependentColumn(t, "deleteInfos_Account", GUID_TYPE_NULL);
+                MarkDependentColumn(t, "deleteInfos_Name", GUID_TYPE_NULL);
+                MarkDependentColumn(t, "deleteDate", GUID_TYPE_NULL);
+                break;
+            case DTT_CHAR_TABLE:
+                MarkWhereField(t, "guid");
 
-            MarkDependentColumn(t, "guid", GUID_TYPE_CHAR);
-            break;
-        case DTT_CURRENCY:
-            MarkWhereField(t, "CharacterGuid");
+                MarkDependentColumn(t, "guid", GUID_TYPE_CHAR);
+                break;
+            case DTT_CURRENCY:
+                MarkWhereField(t, "CharacterGuid");
 
-            MarkDependentColumn(t, "CharacterGuid", GUID_TYPE_CHAR);
-            break;
-        case DTT_EQSET_TABLE:
-            MarkWhereField(t, "guid");
+                MarkDependentColumn(t, "CharacterGuid", GUID_TYPE_CHAR);
+                break;
+            case DTT_EQSET_TABLE:
+                MarkWhereField(t, "guid");
 
-            MarkDependentColumn(t, "guid", GUID_TYPE_CHAR);
-            MarkDependentColumn(t, "setguid", GUID_TYPE_EQUIPMENT_SET);
+                MarkDependentColumn(t, "guid", GUID_TYPE_CHAR);
+                MarkDependentColumn(t, "setguid", GUID_TYPE_EQUIPMENT_SET);
 
-            // item0 - item18
-            for (uint32 j = 0; j < EQUIPMENT_SLOT_END; ++j)
-            {
-                std::string itColumn = Trinity::StringFormat("item{}", j);
-                MarkDependentColumn(t, itColumn, GUID_TYPE_ITEM);
-            }
-            break;
-        case DTT_INVENTORY:
-            MarkWhereField(t, "guid");
+                // item0 - item18
+                for (uint32 j = 0; j < EQUIPMENT_SLOT_END; ++j)
+                {
+                    std::string itColumn = Trinity::StringFormat("item{}", j);
+                    MarkDependentColumn(t, itColumn, GUID_TYPE_ITEM);
+                }
+                break;
+            case DTT_INVENTORY:
+                MarkWhereField(t, "guid");
 
-            MarkDependentColumn(t, "guid", GUID_TYPE_CHAR);
-            MarkDependentColumn(t, "bag", GUID_TYPE_ITEM);
-            MarkDependentColumn(t, "item", GUID_TYPE_ITEM);
-            break;
-        case DTT_CHAR_TRANSMOG:
-            MarkWhereField(t, "guid");
+                MarkDependentColumn(t, "guid", GUID_TYPE_CHAR);
+                MarkDependentColumn(t, "bag", GUID_TYPE_ITEM);
+                MarkDependentColumn(t, "item", GUID_TYPE_ITEM);
+                break;
+            case DTT_CHAR_TRANSMOG:
+                MarkWhereField(t, "guid");
 
-            MarkDependentColumn(t, "guid", GUID_TYPE_CHAR);
-            MarkDependentColumn(t, "setguid", GUID_TYPE_EQUIPMENT_SET);
-            break;
-        case DTT_MAIL:
-            MarkWhereField(t, "receiver");
+                MarkDependentColumn(t, "guid", GUID_TYPE_CHAR);
+                MarkDependentColumn(t, "setguid", GUID_TYPE_EQUIPMENT_SET);
+                break;
+            case DTT_MAIL:
+                MarkWhereField(t, "receiver");
 
-            MarkDependentColumn(t, "id", GUID_TYPE_MAIL);
-            MarkDependentColumn(t, "receiver", GUID_TYPE_CHAR);
-            break;
-        case DTT_MAIL_ITEM:
-            MarkWhereField(t, "mail_id");
+                MarkDependentColumn(t, "id", GUID_TYPE_MAIL);
+                MarkDependentColumn(t, "receiver", GUID_TYPE_CHAR);
+                break;
+            case DTT_MAIL_ITEM:
+                MarkWhereField(t, "mail_id");
 
-            MarkDependentColumn(t, "mail_id", GUID_TYPE_MAIL);
-            MarkDependentColumn(t, "item_guid", GUID_TYPE_ITEM);
-            MarkDependentColumn(t, "receiver", GUID_TYPE_CHAR);
-            break;
-        case DTT_ITEM:
-            MarkWhereField(t, "guid");
+                MarkDependentColumn(t, "mail_id", GUID_TYPE_MAIL);
+                MarkDependentColumn(t, "item_guid", GUID_TYPE_ITEM);
+                MarkDependentColumn(t, "receiver", GUID_TYPE_CHAR);
+                break;
+            case DTT_ITEM:
+                MarkWhereField(t, "guid");
 
-            MarkDependentColumn(t, "guid", GUID_TYPE_ITEM);
-            MarkDependentColumn(t, "owner_guid", GUID_TYPE_CHAR);
-            break;
-        case DTT_ITEM_GIFT:
-            MarkWhereField(t, "item_guid");
+                MarkDependentColumn(t, "guid", GUID_TYPE_ITEM);
+                MarkDependentColumn(t, "owner_guid", GUID_TYPE_CHAR);
+                break;
+            case DTT_ITEM_GIFT:
+                MarkWhereField(t, "item_guid");
 
-            MarkDependentColumn(t, "guid", GUID_TYPE_CHAR);
-            MarkDependentColumn(t, "item_guid", GUID_TYPE_ITEM);
-            break;
-        case DTT_ITEM_TABLE:
-            MarkWhereField(t, "itemGuid");
+                MarkDependentColumn(t, "guid", GUID_TYPE_CHAR);
+                MarkDependentColumn(t, "item_guid", GUID_TYPE_ITEM);
+                break;
+            case DTT_ITEM_TABLE:
+                MarkWhereField(t, "itemGuid");
 
-            MarkDependentColumn(t, "itemGuid", GUID_TYPE_ITEM);
-            break;
-        case DTT_PET:
-            MarkWhereField(t, "owner");
+                MarkDependentColumn(t, "itemGuid", GUID_TYPE_ITEM);
+                break;
+            case DTT_PET:
+                MarkWhereField(t, "owner");
 
-            MarkDependentColumn(t, "id", GUID_TYPE_PET);
-            MarkDependentColumn(t, "owner", GUID_TYPE_CHAR);
-            break;
-        case DTT_PET_TABLE:
-            MarkWhereField(t, "guid");
+                MarkDependentColumn(t, "id", GUID_TYPE_PET);
+                MarkDependentColumn(t, "owner", GUID_TYPE_CHAR);
+                break;
+            case DTT_PET_TABLE:
+                MarkWhereField(t, "guid");
 
-            MarkDependentColumn(t, "guid", GUID_TYPE_PET);
-            break;
-        default:
-            TC_LOG_FATAL("server.loading", "Wrong dump table type {}, probably added a new table type without updating code", uint32(dumpTable.Type));
-            ABORT();
-            return;
+                MarkDependentColumn(t, "guid", GUID_TYPE_PET);
+                break;
+            default:
+                TC_LOG_FATAL("server.loading", "Wrong dump table type {}, probably added a new table type without updating code", uint32(dumpTable.Type));
+                ABORT();
+                return;
         }
 
         CharacterTables.emplace_back(std::move(t));
@@ -693,13 +693,13 @@ void PlayerDumpWriter::PopulateGuids(ObjectGuid::LowType guid)
     {
         switch (baseTable.StoredType)
         {
-        case GUID_TYPE_ITEM:
-        case GUID_TYPE_MAIL:
-        case GUID_TYPE_PET:
-        case GUID_TYPE_EQUIPMENT_SET:
-            break;
-        default:
-            return;
+            case GUID_TYPE_ITEM:
+            case GUID_TYPE_MAIL:
+            case GUID_TYPE_PET:
+            case GUID_TYPE_EQUIPMENT_SET:
+                break;
+            default:
+                return;
         }
 
         std::string whereStr = GenerateWhereStr(baseTable.PlayerGuid, guid);
@@ -711,24 +711,24 @@ void PlayerDumpWriter::PopulateGuids(ObjectGuid::LowType guid)
         {
             switch (baseTable.StoredType)
             {
-            case GUID_TYPE_ITEM:
-                if (ObjectGuid::LowType itemLowGuid = (*result)[0].GetUInt32())
-                    _items.insert(itemLowGuid);
-                break;
-            case GUID_TYPE_MAIL:
-                if (uint32 mailLowGuid = (*result)[0].GetUInt32())
-                    _mails.insert(mailLowGuid);
-                break;
-            case GUID_TYPE_PET:
-                if (uint32 petLowGuid = (*result)[0].GetUInt32())
-                    _pets.insert(petLowGuid);
-                break;
-            case GUID_TYPE_EQUIPMENT_SET:
-                if (uint64 eqSetId = (*result)[0].GetUInt64())
-                    _itemSets.insert(eqSetId);
-                break;
-            default:
-                break;
+                case GUID_TYPE_ITEM:
+                    if (ObjectGuid::LowType itemLowGuid = (*result)[0].GetUInt32())
+                        _items.insert(itemLowGuid);
+                    break;
+                case GUID_TYPE_MAIL:
+                    if (uint32 mailLowGuid = (*result)[0].GetUInt32())
+                        _mails.insert(mailLowGuid);
+                    break;
+                case GUID_TYPE_PET:
+                    if (uint32 petLowGuid = (*result)[0].GetUInt32())
+                        _pets.insert(petLowGuid);
+                    break;
+                case GUID_TYPE_EQUIPMENT_SET:
+                    if (uint64 eqSetId = (*result)[0].GetUInt64())
+                        _itemSets.insert(eqSetId);
+                    break;
+                default:
+                    break;
             }
         } while (result->NextRow());
     }
@@ -739,55 +739,55 @@ bool PlayerDumpWriter::AppendTable(StringTransaction& trans, ObjectGuid::LowType
     std::string whereStr;
     switch (dumpTable.Type)
     {
-    case DTT_ITEM:
-    case DTT_ITEM_GIFT:
-    case DTT_ITEM_TABLE:
-        if (_items.empty())
-            return true;
+        case DTT_ITEM:
+        case DTT_ITEM_GIFT:
+        case DTT_ITEM_TABLE:
+            if (_items.empty())
+                return true;
 
-        whereStr = GenerateWhereStr(tableStruct.WhereFieldName, _items);
-        break;
-    case DTT_PET_TABLE:
-        if (_pets.empty())
-            return true;
+            whereStr = GenerateWhereStr(tableStruct.WhereFieldName, _items);
+            break;
+        case DTT_PET_TABLE:
+            if (_pets.empty())
+                return true;
 
-        whereStr = GenerateWhereStr(tableStruct.WhereFieldName, _pets);
-        break;
-    case DTT_MAIL_ITEM:
-        if (_mails.empty())
-            return true;
+            whereStr = GenerateWhereStr(tableStruct.WhereFieldName, _pets);
+            break;
+        case DTT_MAIL_ITEM:
+            if (_mails.empty())
+                return true;
 
-        whereStr = GenerateWhereStr(tableStruct.WhereFieldName, _mails);
-        break;
-    case DTT_EQSET_TABLE:
-    case DTT_CHAR_TRANSMOG:
-        if (_itemSets.empty())
-            return true;
+            whereStr = GenerateWhereStr(tableStruct.WhereFieldName, _mails);
+            break;
+        case DTT_EQSET_TABLE:
+        case DTT_CHAR_TRANSMOG:
+            if (_itemSets.empty())
+                return true;
 
-        whereStr = GenerateWhereStr(tableStruct.WhereFieldName, _itemSets);
-        break;
-    default:
-        // not set case, get single guid string
-        whereStr = GenerateWhereStr(tableStruct.WhereFieldName, guid);
-        break;
+            whereStr = GenerateWhereStr(tableStruct.WhereFieldName, _itemSets);
+            break;
+        default:
+            // not set case, get single guid string
+            whereStr = GenerateWhereStr(tableStruct.WhereFieldName, guid);
+            break;
     }
 
     QueryResult result = CharacterDatabase.PQuery("SELECT * FROM {} WHERE {}", dumpTable.Name, whereStr);
     switch (dumpTable.Type)
     {
-    case DTT_CHARACTER:
-        if (result)
-        {
-            // characters.deleteInfos_Account - if filled error
-            int32 index = GetColumnIndexByName(tableStruct, "deleteInfos_Account");
-            ASSERT(index != -1); // checked at startup
+        case DTT_CHARACTER:
+            if (result)
+            {
+                // characters.deleteInfos_Account - if filled error
+                int32 index = GetColumnIndexByName(tableStruct, "deleteInfos_Account");
+                ASSERT(index != -1); // checked at startup
 
-            if ((*result)[index].GetUInt32())
-                return false;
-        }
-        break;
-    default:
-        break;
+                if ((*result)[index].GetUInt32())
+                    return false;
+            }
+            break;
+        default:
+            break;
     }
 
     AppendTableDump(trans, tableStruct, result);
@@ -796,7 +796,7 @@ bool PlayerDumpWriter::AppendTable(StringTransaction& trans, ObjectGuid::LowType
 
 bool PlayerDumpWriter::GetDump(ObjectGuid::LowType guid, std::string& dump)
 {
-    dump = "IMPORTANT NOTE: THIS DUMPFILE IS MADE FOR USE WITH THE 'PDUMP' COMMAND ONLY - EITHER THROUGH INGAME CHAT OR ON CONSOLE!\n";
+    dump =  "IMPORTANT NOTE: THIS DUMPFILE IS MADE FOR USE WITH THE 'PDUMP' COMMAND ONLY - EITHER THROUGH INGAME CHAT OR ON CONSOLE!\n";
     dump += "IMPORTANT NOTE: DO NOT apply it directly - it will irreversibly DAMAGE and CORRUPT your database! You have been warned!\n\n";
 
     StringTransaction trans;
@@ -977,69 +977,69 @@ DumpReturn PlayerDumpReader::LoadDump(std::istream& input, uint32 account, std::
 
             switch (field.FieldGuidType)
             {
-            case GUID_TYPE_ACCOUNT:
-                if (!ChangeColumn(ts, line, field.FieldName, chraccount))
-                    return DUMP_FILE_BROKEN;
-                break;
-            case GUID_TYPE_CHAR:
-                if (!ChangeColumn(ts, line, field.FieldName, newguid))
-                    return DUMP_FILE_BROKEN;
-                break;
-            case GUID_TYPE_PET:
-                if (!ChangeGuid(ts, line, field.FieldName, petIds, petLowGuidOffset))
-                    return DUMP_FILE_BROKEN;
-                break;
-            case GUID_TYPE_MAIL:
-                if (!ChangeGuid(ts, line, field.FieldName, mails, mailLowGuidOffset))
-                    return DUMP_FILE_BROKEN;
-                break;
-            case GUID_TYPE_ITEM:
-                if (!ChangeGuid(ts, line, field.FieldName, items, itemLowGuidOffset, true))
-                    return DUMP_FILE_BROKEN;
-                break;
-            case GUID_TYPE_EQUIPMENT_SET:
-                if (!ChangeGuid(ts, line, field.FieldName, equipmentSetIds, equipmentSetGuidOffset))
-                    return DUMP_FILE_BROKEN;
-                break;
-            case GUID_TYPE_NULL:
-            {
-                static std::string const NullString("NULL");
-                if (!ChangeColumn(ts, line, field.FieldName, NullString))
-                    return DUMP_FILE_BROKEN;
-                break;
-            }
+                case GUID_TYPE_ACCOUNT:
+                    if (!ChangeColumn(ts, line, field.FieldName, chraccount))
+                        return DUMP_FILE_BROKEN;
+                    break;
+                case GUID_TYPE_CHAR:
+                    if (!ChangeColumn(ts, line, field.FieldName, newguid))
+                        return DUMP_FILE_BROKEN;
+                    break;
+                case GUID_TYPE_PET:
+                    if (!ChangeGuid(ts, line, field.FieldName, petIds, petLowGuidOffset))
+                        return DUMP_FILE_BROKEN;
+                    break;
+                case GUID_TYPE_MAIL:
+                    if (!ChangeGuid(ts, line, field.FieldName, mails, mailLowGuidOffset))
+                        return DUMP_FILE_BROKEN;
+                    break;
+                case GUID_TYPE_ITEM:
+                    if (!ChangeGuid(ts, line, field.FieldName, items, itemLowGuidOffset, true))
+                        return DUMP_FILE_BROKEN;
+                    break;
+                case GUID_TYPE_EQUIPMENT_SET:
+                    if (!ChangeGuid(ts, line, field.FieldName, equipmentSetIds, equipmentSetGuidOffset))
+                        return DUMP_FILE_BROKEN;
+                    break;
+                case GUID_TYPE_NULL:
+                {
+                    static std::string const NullString("NULL");
+                    if (!ChangeColumn(ts, line, field.FieldName, NullString))
+                        return DUMP_FILE_BROKEN;
+                    break;
+                }
             }
         }
 
         // extra modifications for other tables
         switch (type)
         {
-        case DTT_CHARACTER:
-        {
-            race = Trinity::StringTo<uint8>(GetColumn(ts, line, "race")).value_or<uint8>(0);
-            playerClass = Trinity::StringTo<uint8>(GetColumn(ts, line, "class")).value_or<uint8>(0);
-            gender = Trinity::StringTo<uint8>(GetColumn(ts, line, "gender")).value_or<uint8>(0);
-            level = Trinity::StringTo<uint8>(GetColumn(ts, line, "level")).value_or<uint8>(0);
-            if (name.empty())
+            case DTT_CHARACTER:
             {
-                // generate a temporary name
-                std::string guidPart = Trinity::StringFormat("{:X}", guid);
-                std::size_t maxCharsFromOriginalName = MAX_PLAYER_NAME - guidPart.length();
+                race = Trinity::StringTo<uint8>(GetColumn(ts, line, "race")).value_or<uint8>(0);
+                playerClass = Trinity::StringTo<uint8>(GetColumn(ts, line, "class")).value_or<uint8>(0);
+                gender = Trinity::StringTo<uint8>(GetColumn(ts, line, "gender")).value_or<uint8>(0);
+                level = Trinity::StringTo<uint8>(GetColumn(ts, line, "level")).value_or<uint8>(0);
+                if (name.empty())
+                {
+                    // generate a temporary name
+                    std::string guidPart = Trinity::StringFormat("{:X}", guid);
+                    std::size_t maxCharsFromOriginalName = MAX_PLAYER_NAME - guidPart.length();
 
-                name = GetColumn(ts, line, "name").substr(0, maxCharsFromOriginalName) + guidPart;
+                    name = GetColumn(ts, line, "name").substr(0, maxCharsFromOriginalName) + guidPart;
 
-                // characters.at_login set to "rename on login"
-                if (!ChangeColumn(ts, line, "name", name))
+                    // characters.at_login set to "rename on login"
+                    if (!ChangeColumn(ts, line, "name", name))
+                        return DUMP_FILE_BROKEN;
+                    if (!ChangeColumn(ts, line, "at_login", "1"))
+                        return DUMP_FILE_BROKEN;
+                }
+                else if (!ChangeColumn(ts, line, "name", name)) // characters.name
                     return DUMP_FILE_BROKEN;
-                if (!ChangeColumn(ts, line, "at_login", "1"))
-                    return DUMP_FILE_BROKEN;
+                break;
             }
-            else if (!ChangeColumn(ts, line, "name", name)) // characters.name
-                return DUMP_FILE_BROKEN;
-            break;
-        }
-        default:
-            break;
+            default:
+                break;
         }
 
         FixNULLfields(line);

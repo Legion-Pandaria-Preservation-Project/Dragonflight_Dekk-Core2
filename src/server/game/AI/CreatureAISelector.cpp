@@ -112,15 +112,6 @@ namespace FactorySelector
             return factory->GetScriptId();
         }
 
-       /* if (creature->IsMinion())
-        {
-            auto const* registry = ASSERT_NOTNULL(sCreatureAIRegistry->GetRegistryItem("BattlePetAI"));
-            auto const* factory = dynamic_cast<SelectableAI<Creature, CreatureAI> const*>(registry);
-            ASSERT(factory);
-
-            return factory->GetScriptId();
-        }*/
-
         if (uint32 id = creature->GetScriptId())
         {
             if (sScriptMgr->CanCreateCreatureAI(id))

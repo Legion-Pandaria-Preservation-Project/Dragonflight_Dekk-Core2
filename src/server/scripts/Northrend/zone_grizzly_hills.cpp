@@ -25,35 +25,36 @@
 #include "SpellScript.h"
 #include "TemporarySummon.h"
 
- /*######
- ## Quest 12027: Mr. Floppy's Perilous Adventure
- ######*/
+/*######
+## Quest 12027: Mr. Floppy's Perilous Adventure
+######*/
 
 enum Floppy
 {
     // Creature
-    NPC_MRFLOPPY = 26589,
-    NPC_HUNGRY_WORG = 26586,
-    NPC_RAVENOUS_WORG = 26590,   // RWORG
-    NPC_EMILY = 26588,
+    NPC_MRFLOPPY                = 26589,
+    NPC_HUNGRY_WORG             = 26586,
+    NPC_RAVENOUS_WORG           = 26590,   // RWORG
+    NPC_EMILY                   = 26588,
     // Quest
-    QUEST_PERILOUS_ADVENTURE = 12027,
+    QUEST_PERILOUS_ADVENTURE    = 12027,
     // Spell
-    SPELL_MRFLOPPY = 47184,   // vehicle aura
+    SPELL_MRFLOPPY              = 47184,   // vehicle aura
     // Text
-    SAY_WORGHAGGRO1 = 0, // Um... I think one of those wolves is back...
-    SAY_WORGHAGGRO2 = 1, // He's going for Mr. Floppy!
-    SAY_WORGRAGGRO3 = 2, // Oh, no! Look, it's another wolf, and it's a biiiiiig one!
-    SAY_WORGRAGGRO4 = 3, // He's gonna eat Mr. Floppy! You gotta help Mr. Floppy! You just gotta!
-    SAY_RANDOMAGGRO = 4, // There's a big meanie attacking Mr. Floppy! Help!
-    SAY_VICTORY1 = 5, // Let's get out of here before more wolves find us!
-    SAY_VICTORY2 = 6, // Don't go toward the light, Mr. Floppy!
-    SAY_VICTORY3 = 7, // Mr. Floppy, you're ok! Thank you so much for saving Mr. Floppy!
-    SAY_VICTORY4 = 8, // I think I see the camp! We're almost home, Mr. Floppy! Let's go!
-    TEXT_EMOTE_WP1 = 9, // Mr. Floppy revives
-    TEXT_EMOTE_AGGRO = 10, // The Ravenous Worg chomps down on Mr. Floppy
-    SAY_QUEST_ACCEPT = 11, // Are you ready, Mr. Floppy? Stay close to me and watch out for those wolves!
-    SAY_QUEST_COMPLETE = 12  // Thank you for helping me get back to the camp. Go tell Walter that I'm safe now!
+    SAY_WORGHAGGRO1             = 0, // Um... I think one of those wolves is back...
+    SAY_WORGHAGGRO2             = 1, // He's going for Mr. Floppy!
+    SAY_WORGRAGGRO3             = 2, // Oh, no! Look, it's another wolf, and it's a biiiiiig one!
+    SAY_WORGRAGGRO4             = 3, // He's gonna eat Mr. Floppy! You gotta help Mr. Floppy! You just gotta!
+    SAY_RANDOMAGGRO             = 4, // There's a big meanie attacking Mr. Floppy! Help!
+    SAY_VICTORY1                = 5, // Let's get out of here before more wolves find us!
+    SAY_VICTORY2                = 6, // Don't go toward the light, Mr. Floppy!
+    SAY_VICTORY3                = 7, // Mr. Floppy, you're ok! Thank you so much for saving Mr. Floppy!
+    SAY_VICTORY4                = 8, // I think I see the camp! We're almost home, Mr. Floppy! Let's go!
+    TEXT_EMOTE_WP1              = 9, // Mr. Floppy revives
+    TEXT_EMOTE_AGGRO            = 10, // The Ravenous Worg chomps down on Mr. Floppy
+    SAY_QUEST_ACCEPT            = 11, // Are you ready, Mr. Floppy? Stay close to me and watch out for those wolves!
+    SAY_QUEST_COMPLETE          = 12, // Thank you for helping me get back to the camp. Go tell Walter that I'm safe now!
+    PATH_ESCORT_EMILY           = 212706
 };
 
 // emily
@@ -77,93 +78,93 @@ struct npc_emily : public EscortAI
 
         switch (waypointId)
         {
-        case 9:
-            if (Creature* Mrfloppy = GetClosestCreatureWithEntry(me, NPC_MRFLOPPY, 100.0f))
-                _mrfloppyGUID = Mrfloppy->GetGUID();
-            break;
-        case 10:
-            if (ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
-            {
-                Talk(SAY_WORGHAGGRO1);
-                me->SummonCreature(NPC_HUNGRY_WORG, me->GetPositionX() + 5, me->GetPositionY() + 2, me->GetPositionZ() + 1, 3.229f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2min);
-            }
-            break;
-        case 11:
-            if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
-                Mrfloppy->GetMotionMaster()->MoveFollow(me, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
-            break;
-        case 17:
-            if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
-                Mrfloppy->GetMotionMaster()->MovePoint(0, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
-            Talk(SAY_WORGRAGGRO3);
-            if (Creature* RWORG = me->SummonCreature(NPC_RAVENOUS_WORG, me->GetPositionX() + 10, me->GetPositionY() + 8, me->GetPositionZ() + 2, 3.229f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2min))
-            {
-                RWORG->SetFaction(FACTION_FRIENDLY);
-                _RavenousworgGUID = RWORG->GetGUID();
-            }
-            break;
-        case 18:
-            if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
-            {
-                if (Creature* RWORG = ObjectAccessor::GetCreature(*me, _RavenousworgGUID))
-                    RWORG->GetMotionMaster()->MovePoint(0, Mrfloppy->GetPositionX(), Mrfloppy->GetPositionY(), Mrfloppy->GetPositionZ());
-                DoCast(Mrfloppy, SPELL_MRFLOPPY);
-            }
-            break;
-        case 19:
-            if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
-            {
-                if (Mrfloppy->HasAura(SPELL_MRFLOPPY))
+            case 9:
+                if (Creature* Mrfloppy = GetClosestCreatureWithEntry(me, NPC_MRFLOPPY, 100.0f))
+                    _mrfloppyGUID = Mrfloppy->GetGUID();
+                break;
+            case 10:
+                if (ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
                 {
-                    if (Creature* RWORG = ObjectAccessor::GetCreature(*me, _RavenousworgGUID))
-                        Mrfloppy->EnterVehicle(RWORG);
+                    Talk(SAY_WORGHAGGRO1);
+                    me->SummonCreature(NPC_HUNGRY_WORG, me->GetPositionX()+5, me->GetPositionY()+2, me->GetPositionZ()+1, 3.229f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2min);
                 }
-            }
-            break;
-        case 20:
-            if (Creature* RWORG = ObjectAccessor::GetCreature(*me, _RavenousworgGUID))
-                RWORG->HandleEmoteCommand(EMOTE_ONESHOT_WOUND_CRITICAL);
-            break;
-        case 21:
-            if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
-            {
-                if (Creature* RWORG = ObjectAccessor::GetCreature(*me, _RavenousworgGUID))
-                {
-                    Unit::Kill(RWORG, Mrfloppy);
-                    Mrfloppy->ExitVehicle();
-                    RWORG->SetFaction(FACTION_MONSTER);
-                    RWORG->GetMotionMaster()->MovePoint(0, RWORG->GetPositionX() + 10, RWORG->GetPositionY() + 80, RWORG->GetPositionZ());
-                    Talk(SAY_VICTORY2);
-                }
-            }
-            break;
-        case 22:
-            if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
-            {
-                if (Mrfloppy->isDead())
-                {
-                    if (Creature* RWORG = ObjectAccessor::GetCreature(*me, _RavenousworgGUID))
-                        RWORG->DisappearAndDie();
-                    me->GetMotionMaster()->MovePoint(0, Mrfloppy->GetPositionX(), Mrfloppy->GetPositionY(), Mrfloppy->GetPositionZ());
-                    Mrfloppy->setDeathState(ALIVE);
+                break;
+            case 11:
+                if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
                     Mrfloppy->GetMotionMaster()->MoveFollow(me, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
-                    Talk(SAY_VICTORY3);
+                break;
+            case 17:
+                if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
+                    Mrfloppy->GetMotionMaster()->MovePoint(0, me->GetPositionX(), me->GetPositionY(), me->GetPositionZ());
+                Talk(SAY_WORGRAGGRO3);
+                if (Creature* RWORG = me->SummonCreature(NPC_RAVENOUS_WORG, me->GetPositionX()+10, me->GetPositionY()+8, me->GetPositionZ()+2, 3.229f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2min))
+                {
+                    RWORG->SetFaction(FACTION_FRIENDLY);
+                    _RavenousworgGUID = RWORG->GetGUID();
                 }
-            }
-            break;
-        case 24:
-            player->GroupEventHappens(QUEST_PERILOUS_ADVENTURE, me);
-            Talk(SAY_QUEST_COMPLETE, player);
-            me->SetWalk(false);
-            break;
-        case 25:
-            Talk(SAY_VICTORY4);
-            break;
-        case 27:
-            me->DisappearAndDie();
-            if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
-                Mrfloppy->DisappearAndDie();
-            break;
+                break;
+            case 18:
+                if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
+                {
+                    if (Creature* RWORG = ObjectAccessor::GetCreature(*me, _RavenousworgGUID))
+                        RWORG->GetMotionMaster()->MovePoint(0, Mrfloppy->GetPositionX(), Mrfloppy->GetPositionY(), Mrfloppy->GetPositionZ());
+                    DoCast(Mrfloppy, SPELL_MRFLOPPY);
+                }
+                break;
+            case 19:
+                if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
+                {
+                    if (Mrfloppy->HasAura(SPELL_MRFLOPPY))
+                    {
+                        if (Creature* RWORG = ObjectAccessor::GetCreature(*me, _RavenousworgGUID))
+                            Mrfloppy->EnterVehicle(RWORG);
+                    }
+                }
+                break;
+            case 20:
+                if (Creature* RWORG = ObjectAccessor::GetCreature(*me, _RavenousworgGUID))
+                    RWORG->HandleEmoteCommand(EMOTE_ONESHOT_WOUND_CRITICAL);
+                break;
+            case 21:
+                if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
+                {
+                    if (Creature* RWORG = ObjectAccessor::GetCreature(*me, _RavenousworgGUID))
+                    {
+                        Unit::Kill(RWORG, Mrfloppy);
+                        Mrfloppy->ExitVehicle();
+                        RWORG->SetFaction(FACTION_MONSTER);
+                        RWORG->GetMotionMaster()->MovePoint(0, RWORG->GetPositionX()+10, RWORG->GetPositionY()+80, RWORG->GetPositionZ());
+                        Talk(SAY_VICTORY2);
+                    }
+                }
+                break;
+            case 22:
+                if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
+                {
+                    if (Mrfloppy->isDead())
+                    {
+                        if (Creature* RWORG = ObjectAccessor::GetCreature(*me, _RavenousworgGUID))
+                            RWORG->DisappearAndDie();
+                        me->GetMotionMaster()->MovePoint(0, Mrfloppy->GetPositionX(), Mrfloppy->GetPositionY(), Mrfloppy->GetPositionZ());
+                        Mrfloppy->setDeathState(ALIVE);
+                        Mrfloppy->GetMotionMaster()->MoveFollow(me, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+                        Talk(SAY_VICTORY3);
+                    }
+                }
+                break;
+            case 24:
+                player->GroupEventHappens(QUEST_PERILOUS_ADVENTURE, me);
+                Talk(SAY_QUEST_COMPLETE, player);
+                me->SetWalk(false);
+                break;
+            case 25:
+                Talk(SAY_VICTORY4);
+                break;
+            case 27:
+                me->DisappearAndDie();
+                if (Creature* Mrfloppy = ObjectAccessor::GetCreature(*me, _mrfloppyGUID))
+                    Mrfloppy->DisappearAndDie();
+                break;
         }
     }
 
@@ -186,13 +187,14 @@ struct npc_emily : public EscortAI
             if (Creature* Mrfloppy = GetClosestCreatureWithEntry(me, NPC_MRFLOPPY, 180.0f))
                 Mrfloppy->GetMotionMaster()->MoveFollow(me, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
 
+            LoadPath(PATH_ESCORT_EMILY);
             Start(true, player->GetGUID());
         }
     }
 
-private:
-    ObjectGuid   _RavenousworgGUID;
-    ObjectGuid   _mrfloppyGUID;
+    private:
+        ObjectGuid   _RavenousworgGUID;
+        ObjectGuid   _mrfloppyGUID;
 };
 
 // mrfloppy
@@ -208,14 +210,14 @@ struct npc_mrfloppy : public ScriptedAI
         {
             switch (Who->GetEntry())
             {
-            case NPC_HUNGRY_WORG:
-                Emily->AI()->Talk(SAY_WORGHAGGRO2);
-                break;
-            case NPC_RAVENOUS_WORG:
-                Emily->AI()->Talk(SAY_WORGRAGGRO4);
-                break;
-            default:
-                Emily->AI()->Talk(SAY_RANDOMAGGRO);
+                case NPC_HUNGRY_WORG:
+                    Emily->AI()->Talk(SAY_WORGHAGGRO2);
+                    break;
+                case NPC_RAVENOUS_WORG:
+                    Emily->AI()->Talk(SAY_WORGRAGGRO4);
+                    break;
+                default:
+                    Emily->AI()->Talk(SAY_RANDOMAGGRO);
             }
         }
     }
@@ -238,12 +240,12 @@ struct npc_mrfloppy : public ScriptedAI
 enum Outhouse
 {
     // Sound
-    SOUND_FEMALE = 12671,
-    SOUND_MALE = 12670,
+    SOUND_FEMALE                    = 12671,
+    SOUND_MALE                      = 12670,
     // Spell
-    SPELL_OUTHOUSE_GROANS = 48382,
-    SPELL_CAMERA_SHAKE = 47533,
-    SPELL_DUST_FIELD = 48329
+    SPELL_OUTHOUSE_GROANS           = 48382,
+    SPELL_CAMERA_SHAKE              = 47533,
+    SPELL_DUST_FIELD                = 48329
 };
 
 struct npc_outhouse_bunny : public ScriptedAI
@@ -286,19 +288,19 @@ struct npc_outhouse_bunny : public ScriptedAI
             DoCast(me, SPELL_DUST_FIELD, true);
             switch (_gender)
             {
-            case GENDER_FEMALE:
-                DoPlaySoundToSet(me, SOUND_FEMALE);
-                break;
+                case GENDER_FEMALE:
+                    DoPlaySoundToSet(me, SOUND_FEMALE);
+                    break;
 
-            case GENDER_MALE:
-                DoPlaySoundToSet(me, SOUND_MALE);
-                break;
+                case GENDER_MALE:
+                    DoPlaySoundToSet(me, SOUND_MALE);
+                    break;
             }
         }
     }
-private:
-    uint8 _counter;
-    uint8 _gender;
+    private:
+        uint8 _counter;
+        uint8 _gender;
 };
 
 // Tallhorn Stage
@@ -306,7 +308,7 @@ private:
 enum TallhornStage
 {
     //Gameobject
-    OBJECT_HAUNCH = 188665
+    OBJECT_HAUNCH                   = 188665
 };
 
 struct npc_tallhorn_stag : public ScriptedAI
@@ -340,10 +342,9 @@ struct npc_tallhorn_stag : public ScriptedAI
         }
         if (!UpdateVictim())
             return;
-        DoMeleeAttackIfReady();
     }
-private:
-    uint8 _phase;
+    private:
+        uint8 _phase;
 };
 
 // Amberpine Woodsman
@@ -351,13 +352,13 @@ private:
 enum AmberpineWoodsman
 {
     // Creature
-    NPC_TALLHORN_STAG = 26363
+    NPC_TALLHORN_STAG                      = 26363
 };
 
 enum AmberpineWoodsmanEvents
 {
-    EVENT_WOODSMAN_1 = 1,
-    EVENT_WOODSMAN_2 = 2
+    EVENT_WOODSMAN_1                       = 1,
+    EVENT_WOODSMAN_2                       = 2
 };
 
 struct npc_amberpine_woodsman : public ScriptedAI
@@ -382,22 +383,22 @@ struct npc_amberpine_woodsman : public ScriptedAI
         {
             switch (eventId)
             {
-            case EVENT_WOODSMAN_1:
-                me->SetEmoteState(EMOTE_STATE_LOOT);
-                _events.ScheduleEvent(EVENT_WOODSMAN_2, 3s);
-                break;
-            case EVENT_WOODSMAN_2:
-                me->SetEmoteState(EMOTE_ONESHOT_ATTACK1H);
-                _events.ScheduleEvent(EVENT_WOODSMAN_1, 4s);
-                break;
-            default:
-                break;
+                case EVENT_WOODSMAN_1:
+                    me->SetEmoteState(EMOTE_STATE_LOOT);
+                    _events.ScheduleEvent(EVENT_WOODSMAN_2, 3s);
+                    break;
+                case EVENT_WOODSMAN_2:
+                    me->SetEmoteState(EMOTE_ONESHOT_ATTACK1H);
+                    _events.ScheduleEvent(EVENT_WOODSMAN_1, 4s);
+                    break;
+                default:
+                    break;
             }
         }
         UpdateVictim();
     }
-private:
-    EventMap _events;
+    private:
+        EventMap _events;
 };
 
 /*######
@@ -407,12 +408,12 @@ private:
 enum Skirmisher
 {
     // Quest
-    QUEST_OVERWHELMED = 12288,
+    QUEST_OVERWHELMED           = 12288,
     // Spell
-    SPELL_RENEW_SKIRMISHER = 48812,
-    SPELL_KILL_CREDIT = 48813,
+    SPELL_RENEW_SKIRMISHER      = 48812,
+    SPELL_KILL_CREDIT           = 48813,
     // Text
-    SAY_RANDOM = 0
+    SAY_RANDOM                  = 0
 };
 
 struct npc_wounded_skirmisher : public ScriptedAI
@@ -449,7 +450,7 @@ struct npc_wounded_skirmisher : public ScriptedAI
             DoCast(playerCaster, SPELL_KILL_CREDIT);
             Talk(SAY_RANDOM, playerCaster);
             if (me->IsStandState())
-                me->GetMotionMaster()->MovePoint(1, me->GetPositionX() + 7, me->GetPositionY() + 7, me->GetPositionZ());
+                me->GetMotionMaster()->MovePoint(1, me->GetPositionX()+7, me->GetPositionY()+7, me->GetPositionZ());
             else
             {
                 me->SetStandState(UNIT_STAND_STATE_STAND);
@@ -457,39 +458,31 @@ struct npc_wounded_skirmisher : public ScriptedAI
             }
         }
     }
-
-    void UpdateAI(uint32 /*diff*/) override
-    {
-        if (!UpdateVictim())
-            return;
-
-        DoMeleeAttackIfReady();
-    }
-private:
-    Milliseconds _despawnTimer;
+    private:
+        Milliseconds _despawnTimer;
 };
 
 /*Venture co. Straggler - when you cast Smoke Bomb, he will yell and run away*/
 enum SmokeEmOut
 {
     // Quest
-    QUEST_SMOKE_EM_OUT_A = 12323,
-    QUEST_SMOKE_EM_OUT_H = 12324,
+    QUEST_SMOKE_EM_OUT_A                        = 12323,
+    QUEST_SMOKE_EM_OUT_H                        = 12324,
     // Spell
-    SPELL_SMOKE_BOMB = 49075,
-    SPELL_CHOP = 43410,
-    SPELL_VENTURE_STRAGGLER_CREDIT = 49093,
+    SPELL_SMOKE_BOMB                            = 49075,
+    SPELL_CHOP                                  = 43410,
+    SPELL_VENTURE_STRAGGLER_CREDIT              = 49093,
     // Text
-    SAY_SEO = 0
+    SAY_SEO                                     = 0
 };
 
 enum StragglerEvents
 {
-    EVENT_STRAGGLER_1 = 1,
-    EVENT_STRAGGLER_2 = 2,
-    EVENT_STRAGGLER_3 = 3,
-    EVENT_STRAGGLER_4 = 4,
-    EVENT_CHOP = 5
+    EVENT_STRAGGLER_1                           = 1,
+    EVENT_STRAGGLER_2                           = 2,
+    EVENT_STRAGGLER_3                           = 3,
+    EVENT_STRAGGLER_4                           = 4,
+    EVENT_CHOP                                  = 5
 };
 
 struct npc_venture_co_straggler : public ScriptedAI
@@ -518,37 +511,36 @@ struct npc_venture_co_straggler : public ScriptedAI
         {
             switch (eventId)
             {
-            case EVENT_STRAGGLER_1:
-                if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
-                    DoCast(player, SPELL_VENTURE_STRAGGLER_CREDIT);
-                me->GetMotionMaster()->MovePoint(0, me->GetPositionX() - 7, me->GetPositionY() + 7, me->GetPositionZ());
-                _events.ScheduleEvent(EVENT_STRAGGLER_2, 2500ms);
-                break;
-            case EVENT_STRAGGLER_2:
-                Talk(SAY_SEO);
-                me->GetMotionMaster()->MovePoint(0, me->GetPositionX() - 7, me->GetPositionY() - 5, me->GetPositionZ());
-                _events.ScheduleEvent(EVENT_STRAGGLER_3, 2500ms);
-                break;
-            case EVENT_STRAGGLER_3:
-                me->GetMotionMaster()->MovePoint(0, me->GetPositionX() - 5, me->GetPositionY() - 5, me->GetPositionZ());
-                _events.ScheduleEvent(EVENT_STRAGGLER_4, 2500ms);
-                break;
-            case EVENT_STRAGGLER_4:
-                me->DisappearAndDie();
-                break;
-            case EVENT_CHOP:
-                if (UpdateVictim())
-                    DoCastVictim(SPELL_CHOP);
-                _events.Repeat(Seconds(10), Seconds(12));
-                break;
-            default:
-                break;
+                case EVENT_STRAGGLER_1:
+                    if (Player* player = ObjectAccessor::GetPlayer(*me, _playerGUID))
+                         DoCast(player, SPELL_VENTURE_STRAGGLER_CREDIT);
+                     me->GetMotionMaster()->MovePoint(0, me->GetPositionX()-7, me->GetPositionY()+7, me->GetPositionZ());
+                     _events.ScheduleEvent(EVENT_STRAGGLER_2, 2500ms);
+                     break;
+                case EVENT_STRAGGLER_2:
+                     Talk(SAY_SEO);
+                     me->GetMotionMaster()->MovePoint(0, me->GetPositionX()-7, me->GetPositionY()-5, me->GetPositionZ());
+                     _events.ScheduleEvent(EVENT_STRAGGLER_3, 2500ms);
+                     break;
+                case EVENT_STRAGGLER_3:
+                    me->GetMotionMaster()->MovePoint(0, me->GetPositionX()-5, me->GetPositionY()-5, me->GetPositionZ());
+                    _events.ScheduleEvent(EVENT_STRAGGLER_4, 2500ms);
+                    break;
+                case EVENT_STRAGGLER_4:
+                    me->DisappearAndDie();
+                    break;
+                case EVENT_CHOP:
+                    if (UpdateVictim())
+                        DoCastVictim(SPELL_CHOP);
+                    _events.Repeat(Seconds(10), Seconds(12));
+                    break;
+                default:
+                    break;
             }
         }
 
         if (!UpdateVictim())
             return;
-        DoMeleeAttackIfReady();
     }
 
     void SpellHit(WorldObject* caster, SpellInfo const* spellInfo) override
@@ -576,30 +568,30 @@ private:
 enum LakeFrog
 {
     // Creature
-    NPC_LAKE_FROG = 33211,
-    NPC_LAKE_FROG_QUEST = 33224,
-    NPC_MAIDEN_OF_ASHWOOD_LAKE = 33220,
+    NPC_LAKE_FROG                          = 33211,
+    NPC_LAKE_FROG_QUEST                    = 33224,
+    NPC_MAIDEN_OF_ASHWOOD_LAKE             = 33220,
     // Items
-    ITEM_WARTS_B_GONE_LIP_BALM = 44986,
+    ITEM_WARTS_B_GONE_LIP_BALM             = 44986,
     // Spells
-    SPELL_WARTSBGONE_LIP_BALM = 62574,
-    SPELL_FROG_LOVE = 62537, // for 1 minute !
-    SPELL_WARTS = 62581,
+    SPELL_WARTSBGONE_LIP_BALM              = 62574,
+    SPELL_FROG_LOVE                        = 62537, // for 1 minute !
+    SPELL_WARTS                            = 62581,
     SPELL_MAIDEN_OF_ASHWOOD_LAKE_TRANSFORM = 62550,
-    SPELL_SUMMON_ASHWOOD_BRAND = 62554,
-    SPELL_FROG_KISS = 62536,
+    SPELL_SUMMON_ASHWOOD_BRAND             = 62554,
+    SPELL_FROG_KISS                        = 62536,
     // Text
-    SAY_MAIDEN_0 = 0,
-    SAY_MAIDEN_1 = 1
+    SAY_MAIDEN_0                           = 0,
+    SAY_MAIDEN_1                           = 1
 };
 
 enum LakeFrogEvents
 {
-    EVENT_LAKEFROG_1 = 1,
-    EVENT_LAKEFROG_2 = 2,
-    EVENT_LAKEFROG_3 = 3,
-    EVENT_LAKEFROG_4 = 4,
-    EVENT_LAKEFROG_5 = 5
+    EVENT_LAKEFROG_1                       = 1,
+    EVENT_LAKEFROG_2                       = 2,
+    EVENT_LAKEFROG_3                       = 3,
+    EVENT_LAKEFROG_4                       = 4,
+    EVENT_LAKEFROG_5                       = 5
 };
 
 struct npc_lake_frog : public ScriptedAI
@@ -634,29 +626,29 @@ struct npc_lake_frog : public ScriptedAI
         {
             switch (eventId)
             {
-            case EVENT_LAKEFROG_1:
-                DoCast(me, SPELL_MAIDEN_OF_ASHWOOD_LAKE_TRANSFORM);
-                me->SetEntry(NPC_MAIDEN_OF_ASHWOOD_LAKE);
-                _events.ScheduleEvent(EVENT_LAKEFROG_2, 2s);
-                break;
-            case EVENT_LAKEFROG_2:
-                Talk(SAY_MAIDEN_0);
-                _events.ScheduleEvent(EVENT_LAKEFROG_3, 3s);
-                break;
-            case EVENT_LAKEFROG_3:
-                me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-                _events.ScheduleEvent(EVENT_LAKEFROG_4, 25s);
-                break;
-            case EVENT_LAKEFROG_4:
-                me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
-                _events.ScheduleEvent(EVENT_LAKEFROG_5, 2s);
-                break;
-            case EVENT_LAKEFROG_5:
-                Talk(SAY_MAIDEN_1);
-                me->DespawnOrUnsummon(4s);
-                break;
-            default:
-                break;
+                case EVENT_LAKEFROG_1:
+                    DoCast(me, SPELL_MAIDEN_OF_ASHWOOD_LAKE_TRANSFORM);
+                    me->SetEntry(NPC_MAIDEN_OF_ASHWOOD_LAKE);
+                    _events.ScheduleEvent(EVENT_LAKEFROG_2, 2s);
+                    break;
+                case EVENT_LAKEFROG_2:
+                    Talk(SAY_MAIDEN_0);
+                    _events.ScheduleEvent(EVENT_LAKEFROG_3, 3s);
+                    break;
+                case EVENT_LAKEFROG_3:
+                    me->SetNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+                    _events.ScheduleEvent(EVENT_LAKEFROG_4, 25s);
+                    break;
+                case EVENT_LAKEFROG_4:
+                    me->RemoveNpcFlag(UNIT_NPC_FLAG_GOSSIP);
+                    _events.ScheduleEvent(EVENT_LAKEFROG_5, 2s);
+                    break;
+                case EVENT_LAKEFROG_5:
+                    Talk(SAY_MAIDEN_1);
+                    me->DespawnOrUnsummon(4s);
+                    break;
+                default:
+                    break;
             }
         }
     }
@@ -705,13 +697,11 @@ private:
 
 enum ShredderDelivery
 {
-    NPC_BROKEN_DOWN_SHREDDER = 27354
+    NPC_BROKEN_DOWN_SHREDDER               = 27354
 };
 
 class spell_shredder_delivery : public SpellScript
 {
-    PrepareSpellScript(spell_shredder_delivery);
-
     bool Load() override
     {
         return GetCaster()->GetTypeId() == TYPEID_UNIT;
@@ -732,14 +722,12 @@ class spell_shredder_delivery : public SpellScript
 enum InfectedWorgenBite
 {
     SPELL_INFECTED_WORGEN_BITE = 53094,
-    SPELL_WORGENS_CALL = 53095
+    SPELL_WORGENS_CALL         = 53095
 };
 
 // 53094 - Infected Worgen Bite
 class spell_infected_worgen_bite : public AuraScript
 {
-    PrepareAuraScript(spell_infected_worgen_bite);
-
     void HandleAfterEffectApply(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         Unit* target = GetTarget();
@@ -763,12 +751,12 @@ class spell_infected_worgen_bite : public AuraScript
 
 enum RedRocket
 {
-    SPELL_VEHICLE_WARHEAD_FUSE = 49107,
-    SPELL_ALLIANCE_KILL_CREDIT_TORPEDO = 49510,
-    SPELL_HORDE_KILL_CREDIT_TORPEDO = 49340,
-    NPC_HORDE_LUMBERBOAT = 27702,
-    NPC_ALLIANCE_LUMBERBOAT = 27688,
-    SPELL_DETONATE = 49250
+    SPELL_VEHICLE_WARHEAD_FUSE            = 49107,
+    SPELL_ALLIANCE_KILL_CREDIT_TORPEDO    = 49510,
+    SPELL_HORDE_KILL_CREDIT_TORPEDO       = 49340,
+    NPC_HORDE_LUMBERBOAT                  = 27702,
+    NPC_ALLIANCE_LUMBERBOAT               = 27688,
+    SPELL_DETONATE                        = 49250
 };
 
 struct npc_rocket_propelled_warhead : public VehicleAI
@@ -829,15 +817,13 @@ private:
 
 enum WarheadSpells
 {
-    SPELL_WARHEAD_Z_CHECK = 61678,
-    SPELL_WARHEAD_SEEKING_LUMBERSHIP = 49331,
-    SPELL_WARHEAD_FUSE = 49181
+    SPELL_WARHEAD_Z_CHECK               = 61678,
+    SPELL_WARHEAD_SEEKING_LUMBERSHIP    = 49331,
+    SPELL_WARHEAD_FUSE                  = 49181
 };
 // 49107 - Vehicle: Warhead Fuse
 class spell_vehicle_warhead_fuse : public SpellScript
 {
-    PrepareSpellScript(spell_vehicle_warhead_fuse);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo({ SPELL_WARHEAD_Z_CHECK, SPELL_WARHEAD_SEEKING_LUMBERSHIP, SPELL_WARHEAD_FUSE });
@@ -860,15 +846,13 @@ class spell_vehicle_warhead_fuse : public SpellScript
 
 enum WarheadDenonate
 {
-    SPELL_PARACHUTE = 66154,
-    SPELL_TORPEDO_EXPLOSION = 49290,
-    NPC_ALLIANCE_LUMBERBOAT_EXPLOSIONS = 27689
+    SPELL_PARACHUTE                     = 66154,
+    SPELL_TORPEDO_EXPLOSION             = 49290,
+    NPC_ALLIANCE_LUMBERBOAT_EXPLOSIONS  = 27689
 };
 // 49250 - Detonate
 class spell_warhead_detonate : public SpellScript
 {
-    PrepareSpellScript(spell_warhead_detonate);
-
     bool Validate(SpellInfo const* /*spellInfo*/) override
     {
         return ValidateSpellInfo({ SPELL_PARACHUTE, SPELL_TORPEDO_EXPLOSION });
@@ -902,8 +886,6 @@ class spell_warhead_detonate : public SpellScript
 // 61678 - Z Check
 class spell_z_check : public AuraScript
 {
-    PrepareAuraScript(spell_z_check);
-
 public:
     spell_z_check()
     {
@@ -937,8 +919,6 @@ private:
 // 49181 - Warhead Fuse
 class spell_warhead_fuse : public AuraScript
 {
-    PrepareAuraScript(spell_warhead_fuse);
-
     void HandleOnEffectRemove(AuraEffect const* /*aurEff*/, AuraEffectHandleModes /*mode*/)
     {
         if (Unit* rocketUnit = GetTarget()->GetVehicleBase())

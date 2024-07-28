@@ -85,9 +85,4 @@
 #include "WhoPackets.h"
 #include "WorldStatePackets.h"
 
-// Fluxurion >
-#include "BattlePayPackets.h"
-#include "BattlePayMgr.h"
-// < Fluxurion
-
 #endif // AllPackets_h__

@@ -103,10 +103,10 @@ namespace Trinity::ChatCommands
             return Trinity::Impl::ChatCommands::FormatTrinityString(handler, LANG_CMDPARSER_EXACT_SEQ_MISMATCH, STRING_VIEW_FMT_ARG(_string), STRING_VIEW_FMT_ARG(start));
         }
 
-    private:
-        static constexpr std::array<char, sizeof...(chars)> _storage = { chars... };
-        static_assert(!_storage.empty() && (_storage.back() == '\0'), "ExactSequence parameters must be null terminated! Use the EXACT_SEQUENCE macro to make this easier!");
-        static constexpr std::string_view _string = { _storage.data(), std::string_view::traits_type::length(_storage.data()) };
+        private:
+            static constexpr std::array<char, sizeof...(chars)> _storage = { chars... };
+            static_assert(!_storage.empty() && (_storage.back() == '\0'), "ExactSequence parameters must be null terminated! Use the EXACT_SEQUENCE macro to make this easier!");
+            static constexpr std::string_view _string = { _storage.data(), std::string_view::traits_type::length(_storage.data()) };
     };
 
 #define EXACT_SEQUENCE(str) Trinity::ChatCommands::ExactSequence<CHATCOMMANDS_IMPL_SPLIT_LITERAL(str)>
@@ -117,7 +117,7 @@ namespace Trinity::ChatCommands
 
         using std::string_view::operator=;
 
-        ChatCommandResult TryConsume(ChatHandler const*, std::string_view args)
+        ChatCommandResult TryConsume(ChatHandler const*,std::string_view args)
         {
             std::string_view::operator=(args);
             return std::string_view();
@@ -166,10 +166,10 @@ namespace Trinity::ChatCommands
 
         static Optional<AccountIdentifier> FromTarget(ChatHandler* handler);
 
-    private:
-        uint32 _id;
-        std::string _name;
-        WorldSession* _session;
+        private:
+            uint32 _id;
+            std::string _name;
+            WorldSession* _session;
     };
 
     struct TC_GAME_API PlayerIdentifier : Trinity::Impl::ChatCommands::ContainerTag
@@ -180,7 +180,7 @@ namespace Trinity::ChatCommands
         PlayerIdentifier(Player& player);
 
         operator ObjectGuid() const { return _guid; }
-        operator std::string const& () const { return _name; }
+        operator std::string const&() const { return _name; }
         operator std::string_view() const { return _name; }
 
         std::string const& GetName() const { return _name; }
@@ -200,10 +200,10 @@ namespace Trinity::ChatCommands
                 return FromSelf(handler);
         }
 
-    private:
-        std::string _name;
-        ObjectGuid _guid;
-        Player* _player;
+        private:
+            std::string _name;
+            ObjectGuid _guid;
+            Player* _player;
     };
 
     template <typename linktag>
@@ -239,8 +239,8 @@ namespace Trinity::ChatCommands
                 return info.tail;
         }
 
-    private:
-        storage_type val;
+        private:
+            storage_type val;
     };
 
     // pull in link tags for user convenience
@@ -309,5 +309,18 @@ namespace Trinity::ChatCommands
         }
     };
 }
+
+template <typename T1, typename... Ts>
+struct fmt::formatter<Trinity::ChatCommands::Variant<T1, Ts...>> : ostream_formatter {};
+
+template <typename T1, typename... Ts>
+struct fmt::printf_formatter<Trinity::ChatCommands::Variant<T1, Ts...>> : formatter<T1>
+{
+    template <typename T, typename OutputIt>
+    auto format(T const& value, basic_format_context<OutputIt, char>& ctx) const -> OutputIt
+    {
+        return formatter<T1>::format(*value, ctx);
+    }
+};
 
 #endif

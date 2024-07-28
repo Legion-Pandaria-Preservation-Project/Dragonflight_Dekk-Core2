@@ -17,7 +17,9 @@
 
 #include "ScriptMgr.h"
 #include "CellImpl.h"
+#include "CharmInfo.h"
 #include "CombatAI.h"
+#include "Containers.h"
 #include "CreatureTextMgr.h"
 #include "GameEventMgr.h"
 #include "GameObject.h"
@@ -106,11 +108,11 @@ public:
             {
                 if (spawn.myEntry == entry)
                 {
-                    ASSERT_NODEBUGINFO(sObjectMgr->GetCreatureTemplate(spawn.otherEntry), "Invalid creature entry {} in 'npc_air_force_bots' script", spawn.otherEntry);
+                    ASSERT_NODEBUGINFO(sObjectMgr->GetCreatureTemplate(spawn.otherEntry), "Invalid creature entry %u in 'npc_air_force_bots' script", spawn.otherEntry);
                     return spawn;
                 }
             }
-            ASSERT_NODEBUGINFO(false, "Unhandled creature with entry {} is assigned 'npc_air_force_bots' script", entry);
+            ASSERT_NODEBUGINFO(false, "Unhandled creature with entry %u is assigned 'npc_air_force_bots' script", entry);
         }
 
         npc_air_force_botsAI(Creature* creature) : NullCreatureAI(creature), _spawn(FindSpawnFor(creature->GetEntry())) {}
@@ -250,8 +252,7 @@ public:
                     ResetFlagTimer -= diff;
             }
 
-            if (UpdateVictim())
-                DoMeleeAttackIfReady();
+            UpdateVictim();
         }
 
         void ReceiveEmote(Player* player, uint32 emote) override
@@ -636,7 +637,7 @@ public:
         void Reset() override
         {
             Initialize();
-            me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+            me->SetUninteractible(false);
         }
 
         void BeginEvent(Player* player)
@@ -661,7 +662,7 @@ public:
             }
 
             Event = true;
-            me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+            me->SetUninteractible(true);
         }
 
         void PatientDied(Position const* point)
@@ -769,7 +770,7 @@ public:
             Initialize();
 
             //no select
-            me->RemoveUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+            me->SetUninteractible(false);
 
             //no regen health
             me->SetUnitFlag(UNIT_FLAG_IN_COMBAT);
@@ -810,7 +811,7 @@ public:
                         ENSURE_AI(npc_doctor::npc_doctorAI, doctor->AI())->PatientSaved(me, player, Coord);
 
             //make uninteractible
-            me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+            me->SetUninteractible(true);
 
             //regen health
             me->RemoveUnitFlag(UNIT_FLAG_IN_COMBAT);
@@ -847,7 +848,7 @@ public:
             if (me->IsAlive() && me->GetHealth() <= 6)
             {
                 me->RemoveUnitFlag(UNIT_FLAG_IN_COMBAT);
-                me->SetUnitFlag(UNIT_FLAG_UNINTERACTIBLE);
+                me->SetUninteractible(true);
                 me->setDeathState(JUST_DIED);
                 me->SetUnitFlag3(UNIT_FLAG3_FAKE_DEAD);
 
@@ -1004,7 +1005,7 @@ public:
 
             me->SetStandState(UNIT_STAND_STATE_KNEEL);
             // expect database to have RegenHealth=0
-            me->SetHealth(me->CountPctFromMaxHealth(70));
+            me->SetSpawnHealth();
         }
 
         void JustEngagedWith(Unit* /*who*/) override { }
@@ -1065,10 +1066,11 @@ public:
                                 break;
                         }
 
+                        LoadPath((me->GetEntry() << 3) | 2);
                         Start(false);
                     }
                     else
-                        EnterEvadeMode();                       //something went wrong
+                        EnterEvadeMode(EvadeReason::Other);                       //something went wrong
 
                     RunAwayTimer = 30000;
                 }
@@ -1639,6 +1641,7 @@ class npc_wormhole : public CreatureScript
 
             bool OnGossipHello(Player* player) override
             {
+                InitGossipMenuFor(player, MENU_ID_WORMHOLE);
                 if (me->IsSummon())
                 {
                     if (player == me->ToTempSummon()->GetSummoner())
@@ -1703,66 +1706,6 @@ class npc_wormhole : public CreatureScript
         {
             return new npc_wormholeAI(creature);
         }
-};
-
-/*######
-## npc_experience
-######*/
-
-enum BehstenSlahtz
-{
-    MENU_ID_XP_ON_OFF  = 10638,
-    NPC_TEXT_XP_ON_OFF = 14736,
-    OPTION_ID_XP_OFF   = 0,     // "I no longer wish to gain experience."
-    OPTION_ID_XP_ON    = 1      // "I wish to start gaining experience again."
-};
-
-class npc_experience : public CreatureScript
-{
-public:
-    npc_experience() : CreatureScript("npc_experience") { }
-
-    struct npc_experienceAI : public ScriptedAI
-    {
-        npc_experienceAI(Creature* creature) : ScriptedAI(creature) { }
-
-        bool OnGossipHello(Player* player) override
-        {
-            if (player->HasPlayerFlag(PLAYER_FLAGS_NO_XP_GAIN)) // not gaining XP
-            {
-                AddGossipItemFor(player, MENU_ID_XP_ON_OFF, OPTION_ID_XP_ON, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-                SendGossipMenuFor(player, NPC_TEXT_XP_ON_OFF, me->GetGUID());
-            }
-            else // currently gaining XP
-            {
-                AddGossipItemFor(player, MENU_ID_XP_ON_OFF, OPTION_ID_XP_OFF, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 2);
-                SendGossipMenuFor(player, NPC_TEXT_XP_ON_OFF, me->GetGUID());
-            }
-            return true;
-        }
-
-        bool OnGossipSelect(Player* player, uint32 /*menuId*/, uint32 gossipListId) override
-        {
-            uint32 const action = player->PlayerTalkClass->GetGossipOptionAction(gossipListId);
-
-            switch (action)
-            {
-                case GOSSIP_ACTION_INFO_DEF + 1: // XP ON selected
-                    player->RemovePlayerFlag(PLAYER_FLAGS_NO_XP_GAIN); // turn on XP gain
-                    break;
-                case GOSSIP_ACTION_INFO_DEF + 2: // XP OFF selected
-                    player->SetPlayerFlag(PLAYER_FLAGS_NO_XP_GAIN); // turn off XP gain
-                    break;
-            }
-            CloseGossipMenuFor(player);
-            return false;
-        }
-    };
-
-    CreatureAI* GetAI(Creature* creature) const override
-    {
-        return new npc_experienceAI(creature);
-    }
 };
 
 /*#####
@@ -2363,11 +2306,10 @@ void AddSC_npcs_special()
     RegisterCreatureAI(npc_brewfest_reveler_2);
     RegisterCreatureAI(npc_training_dummy);
     new npc_wormhole();
-    new npc_experience();
     new npc_spring_rabbit();
     new npc_imp_in_a_ball();
     new npc_train_wrecker();
-    //new npc_argent_squire_gruntling(); Crash server in Argent Tournament zone
+    new npc_argent_squire_gruntling();
     new npc_bountiful_table();
     RegisterCreatureAI(npc_gen_void_zone);
 }

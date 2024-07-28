@@ -53,6 +53,7 @@ ByteBuffer& operator<<(ByteBuffer& data, WorldPackets::Reputation::FactionStandi
 {
     data << int32(factionStanding.Index);
     data << int32(factionStanding.Standing);
+    data << int32(factionStanding.FactionID);
     return data;
 }
 
@@ -67,14 +68,4 @@ WorldPacket const* WorldPackets::Reputation::SetFactionStanding::Write()
     _worldPacket.FlushBits();
 
     return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Reputation::FactionBonusInfo::Write()
-{
-    for (uint16 i = 0; i < FactionCount; ++i)
-         _worldPacket.WriteBit(FactionHasBonus[i]);
-    
-        _worldPacket.FlushBits();
-    
-        return &_worldPacket;
 }

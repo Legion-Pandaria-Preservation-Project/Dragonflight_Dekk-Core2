@@ -48,42 +48,11 @@ void WorldPackets::Scenes::SceneTriggerEvent::Read()
 void WorldPackets::Scenes::ScenePlaybackComplete::Read()
 {
     _worldPacket >> SceneInstanceID;
+    _worldPacket >> TimePassed;
 }
 
 void WorldPackets::Scenes::ScenePlaybackCanceled::Read()
 {
     _worldPacket >> SceneInstanceID;
+    _worldPacket >> TimePassed;
 }
-
-//DekkCore
-WorldPacket const* WorldPackets::Scenes::PetBattleRound::Write()
-{
-    _worldPacket << SceneObjectGUID;
-  //  _worldPacket << MsgData; todo 
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Scenes::SceneObjectFinalRound::Write()
-{
-    _worldPacket << SceneObjectGUID;
-//    _worldPacket << MsgData; todo
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Scenes::PetBattleFinished::Write()
-{
-    _worldPacket << SceneObjectGUID;
-
-    return &_worldPacket;
-}
-
-WorldPacket const* WorldPackets::Scenes::SceneObjectPetBattleInitialUpdate::Write()
-{
-    _worldPacket << SceneObjectGUID;
- //   _worldPacket << MsgData; todo
-
-    return &_worldPacket;
-}
-//DekkCore

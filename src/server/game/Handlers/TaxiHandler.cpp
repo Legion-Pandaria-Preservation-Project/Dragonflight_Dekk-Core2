@@ -18,7 +18,6 @@
 #include "WorldSession.h"
 #include "Common.h"
 #include "ConditionMgr.h"
-#include "Config.h"
 #include "Containers.h"
 #include "Creature.h"
 #include "DatabaseEnv.h"
@@ -124,31 +123,6 @@ void WorldSession::SendTaxiMenu(Creature* unit)
     GetPlayer()->SetTaxiCheater(lastTaxiCheaterState);
 }
 
-void WorldSession::SendDoFlight(uint32 mountDisplayId, uint32 path, uint32 pathNode)
-{
-    // remove fake death
-    if (GetPlayer()->HasUnitState(UNIT_STATE_DIED))
-        GetPlayer()->RemoveAurasByType(SPELL_AURA_FEIGN_DEATH);
-
-    if (mountDisplayId)
-        GetPlayer()->Mount(mountDisplayId);
-
-    GetPlayer()->GetMotionMaster()->MoveTaxiFlight(path, pathNode);
-
-    // Fluxurion >
-    if (sConfigMgr->GetBoolDefault("Flux.Taxi.Enable", false))
-    {
-        GetPlayer()->Mount(sConfigMgr->GetIntDefault("Flux.Taxi.Mount", 94451));
-
-        if (sConfigMgr->GetBoolDefault("Flux.Taxi.ScreenEffect.Enable", false))
-        {
-            GetPlayer()->CastSpell(GetPlayer(), 323977, true); // In Between Tunnel/Weather 60sec
-            GetPlayer()->CastSpell(GetPlayer(), 332323, true); // In Between LightParam (Oribos to Bastion)
-        }
-    }
-    // < Fluxurion
-}
-
 bool WorldSession::SendLearnNewTaxiNode(Creature* unit)
 {
     // find current node
@@ -166,6 +140,7 @@ bool WorldSession::SendLearnNewTaxiNode(Creature* unit)
         data.Status = TAXISTATUS_LEARNED;
         SendPacket(data.Write());
 
+        GetPlayer()->UpdateCriteria(CriteriaType::LearnTaxiNode, curloc);
         return true;
     }
     else
@@ -215,12 +190,9 @@ void WorldSession::HandleActivateTaxiOpcode(WorldPackets::Taxi::ActivateTaxi& ac
             {
                 DB2Manager::MountXDisplayContainer usableDisplays;
                 std::copy_if(mountDisplays->begin(), mountDisplays->end(), std::back_inserter(usableDisplays), [this](MountXDisplayEntry const* mountDisplay)
-                    {
-                        if (PlayerConditionEntry const* playerCondition = sPlayerConditionStore.LookupEntry(mountDisplay->PlayerConditionID))
-                        return sConditionMgr->IsPlayerMeetingCondition(GetPlayer(), playerCondition);
-
-                return true;
-                    });
+                {
+                    return ConditionMgr::IsPlayerMeetingCondition(GetPlayer(), mountDisplay->PlayerConditionID);
+                });
 
                 if (!usableDisplays.empty())
                     preferredMountDisplay = Trinity::Containers::SelectRandomContainerElement(usableDisplays)->CreatureDisplayInfoID;

@@ -159,31 +159,24 @@ namespace WorldPackets
         {
             ObjectGuid CastID;
             int32 SpellID = 0;
-            int32 SpellXSpellVisualID = 0;
             SpellCastVisual Visual;
             uint16 Flags = 0;
             uint32 ActiveFlags = 0;
-            uint16 CastLevel = 0;
-            uint8 Applications = 0;
+            uint16 CastLevel = 1;
+            uint8 Applications = 1;
             int32 ContentTuningID = 0;
-            bool HasCastUnit = false;
-            bool HasDuration = false;
-            bool HasRemaining = false;
-            bool HasTimeMod = false;
-            std::vector<float> Points;
-            std::vector<float> EstimatedPoints;
-            bool HasContentTuning = false;
             Optional<ContentTuningParams> ContentTuning;
             Optional<ObjectGuid> CastUnit;
             Optional<int32> Duration;
             Optional<int32> Remaining;
             Optional<float> TimeMod;
+            std::vector<float> Points;
+            std::vector<float> EstimatedPoints;
         };
 
         struct AuraInfo
         {
             uint8 Slot = 0;
-            bool HasAura = false;
             Optional<AuraDataInfo> AuraData;
         };
 
@@ -195,15 +188,14 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             bool UpdateAll = false;
-            uint8 AurasCount = 0;
-            std::vector<AuraInfo> Auras;
             ObjectGuid UnitGUID;
+            std::vector<AuraInfo> Auras;
         };
 
         struct TargetLocation
         {
             ObjectGuid Transport;
-            Position Location;
+            TaggedPosition<Position::XYZ> Location;
         };
 
         struct SpellTargetData
@@ -344,12 +336,6 @@ namespace WorldPackets
             float Pitch = 0.0f;
         };
 
-        struct SpellAmmo
-        {
-            int32 DisplayID = 0;
-            int8 InventoryType = 0;
-        };
-
         struct CreatureImmunities
         {
             uint32 School = 0;
@@ -369,11 +355,11 @@ namespace WorldPackets
             ObjectGuid CasterUnit;
             ObjectGuid CastID;
             ObjectGuid OriginalCastID;
-            int32 SpellID = 0;
+            int32 SpellID       = 0;
             SpellCastVisual Visual;
-            uint32 CastFlags = 0;
-            uint32 CastFlagsEx = 0;
-            uint32 CastTime = 0;
+            uint32 CastFlags    = 0;
+            uint32 CastFlagsEx  = 0;
+            uint32 CastTime     = 0;
             std::vector<ObjectGuid> HitTargets;
             std::vector<ObjectGuid> MissTargets;
             std::vector<SpellHitStatus> HitStatus;
@@ -382,7 +368,7 @@ namespace WorldPackets
             std::vector<SpellPowerData> RemainingPower;
             Optional<RuneData> RemainingRunes;
             MissileTrajectoryResult MissileTrajectory;
-            SpellAmmo Ammo;
+            int32 AmmoDisplayID = 0;
             uint8 DestLocSpellCastIndex = 0;
             std::vector<TargetLocation> TargetPoints;
             CreatureImmunities Immunities;
@@ -448,9 +434,9 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid CasterUnit;
-            uint32 SpellID = 0;
+            uint32 SpellID  = 0;
             SpellCastVisual Visual;
-            uint16 Reason = 0;
+            uint16 Reason   = 0;
             ObjectGuid CastID;
         };
 
@@ -462,9 +448,9 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid CasterUnit;
-            uint32 SpellID = 0;
+            uint32 SpellID  = 0;
             SpellCastVisual Visual;
-            uint8 Reason = 0;
+            uint8 Reason    = 0;
             ObjectGuid CastID;
         };
 
@@ -476,11 +462,11 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid CastID;
-            int32 SpellID = 0;
+            int32 SpellID             = 0;
             SpellCastVisual Visual;
-            int32 Reason = 0;
-            int32 FailedArg1 = -1;
-            int32 FailedArg2 = -1;
+            int32 Reason              = 0;
+            int32 FailedArg1          = -1;
+            int32 FailedArg2          = -1;
         };
 
         class TC_GAME_API PetCastFailed final : public ServerPacket
@@ -844,6 +830,82 @@ namespace WorldPackets
             int32 TimeRemaining = 0;
         };
 
+        class SpellEmpowerStart final : public ServerPacket
+        {
+        public:
+            SpellEmpowerStart() : ServerPacket(SMSG_SPELL_EMPOWER_START, 16 + 16 + 4 + 8 + 4 + 4 + 4 + 1) { }
+
+            WorldPacket const* Write() override;
+
+            ObjectGuid CastID;
+            ObjectGuid CasterGUID;
+            int32 SpellID = 0;
+            SpellCastVisual Visual;
+            Duration<Milliseconds, uint32> EmpowerDuration;
+            Duration<Milliseconds, uint32> MinHoldTime;
+            Duration<Milliseconds, uint32> HoldAtMaxTime;
+            std::vector<ObjectGuid> Targets;
+            std::vector<Duration<Milliseconds, uint32>> StageDurations;
+            Optional<SpellChannelStartInterruptImmunities> InterruptImmunities;
+            Optional<SpellTargetedHealPrediction> HealPrediction;
+        };
+
+        class SpellEmpowerUpdate final : public ServerPacket
+        {
+        public:
+            SpellEmpowerUpdate() : ServerPacket(SMSG_SPELL_EMPOWER_UPDATE, 16 + 16 + 4 + 4 + 1) { }
+
+            WorldPacket const* Write() override;
+
+            ObjectGuid CastID;
+            ObjectGuid CasterGUID;
+            Duration<Milliseconds, int32> TimeRemaining;
+            std::vector<Duration<Milliseconds, uint32>> StageDurations;
+            uint8 Status = 0;
+        };
+
+        class SetEmpowerMinHoldStagePercent final : public ClientPacket
+        {
+        public:
+            SetEmpowerMinHoldStagePercent(WorldPacket&& packet) : ClientPacket(CMSG_SET_EMPOWER_MIN_HOLD_STAGE_PERCENT, std::move(packet)) { }
+
+            void Read() override;
+
+            float MinHoldStagePercent = 1.0f;
+        };
+
+        class SpellEmpowerRelease final : public ClientPacket
+        {
+        public:
+            SpellEmpowerRelease(WorldPacket&& packet) : ClientPacket(CMSG_SPELL_EMPOWER_RELEASE, std::move(packet)) { }
+
+            void Read() override;
+
+            int32 SpellID = 0;
+        };
+
+        class SpellEmpowerRestart final : public ClientPacket
+        {
+        public:
+            SpellEmpowerRestart(WorldPacket&& packet) : ClientPacket(CMSG_SPELL_EMPOWER_RESTART, std::move(packet)) { }
+
+            void Read() override;
+
+            int32 SpellID = 0;
+        };
+
+        class SpellEmpowerSetStage final : public ServerPacket
+        {
+        public:
+            SpellEmpowerSetStage() : ServerPacket(SMSG_SPELL_EMPOWER_SET_STAGE, 16 + 16 + 4) { }
+
+            WorldPacket const* Write() override;
+
+            ObjectGuid CastID;
+            ObjectGuid CasterGUID;
+            int32 Stage = 0;
+        };
+
         class ResurrectRequest final : public ServerPacket
         {
         public:
@@ -852,11 +914,11 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid ResurrectOffererGUID;
-            uint32 ResurrectOffererVirtualRealmAddress = 0;
-            uint32 PetNumber = 0;
-            int32 SpellID = 0;
-            bool UseTimer = false;
-            bool Sickness = false;
+            uint32 ResurrectOffererVirtualRealmAddress  = 0;
+            uint32 PetNumber                            = 0;
+            int32 SpellID                               = 0;
+            bool UseTimer                               = false;
+            bool Sickness                               = false;
             std::string Name;
         };
 
@@ -1064,122 +1126,14 @@ namespace WorldPackets
             bool IsFavorite = false;
         };
 
-        class UpdateSpellVisual final : public ClientPacket
-        {
-        public:
-            UpdateSpellVisual(WorldPacket&& packet) : ClientPacket(CMSG_UPDATE_SPELL_VISUAL, std::move(packet)) { }
-
-            void Read() override;
-
-            int32 SpellID = 0;
-            int32 SpellXSpellVisualId = 0;
-            ObjectGuid TargetGUID;
-        };
-
         class KeyboundOverride final : public ClientPacket
         {
         public:
-            KeyboundOverride(WorldPacket&& packet) : ClientPacket(CMSG_KEYBOUND_OVERRIDE, std::move(packet)) { }
+            KeyboundOverride(WorldPacket&& packet) : ClientPacket(CMSG_KEYBOUND_OVERRIDE,  std::move(packet)) { }
 
             void Read() override;
 
             uint16 OverrideID = 0;
-        };
-
-        class EmpowerSetStage final : public ServerPacket
-        {
-        public:
-            EmpowerSetStage() : ServerPacket(SMSG_SPELL_EMPOWER_SET_STAGE) { }
-
-            WorldPacket const* Write() override;
-
-            ObjectGuid CastGUID;
-            ObjectGuid CasterGUID;
-            uint32 StageId;
-        };
-
-        class EmpowerUpdate final : public ServerPacket
-        {
-        public:
-            EmpowerUpdate() : ServerPacket(SMSG_SPELL_EMPOWER_UPDATE) { }
-
-            WorldPacket const* Write() override;
-
-            ObjectGuid castGUID;
-            ObjectGuid CasterGUID;
-            int32 timeRemaining;
-            std::vector<uint32> remainingStages;
-            uint8 unkBit;
-        };
-
-        class SpellEmpowerRelease final : public ClientPacket
-        {
-        public:
-            SpellEmpowerRelease(WorldPacket&& packet) : ClientPacket(CMSG_SPELL_EMPOWER_RELEASE, std::move(packet)) { }
-
-            void Read() override;
-
-            uint32 SpellId = 0;
-        };
-
-        class SpellEmpowerRestart final : public ClientPacket
-        {
-        public:
-            SpellEmpowerRestart(WorldPacket&& packet) : ClientPacket(CMSG_SPELL_EMPOWER_RESTART, std::move(packet)) { }
-
-            void Read() override;
-
-            uint32 SpellId = 0;
-        };
-
-        class SpellEmpowerMinHold final : public ClientPacket
-        {
-        public:
-            SpellEmpowerMinHold(WorldPacket&& packet) : ClientPacket(CMSG_SET_EMPOWER_MIN_HOLD_STAGE_PERCENT, std::move(packet)) { }
-
-            void Read() override;
-
-            float holdPct;
-        };
-
-        class SpellEmpowerSart final : public ServerPacket
-        {
-        public:
-            SpellEmpowerSart() : ServerPacket(SMSG_SPELL_EMPOWER_START) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 spellID;
-            ObjectGuid castID;
-            ObjectGuid caster;
-            SpellCastVisual visual;
-            uint32 duration;
-            uint32 firstStageDuration;
-            uint32 finalStageDuration;
-            std::vector<ObjectGuid> targets;
-            std::vector<uint32> stageDurations;
-            Optional<SpellChannelStartInterruptImmunities> immunities;
-            std::optional<SpellHealPrediction> healPrediction;
-        };
-
-        class PushSpellToactionBar final : public ServerPacket
-        {
-        public:
-            PushSpellToactionBar() : ServerPacket(SMSG_PUSH_SPELL_TO_ACTION_BAR) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 spellID;
-        };
-
-        class RemoveSpellFromactionBar final : public ServerPacket
-        {
-        public:
-            RemoveSpellFromactionBar() : ServerPacket(SMSG_REMOVE_SPELL_FROM_ACTION_BAR) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 spellID;
         };
 
         class CancelQueuedSpell final : public ClientPacket

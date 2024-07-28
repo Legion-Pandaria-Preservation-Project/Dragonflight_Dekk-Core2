@@ -55,9 +55,9 @@ uint32 GossipMenu::AddMenuItem(int32 gossipOptionId, int32 orderIndex, GossipOpt
             // set baseline orderIndex as higher than whatever exists in db
             Trinity::IteratorPair bounds = sObjectMgr->GetGossipMenuItemsMapBounds(_menuId);
             auto itr = std::max_element(bounds.begin(), bounds.end(), [](GossipMenuItemsContainer::value_type const& a, GossipMenuItemsContainer::value_type const& b)
-                {
-                    return a.second.OrderIndex < b.second.OrderIndex;
-                });
+            {
+                return a.second.OrderIndex < b.second.OrderIndex;
+            });
             if (itr != bounds.end())
                 orderIndex = itr->second.OrderIndex + 1;
         }
@@ -78,9 +78,9 @@ uint32 GossipMenu::AddMenuItem(int32 gossipOptionId, int32 orderIndex, GossipOpt
         gossipOptionId = -(int32(_menuId) * 100 + orderIndex);
 
     auto where = std::lower_bound(_menuItems.begin(), _menuItems.end(), orderIndex, [](GossipMenuItem const& item, int32 index)
-        {
-            return int32(item.OrderIndex) < index;
-        });
+    {
+        return int32(item.OrderIndex) < index;
+    });
 
     GossipMenuItem& menuItem = *_menuItems.emplace(where);
     menuItem.GossipOptionID = gossipOptionId;
@@ -117,9 +117,9 @@ void GossipMenu::AddMenuItem(uint32 menuId, uint32 menuItemId, uint32 sender, ui
 
     /// Find the one with the given menu item id.
     auto itr = std::find_if(bounds.begin(), bounds.end(), [menuItemId](std::pair<uint32 const, GossipMenuItems> const& itemPair)
-        {
-            return itemPair.second.OrderIndex == menuItemId;
-        });
+    {
+        return itemPair.second.OrderIndex == menuItemId;
+    });
 
     if (itr == bounds.end())
         return;
@@ -168,9 +168,9 @@ void GossipMenu::AddMenuItem(GossipMenuItems const& menuItem, uint32 sender, uin
 GossipMenuItem const* GossipMenu::GetItem(int32 gossipOptionId) const
 {
     auto itr = std::find_if(_menuItems.begin(), _menuItems.end(), [gossipOptionId](GossipMenuItem const& item)
-        {
-            return item.GossipOptionID == gossipOptionId;
-        });
+    {
+        return item.GossipOptionID == gossipOptionId;
+    });
 
     if (itr != _menuItems.end())
         return &*itr;
@@ -181,9 +181,9 @@ GossipMenuItem const* GossipMenu::GetItem(int32 gossipOptionId) const
 GossipMenuItem const* GossipMenu::GetItemByIndex(uint32 orderIndex) const
 {
     auto itr = std::find_if(_menuItems.begin(), _menuItems.end(), [orderIndex](GossipMenuItem const& item)
-        {
-            return item.OrderIndex == orderIndex;
-        });
+    {
+        return item.OrderIndex == orderIndex;
+    });
 
     if (itr != _menuItems.end())
         return &*itr;
@@ -223,7 +223,7 @@ void GossipMenu::ClearMenu()
     _menuItems.clear();
 }
 
-PlayerMenu::PlayerMenu(WorldSession * session) : _session(session)
+PlayerMenu::PlayerMenu(WorldSession* session) : _session(session)
 {
     if (_session)
         _gossipMenu.SetLocale(_session->GetSessionDbLocaleIndex());
@@ -249,7 +249,7 @@ void PlayerMenu::SendGossipMenu(uint32 titleTextId, ObjectGuid objectGUID)
         packet.FriendshipFactionID = addon->FriendshipFactionID;
 
     if (NpcText const* text = sObjectMgr->GetNpcText(titleTextId))
-        packet.TextID = Trinity::Containers::SelectRandomWeightedContainerElement(text->Data, [](NpcTextData const& data) { return data.Probability; })->BroadcastTextID;
+        packet.BroadcastTextID = Trinity::Containers::SelectRandomWeightedContainerElement(text->Data, [](NpcTextData const& data) { return data.Probability; })->BroadcastTextID;
 
     packet.GossipOptions.reserve(_gossipMenu.GetMenuItems().size());
     for (GossipMenuItem const& item : _gossipMenu.GetMenuItems())
@@ -357,8 +357,8 @@ void QuestMenu::AddMenuItem(uint32 QuestId, uint8 Icon)
 
     QuestMenuItem questMenuItem;
 
-    questMenuItem.QuestId = QuestId;
-    questMenuItem.QuestIcon = Icon;
+    questMenuItem.QuestId        = QuestId;
+    questMenuItem.QuestIcon      = Icon;
 
     _questMenuItems.push_back(questMenuItem);
 }
@@ -377,7 +377,7 @@ void QuestMenu::ClearMenu()
     _questMenuItems.clear();
 }
 
-void PlayerMenu::SendQuestGiverQuestListMessage(Object * questgiver)
+void PlayerMenu::SendQuestGiverQuestListMessage(Object* questgiver)
 {
     ObjectGuid guid = questgiver->GetGUID();
     LocaleConstant localeConstant = _session->GetSessionDbLocaleIndex();
@@ -450,21 +450,21 @@ void PlayerMenu::SendQuestGiverQuestDetails(Quest const* quest, ObjectGuid npcGU
 
     LocaleConstant localeConstant = _session->GetSessionDbLocaleIndex();
     std::transform(quest->GetConditionalQuestDescription().begin(), quest->GetConditionalQuestDescription().end(), std::back_inserter(packet.ConditionalDescriptionText), [localeConstant](QuestConditionalText const& text)
-        {
-            std::string_view content = text.Text[LOCALE_enUS];
-            ObjectMgr::GetLocaleString(text.Text, localeConstant, content);
-            return WorldPackets::Quest::ConditionalQuestText{ text.PlayerConditionId, text.QuestgiverCreatureId, content };
-        });
+    {
+        std::string_view content = text.Text[LOCALE_enUS];
+        ObjectMgr::GetLocaleString(text.Text, localeConstant, content);
+        return WorldPackets::Quest::ConditionalQuestText{ text.PlayerConditionId, text.QuestgiverCreatureId, content };
+    });
 
     if (localeConstant != LOCALE_enUS)
     {
         if (QuestTemplateLocale const* questTemplateLocale = sObjectMgr->GetQuestLocale(quest->GetQuestId()))
         {
-            ObjectMgr::GetLocaleString(questTemplateLocale->LogTitle, localeConstant, packet.QuestTitle);
-            ObjectMgr::GetLocaleString(questTemplateLocale->LogDescription, localeConstant, packet.LogDescription);
-            ObjectMgr::GetLocaleString(questTemplateLocale->QuestDescription, localeConstant, packet.DescriptionText);
-            ObjectMgr::GetLocaleString(questTemplateLocale->PortraitGiverText, localeConstant, packet.PortraitGiverText);
-            ObjectMgr::GetLocaleString(questTemplateLocale->PortraitGiverName, localeConstant, packet.PortraitGiverName);
+            ObjectMgr::GetLocaleString(questTemplateLocale->LogTitle,           localeConstant, packet.QuestTitle);
+            ObjectMgr::GetLocaleString(questTemplateLocale->LogDescription,     localeConstant, packet.LogDescription);
+            ObjectMgr::GetLocaleString(questTemplateLocale->QuestDescription,   localeConstant, packet.DescriptionText);
+            ObjectMgr::GetLocaleString(questTemplateLocale->PortraitGiverText,  localeConstant, packet.PortraitGiverText);
+            ObjectMgr::GetLocaleString(questTemplateLocale->PortraitGiverName,  localeConstant, packet.PortraitGiverName);
             ObjectMgr::GetLocaleString(questTemplateLocale->PortraitTurnInText, localeConstant, packet.PortraitTurnInText);
             ObjectMgr::GetLocaleString(questTemplateLocale->PortraitTurnInName, localeConstant, packet.PortraitTurnInName);
         }
@@ -546,19 +546,19 @@ void PlayerMenu::SendQuestGiverOfferReward(Quest const* quest, ObjectGuid npcGUI
 
     LocaleConstant locale = _session->GetSessionDbLocaleIndex();
     std::transform(quest->GetConditionalOfferRewardText().begin(), quest->GetConditionalOfferRewardText().end(), std::back_inserter(packet.ConditionalRewardText), [locale](QuestConditionalText const& text)
-        {
-            std::string_view content = text.Text[LOCALE_enUS];
-            ObjectMgr::GetLocaleString(text.Text, locale, content);
-            return WorldPackets::Quest::ConditionalQuestText{ text.PlayerConditionId, text.QuestgiverCreatureId, content };
-        });
+    {
+        std::string_view content = text.Text[LOCALE_enUS];
+        ObjectMgr::GetLocaleString(text.Text, locale, content);
+        return WorldPackets::Quest::ConditionalQuestText{ text.PlayerConditionId, text.QuestgiverCreatureId, content };
+    });
 
     if (locale != LOCALE_enUS)
     {
         if (QuestTemplateLocale const* questTemplateLocale = sObjectMgr->GetQuestLocale(quest->GetQuestId()))
         {
-            ObjectMgr::GetLocaleString(questTemplateLocale->LogTitle, locale, packet.QuestTitle);
-            ObjectMgr::GetLocaleString(questTemplateLocale->PortraitGiverText, locale, packet.PortraitGiverText);
-            ObjectMgr::GetLocaleString(questTemplateLocale->PortraitGiverName, locale, packet.PortraitGiverName);
+            ObjectMgr::GetLocaleString(questTemplateLocale->LogTitle,           locale, packet.QuestTitle);
+            ObjectMgr::GetLocaleString(questTemplateLocale->PortraitGiverText,  locale, packet.PortraitGiverText);
+            ObjectMgr::GetLocaleString(questTemplateLocale->PortraitGiverName,  locale, packet.PortraitGiverName);
             ObjectMgr::GetLocaleString(questTemplateLocale->PortraitTurnInText, locale, packet.PortraitTurnInText);
             ObjectMgr::GetLocaleString(questTemplateLocale->PortraitTurnInName, locale, packet.PortraitTurnInName);
         }
@@ -618,11 +618,11 @@ void PlayerMenu::SendQuestGiverRequestItems(Quest const* quest, ObjectGuid npcGU
 
     LocaleConstant locale = _session->GetSessionDbLocaleIndex();
     std::transform(quest->GetConditionalRequestItemsText().begin(), quest->GetConditionalRequestItemsText().end(), std::back_inserter(packet.ConditionalCompletionText), [locale](QuestConditionalText const& text)
-        {
-            std::string_view content = text.Text[LOCALE_enUS];
-            ObjectMgr::GetLocaleString(text.Text, locale, content);
-            return WorldPackets::Quest::ConditionalQuestText{ text.PlayerConditionId, text.QuestgiverCreatureId, content };
-        });
+    {
+        std::string_view content = text.Text[LOCALE_enUS];
+        ObjectMgr::GetLocaleString(text.Text, locale, content);
+        return WorldPackets::Quest::ConditionalQuestText{ text.PlayerConditionId, text.QuestgiverCreatureId, content };
+    });
 
     if (locale != LOCALE_enUS)
     {
@@ -666,17 +666,17 @@ void PlayerMenu::SendQuestGiverRequestItems(Quest const* quest, ObjectGuid npcGU
     {
         switch (obj.Type)
         {
-        case QUEST_OBJECTIVE_ITEM:
-            packet.Collect.emplace_back(obj.ObjectID, obj.Amount, obj.Flags);
-            break;
-        case QUEST_OBJECTIVE_CURRENCY:
-            packet.Currency.emplace_back(obj.ObjectID, obj.Amount);
-            break;
-        case QUEST_OBJECTIVE_MONEY:
-            packet.MoneyToGet += obj.Amount;
-            break;
-        default:
-            break;
+            case QUEST_OBJECTIVE_ITEM:
+                packet.Collect.emplace_back(obj.ObjectID, obj.Amount, obj.Flags);
+                break;
+            case QUEST_OBJECTIVE_CURRENCY:
+                packet.Currency.emplace_back(obj.ObjectID, obj.Amount);
+                break;
+            case QUEST_OBJECTIVE_MONEY:
+                packet.MoneyToGet += obj.Amount;
+                break;
+            default:
+                break;
         }
     }
 

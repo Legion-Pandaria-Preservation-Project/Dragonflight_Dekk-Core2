@@ -17,6 +17,7 @@
 
 #include "CombatLogPacketsCommon.h"
 #include "Creature.h"
+#include "DB2Stores.h"
 #include "Map.h"
 #include "Player.h"
 #include "Spell.h"
@@ -74,11 +75,14 @@ bool ContentTuningParams::GenerateDataForUnits<Creature, Player>(Creature* attac
     PlayerLevelDelta = target->m_activePlayerData->ScalingPlayerLevelDelta;
     PlayerItemLevel = target->GetAverageItemLevel();
     TargetItemLevel = 0;
-    ScalingHealthItemLevelCurveID = target->m_unitData->ScalingHealthItemLevelCurveID;
+    if (ContentTuningEntry const* contentTuning = sContentTuningStore.LookupEntry(creatureDifficulty->ContentTuningID))
+    {
+        ScalingHealthItemLevelCurveID = contentTuning->HealthItemLevelCurveID;
+        TargetContentTuningID = contentTuning->ID;
+    }
     TargetLevel = target->GetLevel();
     Expansion = creatureDifficulty->HealthScalingExpansion;
     TargetScalingLevelDelta = int8(attacker->m_unitData->ScalingLevelDelta);
-    TargetContentTuningID = creatureDifficulty->ContentTuningID;
     return true;
 }
 
@@ -92,11 +96,14 @@ bool ContentTuningParams::GenerateDataForUnits<Player, Creature>(Player* attacke
     PlayerLevelDelta = attacker->m_activePlayerData->ScalingPlayerLevelDelta;
     PlayerItemLevel = attacker->GetAverageItemLevel();
     TargetItemLevel = 0;
-    ScalingHealthItemLevelCurveID = target->m_unitData->ScalingHealthItemLevelCurveID;
+    if (ContentTuningEntry const* contentTuning = sContentTuningStore.LookupEntry(creatureDifficulty->ContentTuningID))
+    {
+        ScalingHealthItemLevelCurveID = contentTuning->HealthItemLevelCurveID;
+        TargetContentTuningID = contentTuning->ID;
+    }
     TargetLevel = target->GetLevel();
     Expansion = creatureDifficulty->HealthScalingExpansion;
     TargetScalingLevelDelta = int8(target->m_unitData->ScalingLevelDelta);
-    TargetContentTuningID = creatureDifficulty->ContentTuningID;
     return true;
 }
 
@@ -120,24 +127,24 @@ bool ContentTuningParams::GenerateDataForUnits<Creature, Creature>(Creature* att
 template<>
 bool ContentTuningParams::GenerateDataForUnits<Unit, Unit>(Unit* attacker, Unit* target)
 {
-    if (Player* playerAttacker = attacker->ToPlayer())
+    if (Player* playerAttacker = Object::ToPlayer(attacker))
     {
-        if (Player* playerTarget = target->ToPlayer())
+        if (Player* playerTarget = Object::ToPlayer(target))
             return GenerateDataForUnits(playerAttacker, playerTarget);
-        else if (Creature* creatureTarget = target->ToCreature())
+        else if (Creature* creatureTarget = Object::ToCreature(target))
         {
             if (creatureTarget->HasScalableLevels())
                 return GenerateDataForUnits(playerAttacker, creatureTarget);
         }
     }
-    else if (Creature* creatureAttacker = attacker->ToCreature())
+    else if (Creature* creatureAttacker = Object::ToCreature(attacker))
     {
-        if (Player* playerTarget = target->ToPlayer())
+        if (Player* playerTarget = Object::ToPlayer(target))
         {
             if (creatureAttacker->HasScalableLevels())
                 return GenerateDataForUnits(creatureAttacker, playerTarget);
         }
-        else if (Creature* creatureTarget = target->ToCreature())
+        else if (Creature* creatureTarget = Object::ToCreature(target))
         {
             if (creatureAttacker->HasScalableLevels() || creatureTarget->HasScalableLevels())
                 return GenerateDataForUnits(creatureAttacker, creatureTarget);

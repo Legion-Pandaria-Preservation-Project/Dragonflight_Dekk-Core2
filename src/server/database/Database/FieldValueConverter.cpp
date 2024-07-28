@@ -27,20 +27,22 @@ void BaseDatabaseResultValueConverter::LogTruncation(char const* getter, QueryRe
     char const* expectedAccessor = "";
     switch (meta->Type)
     {
-    case DatabaseFieldTypes::UInt8: expectedAccessor = "Field::GetUInt8"; break;
-    case DatabaseFieldTypes::Int8: expectedAccessor = "Field::GetInt8"; break;
-    case DatabaseFieldTypes::UInt16: expectedAccessor = "Field::GetUInt16"; break;
-    case DatabaseFieldTypes::Int16: expectedAccessor = "Field::GetInt16"; break;
-    case DatabaseFieldTypes::UInt32: expectedAccessor = "Field::GetUIn32"; break;
-    case DatabaseFieldTypes::Int32: expectedAccessor = "Field::GetInt32"; break;
-    case DatabaseFieldTypes::UInt64: expectedAccessor = "Field::GetUIn64"; break;
-    case DatabaseFieldTypes::Int64:  expectedAccessor = "Field::GetInt64"; break;
-    case DatabaseFieldTypes::Float: expectedAccessor = "Field::GetFloat"; break;
-    case DatabaseFieldTypes::Double: expectedAccessor = "Field::GetDouble"; break;
-    case DatabaseFieldTypes::Decimal: expectedAccessor = "Field::GetDouble or Field::GetString"; break;
-    case DatabaseFieldTypes::Binary: expectedAccessor = "Field::GetString or Field::GetBinary"; break;
-    default:
-        break;
+        case DatabaseFieldTypes::UInt8: expectedAccessor = "Field::GetUInt8"; break;
+        case DatabaseFieldTypes::Int8: expectedAccessor = "Field::GetInt8"; break;
+        case DatabaseFieldTypes::UInt16: expectedAccessor = "Field::GetUInt16"; break;
+        case DatabaseFieldTypes::Int16: expectedAccessor = "Field::GetInt16"; break;
+        case DatabaseFieldTypes::UInt32: expectedAccessor = "Field::GetUIn32"; break;
+        case DatabaseFieldTypes::Int32: expectedAccessor = "Field::GetInt32"; break;
+        case DatabaseFieldTypes::UInt64: expectedAccessor = "Field::GetUIn64"; break;
+        case DatabaseFieldTypes::Int64:  expectedAccessor = "Field::GetInt64"; break;
+        case DatabaseFieldTypes::Float: expectedAccessor = "Field::GetFloat"; break;
+        case DatabaseFieldTypes::Double: expectedAccessor = "Field::GetDouble"; break;
+        case DatabaseFieldTypes::Decimal: expectedAccessor = "Field::GetDouble or Field::GetString"; break;
+        case DatabaseFieldTypes::Date: expectedAccessor = "Field::GetDate"; break;
+        case DatabaseFieldTypes::Time: expectedAccessor = "Field::GetTime"; break;
+        case DatabaseFieldTypes::Binary: expectedAccessor = "Field::GetString or Field::GetBinary"; break;
+        default:
+            break;
     }
 
     ASSERT(false, "%s on %s field %s.%s (%s.%s) at index %u caused value to be truncated. Use %s instead.",

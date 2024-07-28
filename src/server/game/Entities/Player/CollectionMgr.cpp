@@ -237,7 +237,11 @@ void CollectionMgr::LoadHeirlooms()
 void CollectionMgr::AddHeirloom(uint32 itemId, uint32 flags)
 {
     if (UpdateAccountHeirlooms(itemId, flags))
+    {
+        _owner->GetPlayer()->UpdateCriteria(CriteriaType::LearnHeirloom, itemId);
+        _owner->GetPlayer()->UpdateCriteria(CriteriaType::LearnAnyHeirloom, 1);
         _owner->GetPlayer()->AddHeirloom(itemId, flags);
+    }
 }
 
 void CollectionMgr::UpgradeHeirloom(uint32 itemId, int32 castItem)
@@ -391,12 +395,8 @@ bool CollectionMgr::AddMount(uint32 spellId, MountStatusFlags flags, bool factio
     _mounts.insert(MountContainer::value_type(spellId, flags));
 
     // Mount condition only applies to using it, should still learn it.
-    if (mount->PlayerConditionID)
-    {
-        PlayerConditionEntry const* playerCondition = sPlayerConditionStore.LookupEntry(mount->PlayerConditionID);
-        if (playerCondition && !ConditionMgr::IsPlayerMeetingCondition(player, playerCondition))
-            return false;
-    }
+    if (!ConditionMgr::IsPlayerMeetingCondition(player, mount->PlayerConditionID))
+        return false;
 
     if (!learned)
     {
@@ -734,10 +734,6 @@ bool CollectionMgr::CanAddAppearance(ItemModifiedAppearanceEntry const* itemModi
             return false;
     }
 
-    if (itemTemplate->GetQuality() < ITEM_QUALITY_UNCOMMON)
-        if (!itemTemplate->HasFlag(ITEM_FLAG2_IGNORE_QUALITY_FOR_ITEM_VISUAL_SOURCE) || !itemTemplate->HasFlag(ITEM_FLAG3_ACTS_AS_TRANSMOG_HIDDEN_VISUAL_OPTION))
-            return false;
-
     if (itemModifiedAppearance->ID < _appearances->size() && _appearances->test(itemModifiedAppearance->ID))
         return false;
 
@@ -766,6 +762,8 @@ void CollectionMgr::AddItemAppearance(ItemModifiedAppearanceEntry const* itemMod
         owner->RemoveConditionalTransmog(itemModifiedAppearance->ID);
         _temporaryAppearances.erase(temporaryAppearance);
     }
+
+    _owner->GetPlayer()->UpdateCriteria(CriteriaType::LearnAnyTransmog, 1);
 
     if (ItemEntry const* item = sItemStore.LookupEntry(itemModifiedAppearance->ItemID))
     {
@@ -886,9 +884,9 @@ void CollectionMgr::LoadTransmogIllusions()
 {
     Player* owner = _owner->GetPlayer();
     boost::to_block_range(*_transmogIllusions, DynamicBitsetBlockOutputIterator([owner](uint32 blockValue)
-        {
-            owner->AddIllusionBlock(blockValue);
-        }));
+    {
+        owner->AddIllusionBlock(blockValue);
+    }));
 }
 
 void CollectionMgr::LoadAccountTransmogIllusions(PreparedQueryResult knownTransmogIllusions)
@@ -924,7 +922,6 @@ void CollectionMgr::LoadAccountTransmogIllusions(PreparedQueryResult knownTransm
 
     for (uint16 illusionId : defaultIllusions)
     {
-        ASSERT(illusionId);
         if (_transmogIllusions->size() <= illusionId)
             _transmogIllusions->resize(illusionId + 1);
 
@@ -937,17 +934,17 @@ void CollectionMgr::SaveAccountTransmogIllusions(LoginDatabaseTransaction trans)
     uint16 blockIndex = 0;
 
     boost::to_block_range(*_transmogIllusions, DynamicBitsetBlockOutputIterator([this, &blockIndex, trans](uint32 blockValue)
+    {
+        if (blockValue) // this table is only appended/bits are set (never cleared) so don't save empty blocks
         {
-            if (blockValue) // this table is only appended/bits are set (never cleared) so don't save empty blocks
-            {
-                LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_BNET_TRANSMOG_ILLUSIONS);
-                stmt->setUInt32(0, _owner->GetBattlenetAccountId());
-                stmt->setUInt16(1, blockIndex);
-                stmt->setUInt32(2, blockValue);
-                trans->Append(stmt);
-            }
-            ++blockIndex;
-        }));
+            LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_BNET_TRANSMOG_ILLUSIONS);
+            stmt->setUInt32(0, _owner->GetBattlenetAccountId());
+            stmt->setUInt16(1, blockIndex);
+            stmt->setUInt32(2, blockValue);
+            trans->Append(stmt);
+        }
+        ++blockIndex;
+    }));
 }
 
 void CollectionMgr::AddTransmogIllusion(uint32 transmogIllusionId)
@@ -973,94 +970,3 @@ bool CollectionMgr::HasTransmogIllusion(uint32 transmogIllusionId) const
 {
     return transmogIllusionId < _transmogIllusions->size() && _transmogIllusions->test(transmogIllusionId);
 }
-
-// DekkCore >
-void CollectionMgr::AddConditionalTransmogSet(uint32 transmogSetId)
-{
-    std::vector<TransmogSetItemEntry const*> const* items = sDB2Manager.GetTransmogSetItems(transmogSetId);
-    if (!items)
-        return;
-
-    for (TransmogSetItemEntry const* item : *items)
-    {
-        ItemModifiedAppearanceEntry const* itemModifiedAppearance = sItemModifiedAppearanceStore.LookupEntry(item->ItemModifiedAppearanceID);
-        if (!itemModifiedAppearance)
-            continue;
-
-        _owner->GetPlayer()->AddConditionalTransmog(itemModifiedAppearance->ID);
-    }
-}
-
-/// Seraphim
-void CollectionMgr::LoadRuneforgeMemorys()
-{
-    Player* owner = _owner->GetPlayer();
-    boost::to_block_range(*_runeforgingMemories, DynamicBitsetBlockOutputIterator([owner](uint32 blockValue)
-    {
-        owner->AddRuneforgeBlock(blockValue);
-    }));
-}
-
-void CollectionMgr::LoadAccountRuneforgeMemorys(PreparedQueryResult result)
-{
-    if (result)
-    {
-        std::vector<uint32> blocks;
-        do
-        {
-            Field* fields = result->Fetch();
-            uint16 blobIndex = fields[0].GetUInt16();
-            if (blobIndex >= blocks.size())
-                blocks.resize(blobIndex + 1);
-
-            blocks[blobIndex] = fields[1].GetUInt32();
-
-        } while (result->NextRow());
-
-        _runeforgingMemories->init_from_block_range(blocks.begin(), blocks.end());
-    }
-}
-
-void CollectionMgr::SaveAccountRuneforgeMemorys(LoginDatabaseTransaction trans)
-{
-    uint16 blockIndex = 0;
-
-    boost::to_block_range(*_runeforgingMemories, DynamicBitsetBlockOutputIterator([this, &blockIndex, trans](uint32 blockValue)
-    {
-        if (blockValue) // this table is only appended/bits are set (never cleared) so don't save empty blocks
-        {
-            LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_BNET_RUNEFORGE_MEMORIES);
-            stmt->setUInt32(0, _owner->GetBattlenetAccountId());
-            stmt->setUInt16(1, blockIndex);
-            stmt->setUInt32(2, blockValue);
-            trans->Append(stmt);
-        }
-        ++blockIndex;
-    }));
-}
-
-void CollectionMgr::AddRuneforgeMemory(uint32 id)
-{
-    Player* owner = _owner->GetPlayer();
-    if (_runeforgingMemories->size() <= id)
-    {
-        std::size_t numBlocks = _runeforgingMemories->num_blocks();
-        _runeforgingMemories->resize(id + 1);
-        numBlocks = _runeforgingMemories->num_blocks() - numBlocks;
-        while (numBlocks--)
-            owner->AddRuneforgeBlock(0);
-    }
-
-    _runeforgingMemories->set(id);
-    uint32 blockIndex = id / 32;
-    uint32 bitIndex = id % 32;
-
-    owner->AddRuneforgeFlag(blockIndex, 1 << bitIndex);
-}
-
-bool CollectionMgr::HasRuneforgeMemory(uint32 id) const
-{
-    return id < _runeforgingMemories->size() && _runeforgingMemories->test(id);
-}
-
-// < DekkCore

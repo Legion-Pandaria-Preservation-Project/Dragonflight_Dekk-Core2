@@ -33,9 +33,6 @@
 #include "StringConvert.h"
 #include "World.h"
 #include "WorldSession.h"
-#ifdef ELUNA
-#include "LuaEngine.h"
-#endif
 #include <boost/algorithm/string/replace.hpp>
 #include <sstream>
 
@@ -137,7 +134,7 @@ void ChatHandler::SendSysMessage(std::string_view str, bool escapeCharacters)
     }
 }
 
-void ChatHandler::SendGlobalSysMessage(const char* str)
+void ChatHandler::SendGlobalSysMessage(const char *str)
 {
     WorldPackets::Chat::Chat packet;
     for (std::string_view line : Trinity::Tokenize(str, '\n', true))
@@ -147,7 +144,7 @@ void ChatHandler::SendGlobalSysMessage(const char* str)
     }
 }
 
-void ChatHandler::SendGlobalGMSysMessage(const char* str)
+void ChatHandler::SendGlobalGMSysMessage(const char *str)
 {
     WorldPackets::Chat::Chat packet;
     for (std::string_view line : Trinity::Tokenize(str, '\n', true))
@@ -269,7 +266,7 @@ char* ChatHandler::extractKeyFromLink(char* text, char const* linkType, char** s
         return nullptr;
 
     // skip spaces
-    while (*text == ' ' || *text == '\t' || *text == '\b')
+    while (*text == ' '||*text == '\t'||*text == '\b')
         ++text;
 
     if (!*text)
@@ -317,7 +314,7 @@ char* ChatHandler::extractKeyFromLink(char* text, char const* const* linkTypes, 
         return nullptr;
 
     // skip spaces
-    while (*text == ' ' || *text == '\t' || *text == '\b')
+    while (*text == ' '||*text == '\t'||*text == '\b')
         ++text;
 
     if (!*text)
@@ -344,7 +341,7 @@ char* ChatHandler::extractKeyFromLink(char* text, char const* const* linkTypes, 
         tail = strtok(nullptr, "");                         // tail
     }
     else
-        tail = text + 1;                                      // skip first |
+        tail = text+1;                                      // skip first |
 
     char* cLinkType = strtok(tail, ":");                    // linktype
     if (!cLinkType)
@@ -415,8 +412,8 @@ Creature* ChatHandler::GetCreatureFromPlayerMapByDbGuid(ObjectGuid::LowType lowg
 
 enum GuidLinkType
 {
-    GUID_LINK_PLAYER = 0,                              // must be first for selection in not link case
-    GUID_LINK_CREATURE = 1,
+    GUID_LINK_PLAYER     = 0,                              // must be first for selection in not link case
+    GUID_LINK_CREATURE   = 1,
     GUID_LINK_GAMEOBJECT = 2
 };
 
@@ -441,34 +438,34 @@ ObjectGuid::LowType ChatHandler::extractLowGuidFromLink(char* text, HighGuid& gu
 
     switch (type)
     {
-    case GUID_LINK_PLAYER:
-    {
-        guidHigh = HighGuid::Player;
-        std::string name = idS;
-        if (!normalizePlayerName(name))
-            return 0;
+        case GUID_LINK_PLAYER:
+        {
+            guidHigh = HighGuid::Player;
+            std::string name = idS;
+            if (!normalizePlayerName(name))
+                return 0;
 
-        if (Player* player = ObjectAccessor::FindPlayerByName(name))
-            return player->GetGUID().GetCounter();
+            if (Player* player = ObjectAccessor::FindPlayerByName(name))
+                return player->GetGUID().GetCounter();
 
-        ObjectGuid guid = sCharacterCache->GetCharacterGuidByName(name);
-        if (guid.IsEmpty())
-            return 0;
+            ObjectGuid guid = sCharacterCache->GetCharacterGuidByName(name);
+            if (guid.IsEmpty())
+                return 0;
 
-        return guid.GetCounter();
-    }
-    case GUID_LINK_CREATURE:
-    {
-        guidHigh = HighGuid::Creature;
-        ObjectGuid::LowType lowguid = Trinity::StringTo<ObjectGuid::LowType>(idS).value_or(UI64LIT(0));
-        return lowguid;
-    }
-    case GUID_LINK_GAMEOBJECT:
-    {
-        guidHigh = HighGuid::GameObject;
-        ObjectGuid::LowType lowguid = Trinity::StringTo<ObjectGuid::LowType>(idS).value_or(UI64LIT(0));
-        return lowguid;
-    }
+            return guid.GetCounter();
+        }
+        case GUID_LINK_CREATURE:
+        {
+            guidHigh = HighGuid::Creature;
+            ObjectGuid::LowType lowguid = Trinity::StringTo<ObjectGuid::LowType>(idS).value_or(UI64LIT(0));
+            return lowguid;
+        }
+        case GUID_LINK_GAMEOBJECT:
+        {
+            guidHigh = HighGuid::GameObject;
+            ObjectGuid::LowType lowguid = Trinity::StringTo<ObjectGuid::LowType>(idS).value_or(UI64LIT(0));
+            return lowguid;
+        }
     }
 
     // unknown type?
@@ -552,7 +549,7 @@ char* ChatHandler::extractQuotedArg(char* args)
         return nullptr;
 
     if (*args == '"')
-        return strtok(args + 1, "\"");
+        return strtok(args+1, "\"");
     else
     {
         // skip spaces
@@ -680,7 +677,7 @@ bool ChatHandler::GetPlayerGroupAndGUIDByName(const char* cname, Player*& player
             player = m_session->GetPlayer();
 
         if (!guid || !offline)
-            guid = player->GetGUID();
+            guid  = player->GetGUID();
         group = player->GetGroup();
     }
 
@@ -708,34 +705,34 @@ bool AddonChannelCommandHandler::ParseCommands(std::string_view str)
 
     switch (opcode)
     {
-    case 'p': // p Ping
-        SendAck();
-        return true;
-    case 'h': // h Issue human-readable command
-    case 'i': // i Issue command
-    {
-        if (!str[5])
-            return false;
-        humanReadable = (opcode == 'h');
-        std::string_view cmd = str.substr(5);
-        if (_ParseCommands(cmd)) // actual command starts at str[5]
+        case 'p': // p Ping
+            SendAck();
+            return true;
+        case 'h': // h Issue human-readable command
+        case 'i': // i Issue command
         {
-            if (!hadAck)
-                SendAck();
-            if (HasSentErrorMessage())
-                SendFailed();
+            if (!str[5])
+                return false;
+            humanReadable = (opcode == 'h');
+            std::string_view cmd = str.substr(5);
+            if (_ParseCommands(cmd)) // actual command starts at str[5]
+            {
+                if (!hadAck)
+                    SendAck();
+                if (HasSentErrorMessage())
+                    SendFailed();
+                else
+                    SendOK();
+            }
             else
-                SendOK();
+            {
+                PSendSysMessage(LANG_CMD_INVALID, STRING_VIEW_FMT_ARG(cmd));
+                SendFailed();
+            }
+            return true;
         }
-        else
-        {
-            PSendSysMessage(LANG_CMD_INVALID, STRING_VIEW_FMT_ARG(cmd));
-            SendFailed();
-        }
-        return true;
-    }
-    default:
-        return false;
+        default:
+            return false;
     }
 }
 

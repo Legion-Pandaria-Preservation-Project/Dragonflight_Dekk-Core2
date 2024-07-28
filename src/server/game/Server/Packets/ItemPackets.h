@@ -28,6 +28,7 @@
 #include <array>
 
 struct VoidStorageItem;
+enum class BagSlotFlags : uint32;
 
 namespace WorldPackets
 {
@@ -212,7 +213,7 @@ namespace WorldPackets
 
             WorldPacket const* Write() override;
 
-            int8 BagResult = EQUIP_ERR_OK; /// @see enum InventoryResult
+            int32 BagResult = EQUIP_ERR_OK; /// @see enum InventoryResult
             uint8 ContainerBSlot = 0;
             ObjectGuid SrcContainer;
             ObjectGuid DstContainer;
@@ -320,7 +321,7 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             ObjectGuid VendorGUID;
-            ObjectGuid ItemGUID;
+            std::vector<ObjectGuid> ItemGUIDs;
             SellResult Reason = SELL_ERR_UNK;
         };
 
@@ -331,8 +332,7 @@ namespace WorldPackets
             {
                 DISPLAY_TYPE_HIDDEN = 0,
                 DISPLAY_TYPE_NORMAL = 1,
-                DISPLAY_TYPE_ENCOUNTER_LOOT = 2,
-                DISPLAY_TYPE_ENCOUNTER_LOOT_NEW = 3
+                DISPLAY_TYPE_ENCOUNTER_LOOT = 2
             };
 
             ItemPushResult() : ServerPacket(SMSG_ITEM_PUSH_RESULT, 16 + 1 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4 + 16 + 1 + 1 + 1 + 1) { }
@@ -357,10 +357,11 @@ namespace WorldPackets
             Optional<Crafting::CraftingData> CraftingData;
             Optional<uint32> FirstCraftOperationID;
             bool Pushed                     = false;
-            DisplayType DisplayText         = DISPLAY_TYPE_ENCOUNTER_LOOT;
+            DisplayType DisplayText         = DISPLAY_TYPE_HIDDEN;
             bool Created                    = false;
+            bool Unused_1017                = false;
             bool IsBonusRoll                = false;
-            bool IsEncounterLoot            = true;
+            bool IsEncounterLoot            = false;
         };
 
         class ReadItem final : public ClientPacket
@@ -537,61 +538,88 @@ namespace WorldPackets
             WorldPacket const* Write() override { return &_worldPacket; }
         };
 
-        class SocketGemsFailure final : public ServerPacket
+        class ChangeBagSlotFlag final : public ClientPacket
         {
         public:
-            SocketGemsFailure(ObjectGuid item) : ServerPacket(SMSG_SOCKET_GEMS_FAILURE, 16), Item(item) { }
+            explicit ChangeBagSlotFlag(WorldPacket&& packet) : ClientPacket(CMSG_CHANGE_BAG_SLOT_FLAG, std::move(packet)) { }
 
-            WorldPacket const* Write() override;
+            void Read() override;
 
-            ObjectGuid Item;
+            uint32 BagIndex = 0;
+            BagSlotFlags FlagToChange = { };
+            bool On = false;
         };
 
-        /// Seraphim
-        // TC_GAME_API is not needed for Dekkcore unless you use in the scripts folder in dynamic build
-        class TC_GAME_API ItemChanged final : public ServerPacket
+        class ChangeBankBagSlotFlag final : public ClientPacket
         {
         public:
-            ItemChanged() : ServerPacket(SMSG_ITEM_CHANGED, 1000) { }
+            explicit ChangeBankBagSlotFlag(WorldPacket&& packet) : ClientPacket(CMSG_CHANGE_BANK_BAG_SLOT_FLAG, std::move(packet)) { }
 
-            WorldPacket const* Write();
+            void Read() override;
 
-            ObjectGuid PlayerGUID;
-            ItemInstance Before;
-            ItemInstance After;
+            uint32 BagIndex = 0;
+            BagSlotFlags FlagToChange = { };
+            bool On = false;
         };
 
-        class ItemInteractionComplete final : public ServerPacket
+        class SetBackpackAutosortDisabled final : public ClientPacket
         {
         public:
-            ItemInteractionComplete() : ServerPacket(SMSG_ITEM_INTERACTION_COMPLETE, 1) { }
+            explicit SetBackpackAutosortDisabled(WorldPacket&& packet) : ClientPacket(CMSG_SET_BACKPACK_AUTOSORT_DISABLED, std::move(packet)) { }
 
-            WorldPacket const* Write();
+            void Read() override;
 
-            bool Complete = false;
+            bool Disable = false;
         };
 
-        class RecraftItemResul final : public ServerPacket
+        class SetBackpackSellJunkDisabled final : public ClientPacket
         {
         public:
-            RecraftItemResul() : ServerPacket(SMSG_RECRAFT_ITEM_RESULT) { }
+            explicit SetBackpackSellJunkDisabled(WorldPacket&& packet) : ClientPacket(CMSG_SET_BACKPACK_SELL_JUNK_DISABLED, std::move(packet)) { }
 
-            WorldPacket const* Write();
+            void Read() override;
 
-            uint32 itemID; // ID of the item being recrafted
-            uint32 result; // Result of the recrafting attempt (e.g., success, failure, etc.)
-            uint32 newItemID; // ID of the new item created by the recrafting process (if successful)
-            uint32 cost; // Cost of the recrafting process (in gold or other currency)
+            bool Disable = false;
+        };
+
+        class SetBankAutosortDisabled final : public ClientPacket
+        {
+        public:
+            explicit SetBankAutosortDisabled(WorldPacket&& packet) : ClientPacket(CMSG_SET_BANK_AUTOSORT_DISABLED, std::move(packet)) { }
+
+            void Read() override;
+
+            bool Disable = false;
         };
 
         class AddItemPassive final : public ServerPacket
         {
         public:
-            AddItemPassive() : ServerPacket(SMSG_ADD_ITEM_PASSIVE, 1) { }
+            AddItemPassive() : ServerPacket(SMSG_ADD_ITEM_PASSIVE, 4) { }
 
-            WorldPacket const* Write();
+            WorldPacket const* Write() override;
 
-            uint32 itemID;
+            int32 SpellID = 0;
+        };
+
+        class RemoveItemPassive final : public ServerPacket
+        {
+        public:
+            RemoveItemPassive() : ServerPacket(SMSG_REMOVE_ITEM_PASSIVE, 4) { }
+
+            WorldPacket const* Write() override;
+
+            int32 SpellID = 0;
+        };
+
+        class SendItemPassives final : public ServerPacket
+        {
+        public:
+            SendItemPassives() : ServerPacket(SMSG_SEND_ITEM_PASSIVES, 4) { }
+
+            WorldPacket const* Write() override;
+
+            std::vector<int32> SpellID;
         };
     }
 }

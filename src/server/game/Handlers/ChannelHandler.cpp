@@ -131,21 +131,21 @@ void WorldSession::HandleChannelCommand(WorldPackets::Channel::ChannelCommand& p
     {
         switch (packet.GetOpcode())
         {
-        case CMSG_CHAT_CHANNEL_ANNOUNCEMENTS:
-            channel->Announce(GetPlayer());
-            break;
-        case CMSG_CHAT_CHANNEL_DECLINE_INVITE:
-            channel->DeclineInvite(GetPlayer());
-            break;
-        case CMSG_CHAT_CHANNEL_DISPLAY_LIST:
-        case CMSG_CHAT_CHANNEL_LIST:
-            channel->List(GetPlayer());
-            break;
-        case CMSG_CHAT_CHANNEL_OWNER:
-            channel->SendWhoOwner(GetPlayer());
-            break;
-        default:
-            break;
+            case CMSG_CHAT_CHANNEL_ANNOUNCEMENTS:
+                channel->Announce(GetPlayer());
+                break;
+            case CMSG_CHAT_CHANNEL_DECLINE_INVITE:
+                channel->DeclineInvite(GetPlayer());
+                break;
+            case CMSG_CHAT_CHANNEL_DISPLAY_LIST:
+            case CMSG_CHAT_CHANNEL_LIST:
+                channel->List(GetPlayer());
+                break;
+            case CMSG_CHAT_CHANNEL_OWNER:
+                channel->SendWhoOwner(GetPlayer());
+                break;
+            default:
+                break;
         }
     }
 }
@@ -169,35 +169,35 @@ void WorldSession::HandleChannelPlayerCommand(WorldPackets::Channel::ChannelPlay
     {
         switch (packet.GetOpcode())
         {
-        case CMSG_CHAT_CHANNEL_BAN:
-            channel->Ban(GetPlayer(), packet.Name);
-            break;
-        case CMSG_CHAT_CHANNEL_INVITE:
-            channel->Invite(GetPlayer(), packet.Name);
-            break;
-        case CMSG_CHAT_CHANNEL_KICK:
-            channel->Kick(GetPlayer(), packet.Name);
-            break;
-        case CMSG_CHAT_CHANNEL_MODERATOR:
-            channel->SetModerator(GetPlayer(), packet.Name);
-            break;
-        case CMSG_CHAT_CHANNEL_SET_OWNER:
-            channel->SetOwner(GetPlayer(), packet.Name);
-            break;
-        case CMSG_CHAT_CHANNEL_SILENCE_ALL:
-            channel->SilenceAll(GetPlayer(), packet.Name);
-            break;
-        case CMSG_CHAT_CHANNEL_UNBAN:
-            channel->UnBan(GetPlayer(), packet.Name);
-            break;
-        case CMSG_CHAT_CHANNEL_UNMODERATOR:
-            channel->UnsetModerator(GetPlayer(), packet.Name);
-            break;
-        case CMSG_CHAT_CHANNEL_UNSILENCE_ALL:
-            channel->UnsilenceAll(GetPlayer(), packet.Name);
-            break;
-        default:
-            break;
+            case CMSG_CHAT_CHANNEL_BAN:
+                channel->Ban(GetPlayer(), packet.Name);
+                break;
+            case CMSG_CHAT_CHANNEL_INVITE:
+                channel->Invite(GetPlayer(), packet.Name);
+                break;
+            case CMSG_CHAT_CHANNEL_KICK:
+                channel->Kick(GetPlayer(), packet.Name);
+                break;
+            case CMSG_CHAT_CHANNEL_MODERATOR:
+                channel->SetModerator(GetPlayer(), packet.Name);
+                break;
+            case CMSG_CHAT_CHANNEL_SET_OWNER:
+                channel->SetOwner(GetPlayer(), packet.Name);
+                break;
+            case CMSG_CHAT_CHANNEL_SILENCE_ALL:
+                channel->SilenceAll(GetPlayer(), packet.Name);
+                break;
+            case CMSG_CHAT_CHANNEL_UNBAN:
+                channel->UnBan(GetPlayer(), packet.Name);
+                break;
+            case CMSG_CHAT_CHANNEL_UNMODERATOR:
+                channel->UnsetModerator(GetPlayer(), packet.Name);
+                break;
+            case CMSG_CHAT_CHANNEL_UNSILENCE_ALL:
+                channel->UnsilenceAll(GetPlayer(), packet.Name);
+                break;
+            default:
+                break;
         }
     }
 }

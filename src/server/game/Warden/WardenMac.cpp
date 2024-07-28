@@ -110,7 +110,7 @@ struct keyData {
     };
 };
 
-void WardenMac::HandleHashResult(ByteBuffer& buff)
+void WardenMac::HandleHashResult(ByteBuffer &buff)
 {
 
     // test
@@ -191,7 +191,7 @@ void WardenMac::RequestChecks()
     _dataSent = true;
 }
 
-void WardenMac::HandleCheckResult(ByteBuffer& buff)
+void WardenMac::HandleCheckResult(ByteBuffer &buff)
 {
     TC_LOG_DEBUG("warden", "Handle data");
 

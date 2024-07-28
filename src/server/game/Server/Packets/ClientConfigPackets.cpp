@@ -37,15 +37,15 @@ WorldPacket const* WorldPackets::ClientConfig::ClientCacheVersion::Write()
 void WorldPackets::ClientConfig::RequestAccountData::Read()
 {
     _worldPacket >> PlayerGuid;
-    DataType = _worldPacket.ReadBits(4);
+    _worldPacket >> DataType;
 }
 
 WorldPacket const* WorldPackets::ClientConfig::UpdateAccountData::Write()
 {
-    _worldPacket << Player;
     _worldPacket << Time;
     _worldPacket << uint32(Size);
-    _worldPacket.WriteBits(DataType, 4);
+    _worldPacket << Player;
+    _worldPacket << int32(DataType);
     _worldPacket << uint32(CompressedData.size());
     _worldPacket.append(CompressedData);
 
@@ -54,10 +54,10 @@ WorldPacket const* WorldPackets::ClientConfig::UpdateAccountData::Write()
 
 void WorldPackets::ClientConfig::UserClientUpdateAccountData::Read()
 {
-    _worldPacket >> PlayerGuid;
     _worldPacket >> Time;
     _worldPacket >> Size;
-    DataType = _worldPacket.ReadBits(4);
+    _worldPacket >> PlayerGuid;
+    _worldPacket >> DataType;
 
     uint32 compressedSize = _worldPacket.read<uint32>();
     if (compressedSize > _worldPacket.size() - _worldPacket.rpos())
@@ -74,20 +74,3 @@ void WorldPackets::ClientConfig::SetAdvancedCombatLogging::Read()
 {
     Enable = _worldPacket.ReadBit();
 }
-
-void WorldPackets::ClientConfig::AddonList::Read()
-{
-    _worldPacket >> PlayerGuid;
-    Addons.resize(_worldPacket.read<uint32>());
-    
-    for (auto& v : Addons)
-    {
-        uint32 len1 = _worldPacket.ReadBits(10);
-        uint32 len2 = _worldPacket.ReadBits(10);
-        v.UnkBit1 = _worldPacket.ReadBit();
-        v.UnkBit2 = _worldPacket.ReadBit();
-        v.UnkString1 = _worldPacket.ReadString(len1);
-        v.UnkString2 = _worldPacket.ReadString(len2);
-    }
-}
-

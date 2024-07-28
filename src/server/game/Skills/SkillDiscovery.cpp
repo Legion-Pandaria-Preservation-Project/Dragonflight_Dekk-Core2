@@ -69,10 +69,10 @@ void LoadSkillDiscoveryTable()
     {
         Field* fields = result->Fetch();
 
-        uint32 spellId = fields[0].GetUInt32();
+        uint32 spellId         = fields[0].GetUInt32();
         int32  reqSkillOrSpell = fields[1].GetInt32();
-        uint32 reqSkillValue = fields[2].GetUInt16();
-        float  chance = fields[3].GetFloat();
+        uint32 reqSkillValue   = fields[2].GetUInt16();
+        float  chance          = fields[3].GetFloat();
 
         if (chance <= 0)                                    // chance
         {
@@ -132,7 +132,8 @@ void LoadSkillDiscoveryTable()
         }
 
         ++count;
-    } while (result->NextRow());
+    }
+    while (result->NextRow());
 
     if (!ssNonDiscoverableEntries.str().empty())
         TC_LOG_ERROR("sql.sql", "Some items can't be successfully discovered, their chance field value is < 0.000001 in the `skill_discovery_template` DB table. List:\n{}", ssNonDiscoverableEntries.str());
@@ -173,7 +174,7 @@ uint32 GetExplicitDiscoverySpell(uint32 spellId, Player* player)
                 full_chance += item_iter->chance;
 
     float rate = full_chance / 100.0f;
-    float roll = (float)rand_chance() * rate;                      // roll now in range 0..full_chance
+    float roll = rand_chance() * rate;                             // roll now in range 0..full_chance
 
     for (SkillDiscoveryList::const_iterator item_iter = tab->second.begin(); item_iter != tab->second.end(); ++item_iter)
     {

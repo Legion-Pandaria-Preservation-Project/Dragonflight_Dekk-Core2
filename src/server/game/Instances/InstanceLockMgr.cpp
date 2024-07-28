@@ -121,8 +121,9 @@ void InstanceLockMgr::Load()
         } while (result->NextRow());
     }
 
+    // ORDER BY required by MapManager::RegisterInstanceId
     //                                                          0      1       2           3           4     5                        6           7         8
-    if (QueryResult result = CharacterDatabase.Query("SELECT guid, mapId, lockId, instanceId, difficulty, data, completedEncountersMask, expiryTime, extended FROM character_instance_lock"))
+    if (QueryResult result = CharacterDatabase.Query("SELECT guid, mapId, lockId, instanceId, difficulty, data, completedEncountersMask, expiryTime, extended FROM character_instance_lock ORDER BY instanceId"))
     {
         do
         {
@@ -538,27 +539,27 @@ InstanceResetTimePoint InstanceLockMgr::GetNextResetTime(MapDb2Entries const& en
     int32 resetHour = sWorld->getIntConfig(CONFIG_RESET_SCHEDULE_HOUR);
     switch (entries.MapDifficulty->ResetInterval)
     {
-    case MAP_DIFFICULTY_RESET_DAILY:
-    {
-        if (dateTime.tm_hour >= resetHour)
-            ++dateTime.tm_mday;
+        case MAP_DIFFICULTY_RESET_DAILY:
+        {
+            if (dateTime.tm_hour >= resetHour)
+                ++dateTime.tm_mday;
 
-        dateTime.tm_hour = resetHour;
-        break;
-    }
-    case MAP_DIFFICULTY_RESET_WEEKLY:
-    {
-        int32 resetDay = sWorld->getIntConfig(CONFIG_RESET_SCHEDULE_WEEK_DAY);
-        int32 daysAdjust = resetDay - dateTime.tm_wday;
-        if (dateTime.tm_wday > resetDay || (dateTime.tm_wday == resetDay && dateTime.tm_hour >= resetHour))
-            daysAdjust += 7; // passed it for current week, grab time from next week
+            dateTime.tm_hour = resetHour;
+            break;
+        }
+        case MAP_DIFFICULTY_RESET_WEEKLY:
+        {
+            int32 resetDay = sWorld->getIntConfig(CONFIG_RESET_SCHEDULE_WEEK_DAY);
+            int32 daysAdjust = resetDay - dateTime.tm_wday;
+            if (dateTime.tm_wday > resetDay || (dateTime.tm_wday == resetDay && dateTime.tm_hour >= resetHour))
+                daysAdjust += 7; // passed it for current week, grab time from next week
 
-        dateTime.tm_hour = resetHour;
-        dateTime.tm_mday += daysAdjust;
-        break;
-    }
-    default:
-        break;
+            dateTime.tm_hour = resetHour;
+            dateTime.tm_mday += daysAdjust;
+            break;
+        }
+        default:
+            break;
     }
 
     return std::chrono::system_clock::from_time_t(mktime(&dateTime));

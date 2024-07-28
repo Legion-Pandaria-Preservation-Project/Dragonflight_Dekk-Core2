@@ -139,6 +139,13 @@ public:
     // returns ItemAppearance::ID, not ItemModifiedAppearance::ID
     std::unordered_set<uint32> GetAppearanceIds() const;
 
+    // Illusions
+    void LoadTransmogIllusions();
+    void LoadAccountTransmogIllusions(PreparedQueryResult knownTransmogIllusions);
+    void SaveAccountTransmogIllusions(LoginDatabaseTransaction trans);
+    void AddTransmogIllusion(uint32 transmogIllusionId);
+    bool HasTransmogIllusion(uint32 transmogIllusionId) const;
+
     enum class FavoriteAppearanceState
     {
         New,
@@ -148,13 +155,6 @@ public:
 
     void SetAppearanceIsFavorite(uint32 itemModifiedAppearanceId, bool apply);
     void SendFavoriteAppearances() const;
-
-    // Transmog Illusions
-    void LoadTransmogIllusions();
-    void LoadAccountTransmogIllusions(PreparedQueryResult knownTransmogIllusions);
-    void SaveAccountTransmogIllusions(LoginDatabaseTransaction trans);
-    void AddTransmogIllusion(uint32 transmogIllusionId);
-    bool HasTransmogIllusion(uint32 transmogIllusionId) const;
 
 private:
     bool CanAddAppearance(ItemModifiedAppearanceEntry const* itemModifiedAppearance) const;
@@ -170,19 +170,6 @@ private:
     std::unordered_map<uint32, std::unordered_set<ObjectGuid>> _temporaryAppearances;
     std::unordered_map<uint32, FavoriteAppearanceState> _favoriteAppearances;
     std::unique_ptr<boost::dynamic_bitset<uint32>> _transmogIllusions;
-    // DekkCore >
-public:
-    void AddConditionalTransmogSet(uint32 transmogSetId);
-    /// Seraphim
-    void LoadRuneforgeMemorys();
-    void LoadAccountRuneforgeMemorys(PreparedQueryResult result);
-    void SaveAccountRuneforgeMemorys(LoginDatabaseTransaction trans);
-    void AddRuneforgeMemory(uint32 id);
-    bool HasRuneforgeMemory(uint32 id) const;
-private:
-    /// Seraphim
-    std::unique_ptr<boost::dynamic_bitset<uint32>> _runeforgingMemories;
-    // < DekkCore
 };
 
 #endif // CollectionMgr_h__

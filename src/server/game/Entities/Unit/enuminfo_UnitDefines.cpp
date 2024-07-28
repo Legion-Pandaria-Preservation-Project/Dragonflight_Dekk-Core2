@@ -189,13 +189,15 @@ TC_API_EXPORT EnumText EnumUtils<UnitFlags2>::ToString(UnitFlags2 value)
         case UNIT_FLAG2_UNTARGETABLE_BY_CLIENT: return { "UNIT_FLAG2_UNTARGETABLE_BY_CLIENT", "Untargetable By Client", "" };
         case UNIT_FLAG2_ATTACKER_IGNORES_MINIMUM_RANGES: return { "UNIT_FLAG2_ATTACKER_IGNORES_MINIMUM_RANGES", "Attacker Ignores Minimum Ranges", "" };
         case UNIT_FLAG2_UNINTERACTIBLE_IF_HOSTILE: return { "UNIT_FLAG2_UNINTERACTIBLE_IF_HOSTILE", "Uninteractible If Hostile", "" };
+        case UNIT_FLAG2_UNUSED_11: return { "UNIT_FLAG2_UNUSED_11", "UNIT_FLAG2_UNUSED_11", "" };
         case UNIT_FLAG2_INFINITE_AOI: return { "UNIT_FLAG2_INFINITE_AOI", "Infinite (AOI)", "" };
+        case UNIT_FLAG2_UNUSED_13: return { "UNIT_FLAG2_UNUSED_13", "UNIT_FLAG2_UNUSED_13", "" };
         default: throw std::out_of_range("value");
     }
 }
 
 template <>
-TC_API_EXPORT size_t EnumUtils<UnitFlags2>::Count() { return 30; }
+TC_API_EXPORT size_t EnumUtils<UnitFlags2>::Count() { return 32; }
 
 template <>
 TC_API_EXPORT UnitFlags2 EnumUtils<UnitFlags2>::FromIndex(size_t index)
@@ -231,7 +233,9 @@ TC_API_EXPORT UnitFlags2 EnumUtils<UnitFlags2>::FromIndex(size_t index)
         case 26: return UNIT_FLAG2_UNTARGETABLE_BY_CLIENT;
         case 27: return UNIT_FLAG2_ATTACKER_IGNORES_MINIMUM_RANGES;
         case 28: return UNIT_FLAG2_UNINTERACTIBLE_IF_HOSTILE;
-        case 29: return UNIT_FLAG2_INFINITE_AOI;
+        case 29: return UNIT_FLAG2_UNUSED_11;
+        case 30: return UNIT_FLAG2_INFINITE_AOI;
+        case 31: return UNIT_FLAG2_UNUSED_13;
         default: throw std::out_of_range("index");
     }
 }
@@ -270,7 +274,9 @@ TC_API_EXPORT size_t EnumUtils<UnitFlags2>::ToIndex(UnitFlags2 value)
         case UNIT_FLAG2_UNTARGETABLE_BY_CLIENT: return 26;
         case UNIT_FLAG2_ATTACKER_IGNORES_MINIMUM_RANGES: return 27;
         case UNIT_FLAG2_UNINTERACTIBLE_IF_HOSTILE: return 28;
-        case UNIT_FLAG2_INFINITE_AOI: return 29;
+        case UNIT_FLAG2_UNUSED_11: return 29;
+        case UNIT_FLAG2_INFINITE_AOI: return 30;
+        case UNIT_FLAG2_UNUSED_13: return 31;
         default: throw std::out_of_range("value");
     }
 }
@@ -283,38 +289,38 @@ TC_API_EXPORT EnumText EnumUtils<UnitFlags3>::ToString(UnitFlags3 value)
 {
     switch (value)
     {
-    case UNIT_FLAG3_UNK0: return { "UNIT_FLAG3_UNK0", "UNIT_FLAG3_UNK0", "" };
-    case UNIT_FLAG3_UNCONSCIOUS_ON_DEATH: return { "UNIT_FLAG3_UNCONSCIOUS_ON_DEATH", "Unconscious on Death", "Shows \042Unconscious\042 in unit tooltip instead of \042Dead\042" };
-    case UNIT_FLAG3_ALLOW_MOUNTED_COMBAT: return { "UNIT_FLAG3_ALLOW_MOUNTED_COMBAT", "Allow mounted combat", "" };
-    case UNIT_FLAG3_GARRISON_PET: return { "UNIT_FLAG3_GARRISON_PET", "Garrison pet", "Special garrison pet creatures that display one of favorite player battle pets - this flag allows querying name and turns off default battle pet behavior" };
-    case UNIT_FLAG3_UI_CAN_GET_POSITION: return { "UNIT_FLAG3_UI_CAN_GET_POSITION", "UI Can Get Position", "Allows lua functions like UnitPosition to always get the position even for npcs or non-grouped players" };
-    case UNIT_FLAG3_AI_OBSTACLE: return { "UNIT_FLAG3_AI_OBSTACLE", "UNIT_FLAG3_AI_OBSTACLE", "" };
-    case UNIT_FLAG3_ALTERNATIVE_DEFAULT_LANGUAGE: return { "UNIT_FLAG3_ALTERNATIVE_DEFAULT_LANGUAGE", "UNIT_FLAG3_ALTERNATIVE_DEFAULT_LANGUAGE", "" };
-    case UNIT_FLAG3_SUPPRESS_ALL_NPC_FEEDBACK: return { "UNIT_FLAG3_SUPPRESS_ALL_NPC_FEEDBACK", "Suppress all NPC feedback", "Skips playing sounds on left clicking npc for all npcs as long as npc with this flag is visible" };
-    case UNIT_FLAG3_IGNORE_COMBAT: return { "UNIT_FLAG3_IGNORE_COMBAT", "Ignore Combat", "Same as SPELL_AURA_IGNORE_COMBAT" };
-    case UNIT_FLAG3_SUPPRESS_NPC_FEEDBACK: return { "UNIT_FLAG3_SUPPRESS_NPC_FEEDBACK", "Suppress NPC feedback", "Skips playing sounds on left clicking npc" };
-    case UNIT_FLAG3_UNK10: return { "UNIT_FLAG3_UNK10", "UNIT_FLAG3_UNK10", "" };
-    case UNIT_FLAG3_UNK11: return { "UNIT_FLAG3_UNK11", "UNIT_FLAG3_UNK11", "" };
-    case UNIT_FLAG3_UNK12: return { "UNIT_FLAG3_UNK12", "UNIT_FLAG3_UNK12", "" };
-    case UNIT_FLAG3_FAKE_DEAD: return { "UNIT_FLAG3_FAKE_DEAD", "Show as dead", "" };
-    case UNIT_FLAG3_NO_FACING_ON_INTERACT_AND_FAST_FACING_CHASE: return { "UNIT_FLAG3_NO_FACING_ON_INTERACT_AND_FAST_FACING_CHASE", "UNIT_FLAG3_NO_FACING_ON_INTERACT_AND_FAST_FACING_CHASE", "Causes the creature to both not change facing on interaction and speeds up smooth facing changes while attacking (clientside)" };
-    case UNIT_FLAG3_UNTARGETABLE_FROM_UI: return { "UNIT_FLAG3_UNTARGETABLE_FROM_UI", "Untargetable from UI", "Cannot be targeted from lua functions StartAttack, TargetUnit, PetAttack" };
-    case UNIT_FLAG3_NO_FACING_ON_INTERACT_WHILE_FAKE_DEAD: return { "UNIT_FLAG3_NO_FACING_ON_INTERACT_WHILE_FAKE_DEAD", "UNIT_FLAG3_NO_FACING_ON_INTERACT_WHILE_FAKE_DEAD", "Prevents facing changes while interacting if creature has flag UNIT_FLAG3_FAKE_DEAD" };
-    case UNIT_FLAG3_ALREADY_SKINNED: return { "UNIT_FLAG3_ALREADY_SKINNED", "UNIT_FLAG3_ALREADY_SKINNED", "" };
-    case UNIT_FLAG3_SUPPRESS_ALL_NPC_SOUNDS: return { "UNIT_FLAG3_SUPPRESS_ALL_NPC_SOUNDS", "Suppress all NPC sounds", "Skips playing sounds on beginning and end of npc interaction for all npcs as long as npc with this flag is visible" };
-    case UNIT_FLAG3_SUPPRESS_NPC_SOUNDS: return { "UNIT_FLAG3_SUPPRESS_NPC_SOUNDS", "Suppress NPC sounds", "Skips playing sounds on beginning and end of npc interaction" };
-    case UNIT_FLAG3_UNK20: return { "UNIT_FLAG3_UNK20", "UNIT_FLAG3_UNK20", "" };
-    case UNIT_FLAG3_UNK21: return { "UNIT_FLAG3_UNK21", "UNIT_FLAG3_UNK21", "" };
-    case UNIT_FLAG3_DONT_FADE_OUT: return { "UNIT_FLAG3_DONT_FADE_OUT", "UNIT_FLAG3_DONT_FADE_OUT", "" };
-    case UNIT_FLAG3_UNK23: return { "UNIT_FLAG3_UNK23", "UNIT_FLAG3_UNK23", "" };
-    case UNIT_FLAG3_FORCE_HIDE_NAMEPLATE: return { "UNIT_FLAG3_FORCE_HIDE_NAMEPLATE", "UNIT_FLAG3_FORCE_HIDE_NAMEPLATE", "" };
-    case UNIT_FLAG3_UNK25: return { "UNIT_FLAG3_UNK25", "UNIT_FLAG3_UNK25", "" };
-    case UNIT_FLAG3_UNK26: return { "UNIT_FLAG3_UNK26", "UNIT_FLAG3_UNK26", "" };
-    case UNIT_FLAG3_UNK27: return { "UNIT_FLAG3_UNK27", "UNIT_FLAG3_UNK27", "" };
-    case UNIT_FLAG3_UNK28: return { "UNIT_FLAG3_UNK28", "UNIT_FLAG3_UNK28", "" };
-    case UNIT_FLAG3_UNK29: return { "UNIT_FLAG3_UNK29", "UNIT_FLAG3_UNK29", "" };
-    case UNIT_FLAG3_UNK30: return { "UNIT_FLAG3_UNK30", "UNIT_FLAG3_UNK30", "" };
-    case UNIT_FLAG3_UNK31: return { "UNIT_FLAG3_UNK31", "UNIT_FLAG3_UNK31", "" };
+        case UNIT_FLAG3_UNK0: return { "UNIT_FLAG3_UNK0", "UNIT_FLAG3_UNK0", "" };
+        case UNIT_FLAG3_UNCONSCIOUS_ON_DEATH: return { "UNIT_FLAG3_UNCONSCIOUS_ON_DEATH", "Unconscious on Death", "Shows \042Unconscious\042 in unit tooltip instead of \042Dead\042" };
+        case UNIT_FLAG3_ALLOW_MOUNTED_COMBAT: return { "UNIT_FLAG3_ALLOW_MOUNTED_COMBAT", "Allow mounted combat", "" };
+        case UNIT_FLAG3_GARRISON_PET: return { "UNIT_FLAG3_GARRISON_PET", "Garrison pet", "Special garrison pet creatures that display one of favorite player battle pets - this flag allows querying name and turns off default battle pet behavior" };
+        case UNIT_FLAG3_UI_CAN_GET_POSITION: return { "UNIT_FLAG3_UI_CAN_GET_POSITION", "UI Can Get Position", "Allows lua functions like UnitPosition to always get the position even for npcs or non-grouped players" };
+        case UNIT_FLAG3_AI_OBSTACLE: return { "UNIT_FLAG3_AI_OBSTACLE", "UNIT_FLAG3_AI_OBSTACLE", "" };
+        case UNIT_FLAG3_ALTERNATIVE_DEFAULT_LANGUAGE: return { "UNIT_FLAG3_ALTERNATIVE_DEFAULT_LANGUAGE", "UNIT_FLAG3_ALTERNATIVE_DEFAULT_LANGUAGE", "" };
+        case UNIT_FLAG3_SUPPRESS_ALL_NPC_FEEDBACK: return { "UNIT_FLAG3_SUPPRESS_ALL_NPC_FEEDBACK", "Suppress all NPC feedback", "Skips playing sounds on left clicking npc for all npcs as long as npc with this flag is visible" };
+        case UNIT_FLAG3_IGNORE_COMBAT: return { "UNIT_FLAG3_IGNORE_COMBAT", "Ignore Combat", "Same as SPELL_AURA_IGNORE_COMBAT" };
+        case UNIT_FLAG3_SUPPRESS_NPC_FEEDBACK: return { "UNIT_FLAG3_SUPPRESS_NPC_FEEDBACK", "Suppress NPC feedback", "Skips playing sounds on left clicking npc" };
+        case UNIT_FLAG3_UNK10: return { "UNIT_FLAG3_UNK10", "UNIT_FLAG3_UNK10", "" };
+        case UNIT_FLAG3_UNK11: return { "UNIT_FLAG3_UNK11", "UNIT_FLAG3_UNK11", "" };
+        case UNIT_FLAG3_UNK12: return { "UNIT_FLAG3_UNK12", "UNIT_FLAG3_UNK12", "" };
+        case UNIT_FLAG3_FAKE_DEAD: return { "UNIT_FLAG3_FAKE_DEAD", "Show as dead", "" };
+        case UNIT_FLAG3_NO_FACING_ON_INTERACT_AND_FAST_FACING_CHASE: return { "UNIT_FLAG3_NO_FACING_ON_INTERACT_AND_FAST_FACING_CHASE", "UNIT_FLAG3_NO_FACING_ON_INTERACT_AND_FAST_FACING_CHASE", "Causes the creature to both not change facing on interaction and speeds up smooth facing changes while attacking (clientside)" };
+        case UNIT_FLAG3_UNTARGETABLE_FROM_UI: return { "UNIT_FLAG3_UNTARGETABLE_FROM_UI", "Untargetable from UI", "Cannot be targeted from lua functions StartAttack, TargetUnit, PetAttack" };
+        case UNIT_FLAG3_NO_FACING_ON_INTERACT_WHILE_FAKE_DEAD: return { "UNIT_FLAG3_NO_FACING_ON_INTERACT_WHILE_FAKE_DEAD", "UNIT_FLAG3_NO_FACING_ON_INTERACT_WHILE_FAKE_DEAD", "Prevents facing changes while interacting if creature has flag UNIT_FLAG3_FAKE_DEAD" };
+        case UNIT_FLAG3_ALREADY_SKINNED: return { "UNIT_FLAG3_ALREADY_SKINNED", "UNIT_FLAG3_ALREADY_SKINNED", "" };
+        case UNIT_FLAG3_SUPPRESS_ALL_NPC_SOUNDS: return { "UNIT_FLAG3_SUPPRESS_ALL_NPC_SOUNDS", "Suppress all NPC sounds", "Skips playing sounds on beginning and end of npc interaction for all npcs as long as npc with this flag is visible" };
+        case UNIT_FLAG3_SUPPRESS_NPC_SOUNDS: return { "UNIT_FLAG3_SUPPRESS_NPC_SOUNDS", "Suppress NPC sounds", "Skips playing sounds on beginning and end of npc interaction" };
+        case UNIT_FLAG3_ALLOW_INTERACTION_WHILE_IN_COMBAT: return { "UNIT_FLAG3_ALLOW_INTERACTION_WHILE_IN_COMBAT", "Allow Interaction While in Combat", "Allows using various NPC functions while in combat (vendor, gossip, questgiver)" };
+        case UNIT_FLAG3_UNK21: return { "UNIT_FLAG3_UNK21", "UNIT_FLAG3_UNK21", "" };
+        case UNIT_FLAG3_DONT_FADE_OUT: return { "UNIT_FLAG3_DONT_FADE_OUT", "UNIT_FLAG3_DONT_FADE_OUT", "" };
+        case UNIT_FLAG3_UNK23: return { "UNIT_FLAG3_UNK23", "UNIT_FLAG3_UNK23", "" };
+        case UNIT_FLAG3_FORCE_HIDE_NAMEPLATE: return { "UNIT_FLAG3_FORCE_HIDE_NAMEPLATE", "UNIT_FLAG3_FORCE_HIDE_NAMEPLATE", "" };
+        case UNIT_FLAG3_UNK25: return { "UNIT_FLAG3_UNK25", "UNIT_FLAG3_UNK25", "" };
+        case UNIT_FLAG3_UNK26: return { "UNIT_FLAG3_UNK26", "UNIT_FLAG3_UNK26", "" };
+        case UNIT_FLAG3_UNK27: return { "UNIT_FLAG3_UNK27", "UNIT_FLAG3_UNK27", "" };
+        case UNIT_FLAG3_UNK28: return { "UNIT_FLAG3_UNK28", "UNIT_FLAG3_UNK28", "" };
+        case UNIT_FLAG3_UNK29: return { "UNIT_FLAG3_UNK29", "UNIT_FLAG3_UNK29", "" };
+        case UNIT_FLAG3_UNK30: return { "UNIT_FLAG3_UNK30", "UNIT_FLAG3_UNK30", "" };
+        case UNIT_FLAG3_UNK31: return { "UNIT_FLAG3_UNK31", "UNIT_FLAG3_UNK31", "" };
         default: throw std::out_of_range("value");
     }
 }
@@ -327,38 +333,38 @@ TC_API_EXPORT UnitFlags3 EnumUtils<UnitFlags3>::FromIndex(size_t index)
 {
     switch (index)
     {
-    case 0: return UNIT_FLAG3_UNK0;
-    case 1: return UNIT_FLAG3_UNCONSCIOUS_ON_DEATH;
-    case 2: return UNIT_FLAG3_ALLOW_MOUNTED_COMBAT;
-    case 3: return UNIT_FLAG3_GARRISON_PET;
-    case 4: return UNIT_FLAG3_UI_CAN_GET_POSITION;
-    case 5: return UNIT_FLAG3_AI_OBSTACLE;
-    case 6: return UNIT_FLAG3_ALTERNATIVE_DEFAULT_LANGUAGE;
-    case 7: return UNIT_FLAG3_SUPPRESS_ALL_NPC_FEEDBACK;
-    case 8: return UNIT_FLAG3_IGNORE_COMBAT;
-    case 9: return UNIT_FLAG3_SUPPRESS_NPC_FEEDBACK;
-    case 10: return UNIT_FLAG3_UNK10;
-    case 11: return UNIT_FLAG3_UNK11;
-    case 12: return UNIT_FLAG3_UNK12;
-    case 13: return UNIT_FLAG3_FAKE_DEAD;
-    case 14: return UNIT_FLAG3_NO_FACING_ON_INTERACT_AND_FAST_FACING_CHASE;
-    case 15: return UNIT_FLAG3_UNTARGETABLE_FROM_UI;
-    case 16: return UNIT_FLAG3_NO_FACING_ON_INTERACT_WHILE_FAKE_DEAD;
-    case 17: return UNIT_FLAG3_ALREADY_SKINNED;
-    case 18: return UNIT_FLAG3_SUPPRESS_ALL_NPC_SOUNDS;
-    case 19: return UNIT_FLAG3_SUPPRESS_NPC_SOUNDS;
-    case 20: return UNIT_FLAG3_UNK20;
-    case 21: return UNIT_FLAG3_UNK21;
-    case 22: return UNIT_FLAG3_DONT_FADE_OUT;
-    case 23: return UNIT_FLAG3_UNK23;
-    case 24: return UNIT_FLAG3_FORCE_HIDE_NAMEPLATE;
-    case 25: return UNIT_FLAG3_UNK25;
-    case 26: return UNIT_FLAG3_UNK26;
-    case 27: return UNIT_FLAG3_UNK27;
-    case 28: return UNIT_FLAG3_UNK28;
-    case 29: return UNIT_FLAG3_UNK29;
-    case 30: return UNIT_FLAG3_UNK30;
-    case 31: return UNIT_FLAG3_UNK31;
+        case 0: return UNIT_FLAG3_UNK0;
+        case 1: return UNIT_FLAG3_UNCONSCIOUS_ON_DEATH;
+        case 2: return UNIT_FLAG3_ALLOW_MOUNTED_COMBAT;
+        case 3: return UNIT_FLAG3_GARRISON_PET;
+        case 4: return UNIT_FLAG3_UI_CAN_GET_POSITION;
+        case 5: return UNIT_FLAG3_AI_OBSTACLE;
+        case 6: return UNIT_FLAG3_ALTERNATIVE_DEFAULT_LANGUAGE;
+        case 7: return UNIT_FLAG3_SUPPRESS_ALL_NPC_FEEDBACK;
+        case 8: return UNIT_FLAG3_IGNORE_COMBAT;
+        case 9: return UNIT_FLAG3_SUPPRESS_NPC_FEEDBACK;
+        case 10: return UNIT_FLAG3_UNK10;
+        case 11: return UNIT_FLAG3_UNK11;
+        case 12: return UNIT_FLAG3_UNK12;
+        case 13: return UNIT_FLAG3_FAKE_DEAD;
+        case 14: return UNIT_FLAG3_NO_FACING_ON_INTERACT_AND_FAST_FACING_CHASE;
+        case 15: return UNIT_FLAG3_UNTARGETABLE_FROM_UI;
+        case 16: return UNIT_FLAG3_NO_FACING_ON_INTERACT_WHILE_FAKE_DEAD;
+        case 17: return UNIT_FLAG3_ALREADY_SKINNED;
+        case 18: return UNIT_FLAG3_SUPPRESS_ALL_NPC_SOUNDS;
+        case 19: return UNIT_FLAG3_SUPPRESS_NPC_SOUNDS;
+        case 20: return UNIT_FLAG3_ALLOW_INTERACTION_WHILE_IN_COMBAT;
+        case 21: return UNIT_FLAG3_UNK21;
+        case 22: return UNIT_FLAG3_DONT_FADE_OUT;
+        case 23: return UNIT_FLAG3_UNK23;
+        case 24: return UNIT_FLAG3_FORCE_HIDE_NAMEPLATE;
+        case 25: return UNIT_FLAG3_UNK25;
+        case 26: return UNIT_FLAG3_UNK26;
+        case 27: return UNIT_FLAG3_UNK27;
+        case 28: return UNIT_FLAG3_UNK28;
+        case 29: return UNIT_FLAG3_UNK29;
+        case 30: return UNIT_FLAG3_UNK30;
+        case 31: return UNIT_FLAG3_UNK31;
         default: throw std::out_of_range("index");
     }
 }
@@ -368,38 +374,38 @@ TC_API_EXPORT size_t EnumUtils<UnitFlags3>::ToIndex(UnitFlags3 value)
 {
     switch (value)
     {
-    case UNIT_FLAG3_UNK0: return 0;
-    case UNIT_FLAG3_UNCONSCIOUS_ON_DEATH: return 1;
-    case UNIT_FLAG3_ALLOW_MOUNTED_COMBAT: return 2;
-    case UNIT_FLAG3_GARRISON_PET: return 3;
-    case UNIT_FLAG3_UI_CAN_GET_POSITION: return 4;
-    case UNIT_FLAG3_AI_OBSTACLE: return 5;
-    case UNIT_FLAG3_ALTERNATIVE_DEFAULT_LANGUAGE: return 6;
-    case UNIT_FLAG3_SUPPRESS_ALL_NPC_FEEDBACK: return 7;
-    case UNIT_FLAG3_IGNORE_COMBAT: return 8;
-    case UNIT_FLAG3_SUPPRESS_NPC_FEEDBACK: return 9;
-    case UNIT_FLAG3_UNK10: return 10;
-    case UNIT_FLAG3_UNK11: return 11;
-    case UNIT_FLAG3_UNK12: return 12;
-    case UNIT_FLAG3_FAKE_DEAD: return 13;
-    case UNIT_FLAG3_NO_FACING_ON_INTERACT_AND_FAST_FACING_CHASE: return 14;
-    case UNIT_FLAG3_UNTARGETABLE_FROM_UI: return 15;
-    case UNIT_FLAG3_NO_FACING_ON_INTERACT_WHILE_FAKE_DEAD: return 16;
-    case UNIT_FLAG3_ALREADY_SKINNED: return 17;
-    case UNIT_FLAG3_SUPPRESS_ALL_NPC_SOUNDS: return 18;
-    case UNIT_FLAG3_SUPPRESS_NPC_SOUNDS: return 19;
-    case UNIT_FLAG3_UNK20: return 20;
-    case UNIT_FLAG3_UNK21: return 21;
-    case UNIT_FLAG3_DONT_FADE_OUT: return 22;
-    case UNIT_FLAG3_UNK23: return 23;
-    case UNIT_FLAG3_FORCE_HIDE_NAMEPLATE: return 24;
-    case UNIT_FLAG3_UNK25: return 25;
-    case UNIT_FLAG3_UNK26: return 26;
-    case UNIT_FLAG3_UNK27: return 27;
-    case UNIT_FLAG3_UNK28: return 28;
-    case UNIT_FLAG3_UNK29: return 29;
-    case UNIT_FLAG3_UNK30: return 30;
-    case UNIT_FLAG3_UNK31: return 31;
+        case UNIT_FLAG3_UNK0: return 0;
+        case UNIT_FLAG3_UNCONSCIOUS_ON_DEATH: return 1;
+        case UNIT_FLAG3_ALLOW_MOUNTED_COMBAT: return 2;
+        case UNIT_FLAG3_GARRISON_PET: return 3;
+        case UNIT_FLAG3_UI_CAN_GET_POSITION: return 4;
+        case UNIT_FLAG3_AI_OBSTACLE: return 5;
+        case UNIT_FLAG3_ALTERNATIVE_DEFAULT_LANGUAGE: return 6;
+        case UNIT_FLAG3_SUPPRESS_ALL_NPC_FEEDBACK: return 7;
+        case UNIT_FLAG3_IGNORE_COMBAT: return 8;
+        case UNIT_FLAG3_SUPPRESS_NPC_FEEDBACK: return 9;
+        case UNIT_FLAG3_UNK10: return 10;
+        case UNIT_FLAG3_UNK11: return 11;
+        case UNIT_FLAG3_UNK12: return 12;
+        case UNIT_FLAG3_FAKE_DEAD: return 13;
+        case UNIT_FLAG3_NO_FACING_ON_INTERACT_AND_FAST_FACING_CHASE: return 14;
+        case UNIT_FLAG3_UNTARGETABLE_FROM_UI: return 15;
+        case UNIT_FLAG3_NO_FACING_ON_INTERACT_WHILE_FAKE_DEAD: return 16;
+        case UNIT_FLAG3_ALREADY_SKINNED: return 17;
+        case UNIT_FLAG3_SUPPRESS_ALL_NPC_SOUNDS: return 18;
+        case UNIT_FLAG3_SUPPRESS_NPC_SOUNDS: return 19;
+        case UNIT_FLAG3_ALLOW_INTERACTION_WHILE_IN_COMBAT: return 20;
+        case UNIT_FLAG3_UNK21: return 21;
+        case UNIT_FLAG3_DONT_FADE_OUT: return 22;
+        case UNIT_FLAG3_UNK23: return 23;
+        case UNIT_FLAG3_FORCE_HIDE_NAMEPLATE: return 24;
+        case UNIT_FLAG3_UNK25: return 25;
+        case UNIT_FLAG3_UNK26: return 26;
+        case UNIT_FLAG3_UNK27: return 27;
+        case UNIT_FLAG3_UNK28: return 28;
+        case UNIT_FLAG3_UNK29: return 29;
+        case UNIT_FLAG3_UNK30: return 30;
+        case UNIT_FLAG3_UNK31: return 31;
         default: throw std::out_of_range("value");
     }
 }
@@ -555,15 +561,17 @@ TC_API_EXPORT EnumText EnumUtils<NPCFlags2>::ToString(NPCFlags2 value)
         case UNIT_NPC_FLAG_2_BLACK_MARKET_VIEW: return { "UNIT_NPC_FLAG_2_BLACK_MARKET_VIEW", "is black market view", "only allows viewing black market auctions, no bidding" };
         case UNIT_NPC_FLAG_2_GARRISON_TALENT_NPC: return { "UNIT_NPC_FLAG_2_GARRISON_TALENT_NPC", "is garrrison talent", "" };
         case UNIT_NPC_FLAG_2_CONTRIBUTION_COLLECTOR: return { "UNIT_NPC_FLAG_2_CONTRIBUTION_COLLECTOR", "is contribution collector", "" };
+        case UNIT_NPC_FLAG_2_FAST_STEERING_AVOIDS_OBSTACLES: return { "UNIT_NPC_FLAG_2_FAST_STEERING_AVOIDS_OBSTACLES", "enables avoiding obstacles when FastSteering spline flag is set", "" };
         case UNIT_NPC_FLAG_2_AZERITE_RESPEC: return { "UNIT_NPC_FLAG_2_AZERITE_RESPEC", "is azerite respec", "" };
         case UNIT_NPC_FLAG_2_ISLANDS_QUEUE: return { "UNIT_NPC_FLAG_2_ISLANDS_QUEUE", "is islands queue", "" };
         case UNIT_NPC_FLAG_2_SUPPRESS_NPC_SOUNDS_EXCEPT_END_OF_INTERACTION: return { "UNIT_NPC_FLAG_2_SUPPRESS_NPC_SOUNDS_EXCEPT_END_OF_INTERACTION", "UNIT_NPC_FLAG_2_SUPPRESS_NPC_SOUNDS_EXCEPT_END_OF_INTERACTION", "" };
+        case UNIT_NPC_FLAG_2_PERSONAL_TABARD_DESIGNER: return { "UNIT_NPC_FLAG_2_PERSONAL_TABARD_DESIGNER", "is personal tabard designer", "" };
         default: throw std::out_of_range("value");
     }
 }
 
 template <>
-TC_API_EXPORT size_t EnumUtils<NPCFlags2>::Count() { return 14; }
+TC_API_EXPORT size_t EnumUtils<NPCFlags2>::Count() { return 16; }
 
 template <>
 TC_API_EXPORT NPCFlags2 EnumUtils<NPCFlags2>::FromIndex(size_t index)
@@ -581,9 +589,11 @@ TC_API_EXPORT NPCFlags2 EnumUtils<NPCFlags2>::FromIndex(size_t index)
         case 8: return UNIT_NPC_FLAG_2_BLACK_MARKET_VIEW;
         case 9: return UNIT_NPC_FLAG_2_GARRISON_TALENT_NPC;
         case 10: return UNIT_NPC_FLAG_2_CONTRIBUTION_COLLECTOR;
-        case 11: return UNIT_NPC_FLAG_2_AZERITE_RESPEC;
-        case 12: return UNIT_NPC_FLAG_2_ISLANDS_QUEUE;
-        case 13: return UNIT_NPC_FLAG_2_SUPPRESS_NPC_SOUNDS_EXCEPT_END_OF_INTERACTION;
+        case 11: return UNIT_NPC_FLAG_2_FAST_STEERING_AVOIDS_OBSTACLES;
+        case 12: return UNIT_NPC_FLAG_2_AZERITE_RESPEC;
+        case 13: return UNIT_NPC_FLAG_2_ISLANDS_QUEUE;
+        case 14: return UNIT_NPC_FLAG_2_SUPPRESS_NPC_SOUNDS_EXCEPT_END_OF_INTERACTION;
+        case 15: return UNIT_NPC_FLAG_2_PERSONAL_TABARD_DESIGNER;
         default: throw std::out_of_range("index");
     }
 }
@@ -604,9 +614,272 @@ TC_API_EXPORT size_t EnumUtils<NPCFlags2>::ToIndex(NPCFlags2 value)
         case UNIT_NPC_FLAG_2_BLACK_MARKET_VIEW: return 8;
         case UNIT_NPC_FLAG_2_GARRISON_TALENT_NPC: return 9;
         case UNIT_NPC_FLAG_2_CONTRIBUTION_COLLECTOR: return 10;
-        case UNIT_NPC_FLAG_2_AZERITE_RESPEC: return 11;
-        case UNIT_NPC_FLAG_2_ISLANDS_QUEUE: return 12;
-        case UNIT_NPC_FLAG_2_SUPPRESS_NPC_SOUNDS_EXCEPT_END_OF_INTERACTION: return 13;
+        case UNIT_NPC_FLAG_2_FAST_STEERING_AVOIDS_OBSTACLES: return 11;
+        case UNIT_NPC_FLAG_2_AZERITE_RESPEC: return 12;
+        case UNIT_NPC_FLAG_2_ISLANDS_QUEUE: return 13;
+        case UNIT_NPC_FLAG_2_SUPPRESS_NPC_SOUNDS_EXCEPT_END_OF_INTERACTION: return 14;
+        case UNIT_NPC_FLAG_2_PERSONAL_TABARD_DESIGNER: return 15;
+        default: throw std::out_of_range("value");
+    }
+}
+
+/*******************************************************************\
+|* data for enum 'MovementFlags' in 'UnitDefines.h' auto-generated *|
+\*******************************************************************/
+template <>
+TC_API_EXPORT EnumText EnumUtils<MovementFlags>::ToString(MovementFlags value)
+{
+    switch (value)
+    {
+        case MOVEMENTFLAG_NONE: return { "MOVEMENTFLAG_NONE", "MOVEMENTFLAG_NONE", "" };
+        case MOVEMENTFLAG_FORWARD: return { "MOVEMENTFLAG_FORWARD", "MOVEMENTFLAG_FORWARD", "" };
+        case MOVEMENTFLAG_BACKWARD: return { "MOVEMENTFLAG_BACKWARD", "MOVEMENTFLAG_BACKWARD", "" };
+        case MOVEMENTFLAG_STRAFE_LEFT: return { "MOVEMENTFLAG_STRAFE_LEFT", "MOVEMENTFLAG_STRAFE_LEFT", "" };
+        case MOVEMENTFLAG_STRAFE_RIGHT: return { "MOVEMENTFLAG_STRAFE_RIGHT", "MOVEMENTFLAG_STRAFE_RIGHT", "" };
+        case MOVEMENTFLAG_LEFT: return { "MOVEMENTFLAG_LEFT", "MOVEMENTFLAG_LEFT", "" };
+        case MOVEMENTFLAG_RIGHT: return { "MOVEMENTFLAG_RIGHT", "MOVEMENTFLAG_RIGHT", "" };
+        case MOVEMENTFLAG_PITCH_UP: return { "MOVEMENTFLAG_PITCH_UP", "MOVEMENTFLAG_PITCH_UP", "" };
+        case MOVEMENTFLAG_PITCH_DOWN: return { "MOVEMENTFLAG_PITCH_DOWN", "MOVEMENTFLAG_PITCH_DOWN", "" };
+        case MOVEMENTFLAG_WALKING: return { "MOVEMENTFLAG_WALKING", "MOVEMENTFLAG_WALKING", "Walking" };
+        case MOVEMENTFLAG_DISABLE_GRAVITY: return { "MOVEMENTFLAG_DISABLE_GRAVITY", "MOVEMENTFLAG_DISABLE_GRAVITY", "Former MOVEMENTFLAG_LEVITATING. This is used when walking is not possible." };
+        case MOVEMENTFLAG_ROOT: return { "MOVEMENTFLAG_ROOT", "MOVEMENTFLAG_ROOT", "Must not be set along with MOVEMENTFLAG_MASK_MOVING" };
+        case MOVEMENTFLAG_FALLING: return { "MOVEMENTFLAG_FALLING", "MOVEMENTFLAG_FALLING", "damage dealt on that type of falling" };
+        case MOVEMENTFLAG_FALLING_FAR: return { "MOVEMENTFLAG_FALLING_FAR", "MOVEMENTFLAG_FALLING_FAR", "" };
+        case MOVEMENTFLAG_PENDING_STOP: return { "MOVEMENTFLAG_PENDING_STOP", "MOVEMENTFLAG_PENDING_STOP", "" };
+        case MOVEMENTFLAG_PENDING_STRAFE_STOP: return { "MOVEMENTFLAG_PENDING_STRAFE_STOP", "MOVEMENTFLAG_PENDING_STRAFE_STOP", "" };
+        case MOVEMENTFLAG_PENDING_FORWARD: return { "MOVEMENTFLAG_PENDING_FORWARD", "MOVEMENTFLAG_PENDING_FORWARD", "" };
+        case MOVEMENTFLAG_PENDING_BACKWARD: return { "MOVEMENTFLAG_PENDING_BACKWARD", "MOVEMENTFLAG_PENDING_BACKWARD", "" };
+        case MOVEMENTFLAG_PENDING_STRAFE_LEFT: return { "MOVEMENTFLAG_PENDING_STRAFE_LEFT", "MOVEMENTFLAG_PENDING_STRAFE_LEFT", "" };
+        case MOVEMENTFLAG_PENDING_STRAFE_RIGHT: return { "MOVEMENTFLAG_PENDING_STRAFE_RIGHT", "MOVEMENTFLAG_PENDING_STRAFE_RIGHT", "" };
+        case MOVEMENTFLAG_PENDING_ROOT: return { "MOVEMENTFLAG_PENDING_ROOT", "MOVEMENTFLAG_PENDING_ROOT", "" };
+        case MOVEMENTFLAG_SWIMMING: return { "MOVEMENTFLAG_SWIMMING", "MOVEMENTFLAG_SWIMMING", "appears with fly flag also" };
+        case MOVEMENTFLAG_ASCENDING: return { "MOVEMENTFLAG_ASCENDING", "MOVEMENTFLAG_ASCENDING", "press \042space\042 when flying" };
+        case MOVEMENTFLAG_DESCENDING: return { "MOVEMENTFLAG_DESCENDING", "MOVEMENTFLAG_DESCENDING", "" };
+        case MOVEMENTFLAG_CAN_FLY: return { "MOVEMENTFLAG_CAN_FLY", "MOVEMENTFLAG_CAN_FLY", "Appears when unit can fly. For example, appears when a player sits on a mount." };
+        case MOVEMENTFLAG_FLYING: return { "MOVEMENTFLAG_FLYING", "MOVEMENTFLAG_FLYING", "unit is actually flying. pretty sure this is only used for players. creatures use disable_gravity" };
+        case MOVEMENTFLAG_SPLINE_ELEVATION: return { "MOVEMENTFLAG_SPLINE_ELEVATION", "MOVEMENTFLAG_SPLINE_ELEVATION", "used for flight paths" };
+        case MOVEMENTFLAG_WATERWALKING: return { "MOVEMENTFLAG_WATERWALKING", "MOVEMENTFLAG_WATERWALKING", "prevent unit from falling through water" };
+        case MOVEMENTFLAG_FALLING_SLOW: return { "MOVEMENTFLAG_FALLING_SLOW", "MOVEMENTFLAG_FALLING_SLOW", "active rogue safe fall spell (passive)" };
+        case MOVEMENTFLAG_HOVER: return { "MOVEMENTFLAG_HOVER", "MOVEMENTFLAG_HOVER", "hover, cannot jump" };
+        case MOVEMENTFLAG_DISABLE_COLLISION: return { "MOVEMENTFLAG_DISABLE_COLLISION", "MOVEMENTFLAG_DISABLE_COLLISION", "" };
+        default: throw std::out_of_range("value");
+    }
+}
+
+template <>
+TC_API_EXPORT size_t EnumUtils<MovementFlags>::Count() { return 31; }
+
+template <>
+TC_API_EXPORT MovementFlags EnumUtils<MovementFlags>::FromIndex(size_t index)
+{
+    switch (index)
+    {
+        case 0: return MOVEMENTFLAG_NONE;
+        case 1: return MOVEMENTFLAG_FORWARD;
+        case 2: return MOVEMENTFLAG_BACKWARD;
+        case 3: return MOVEMENTFLAG_STRAFE_LEFT;
+        case 4: return MOVEMENTFLAG_STRAFE_RIGHT;
+        case 5: return MOVEMENTFLAG_LEFT;
+        case 6: return MOVEMENTFLAG_RIGHT;
+        case 7: return MOVEMENTFLAG_PITCH_UP;
+        case 8: return MOVEMENTFLAG_PITCH_DOWN;
+        case 9: return MOVEMENTFLAG_WALKING;
+        case 10: return MOVEMENTFLAG_DISABLE_GRAVITY;
+        case 11: return MOVEMENTFLAG_ROOT;
+        case 12: return MOVEMENTFLAG_FALLING;
+        case 13: return MOVEMENTFLAG_FALLING_FAR;
+        case 14: return MOVEMENTFLAG_PENDING_STOP;
+        case 15: return MOVEMENTFLAG_PENDING_STRAFE_STOP;
+        case 16: return MOVEMENTFLAG_PENDING_FORWARD;
+        case 17: return MOVEMENTFLAG_PENDING_BACKWARD;
+        case 18: return MOVEMENTFLAG_PENDING_STRAFE_LEFT;
+        case 19: return MOVEMENTFLAG_PENDING_STRAFE_RIGHT;
+        case 20: return MOVEMENTFLAG_PENDING_ROOT;
+        case 21: return MOVEMENTFLAG_SWIMMING;
+        case 22: return MOVEMENTFLAG_ASCENDING;
+        case 23: return MOVEMENTFLAG_DESCENDING;
+        case 24: return MOVEMENTFLAG_CAN_FLY;
+        case 25: return MOVEMENTFLAG_FLYING;
+        case 26: return MOVEMENTFLAG_SPLINE_ELEVATION;
+        case 27: return MOVEMENTFLAG_WATERWALKING;
+        case 28: return MOVEMENTFLAG_FALLING_SLOW;
+        case 29: return MOVEMENTFLAG_HOVER;
+        case 30: return MOVEMENTFLAG_DISABLE_COLLISION;
+        default: throw std::out_of_range("index");
+    }
+}
+
+template <>
+TC_API_EXPORT size_t EnumUtils<MovementFlags>::ToIndex(MovementFlags value)
+{
+    switch (value)
+    {
+        case MOVEMENTFLAG_NONE: return 0;
+        case MOVEMENTFLAG_FORWARD: return 1;
+        case MOVEMENTFLAG_BACKWARD: return 2;
+        case MOVEMENTFLAG_STRAFE_LEFT: return 3;
+        case MOVEMENTFLAG_STRAFE_RIGHT: return 4;
+        case MOVEMENTFLAG_LEFT: return 5;
+        case MOVEMENTFLAG_RIGHT: return 6;
+        case MOVEMENTFLAG_PITCH_UP: return 7;
+        case MOVEMENTFLAG_PITCH_DOWN: return 8;
+        case MOVEMENTFLAG_WALKING: return 9;
+        case MOVEMENTFLAG_DISABLE_GRAVITY: return 10;
+        case MOVEMENTFLAG_ROOT: return 11;
+        case MOVEMENTFLAG_FALLING: return 12;
+        case MOVEMENTFLAG_FALLING_FAR: return 13;
+        case MOVEMENTFLAG_PENDING_STOP: return 14;
+        case MOVEMENTFLAG_PENDING_STRAFE_STOP: return 15;
+        case MOVEMENTFLAG_PENDING_FORWARD: return 16;
+        case MOVEMENTFLAG_PENDING_BACKWARD: return 17;
+        case MOVEMENTFLAG_PENDING_STRAFE_LEFT: return 18;
+        case MOVEMENTFLAG_PENDING_STRAFE_RIGHT: return 19;
+        case MOVEMENTFLAG_PENDING_ROOT: return 20;
+        case MOVEMENTFLAG_SWIMMING: return 21;
+        case MOVEMENTFLAG_ASCENDING: return 22;
+        case MOVEMENTFLAG_DESCENDING: return 23;
+        case MOVEMENTFLAG_CAN_FLY: return 24;
+        case MOVEMENTFLAG_FLYING: return 25;
+        case MOVEMENTFLAG_SPLINE_ELEVATION: return 26;
+        case MOVEMENTFLAG_WATERWALKING: return 27;
+        case MOVEMENTFLAG_FALLING_SLOW: return 28;
+        case MOVEMENTFLAG_HOVER: return 29;
+        case MOVEMENTFLAG_DISABLE_COLLISION: return 30;
+        default: throw std::out_of_range("value");
+    }
+}
+
+/********************************************************************\
+|* data for enum 'MovementFlags2' in 'UnitDefines.h' auto-generated *|
+\********************************************************************/
+template <>
+TC_API_EXPORT EnumText EnumUtils<MovementFlags2>::ToString(MovementFlags2 value)
+{
+    switch (value)
+    {
+        case MOVEMENTFLAG2_NONE: return { "MOVEMENTFLAG2_NONE", "MOVEMENTFLAG2_NONE", "" };
+        case MOVEMENTFLAG2_NO_STRAFE: return { "MOVEMENTFLAG2_NO_STRAFE", "MOVEMENTFLAG2_NO_STRAFE", "" };
+        case MOVEMENTFLAG2_NO_JUMPING: return { "MOVEMENTFLAG2_NO_JUMPING", "MOVEMENTFLAG2_NO_JUMPING", "" };
+        case MOVEMENTFLAG2_FULL_SPEED_TURNING: return { "MOVEMENTFLAG2_FULL_SPEED_TURNING", "MOVEMENTFLAG2_FULL_SPEED_TURNING", "" };
+        case MOVEMENTFLAG2_FULL_SPEED_PITCHING: return { "MOVEMENTFLAG2_FULL_SPEED_PITCHING", "MOVEMENTFLAG2_FULL_SPEED_PITCHING", "" };
+        case MOVEMENTFLAG2_ALWAYS_ALLOW_PITCHING: return { "MOVEMENTFLAG2_ALWAYS_ALLOW_PITCHING", "MOVEMENTFLAG2_ALWAYS_ALLOW_PITCHING", "" };
+        case MOVEMENTFLAG2_IS_VEHICLE_EXIT_VOLUNTARY: return { "MOVEMENTFLAG2_IS_VEHICLE_EXIT_VOLUNTARY", "MOVEMENTFLAG2_IS_VEHICLE_EXIT_VOLUNTARY", "" };
+        case MOVEMENTFLAG2_WATERWALKING_FULL_PITCH: return { "MOVEMENTFLAG2_WATERWALKING_FULL_PITCH", "MOVEMENTFLAG2_WATERWALKING_FULL_PITCH", "will always waterwalk, even if facing the camera directly down" };
+        case MOVEMENTFLAG2_VEHICLE_PASSENGER_IS_TRANSITION_ALLOWED: return { "MOVEMENTFLAG2_VEHICLE_PASSENGER_IS_TRANSITION_ALLOWED", "MOVEMENTFLAG2_VEHICLE_PASSENGER_IS_TRANSITION_ALLOWED", "" };
+        case MOVEMENTFLAG2_CAN_SWIM_TO_FLY_TRANS: return { "MOVEMENTFLAG2_CAN_SWIM_TO_FLY_TRANS", "MOVEMENTFLAG2_CAN_SWIM_TO_FLY_TRANS", "" };
+        case MOVEMENTFLAG2_UNK9: return { "MOVEMENTFLAG2_UNK9", "MOVEMENTFLAG2_UNK9", "terrain normal calculation is disabled if this flag is not present, client automatically handles setting this flag" };
+        case MOVEMENTFLAG2_CAN_TURN_WHILE_FALLING: return { "MOVEMENTFLAG2_CAN_TURN_WHILE_FALLING", "MOVEMENTFLAG2_CAN_TURN_WHILE_FALLING", "" };
+        case MOVEMENTFLAG2_IGNORE_MOVEMENT_FORCES: return { "MOVEMENTFLAG2_IGNORE_MOVEMENT_FORCES", "MOVEMENTFLAG2_IGNORE_MOVEMENT_FORCES", "" };
+        case MOVEMENTFLAG2_CAN_DOUBLE_JUMP: return { "MOVEMENTFLAG2_CAN_DOUBLE_JUMP", "MOVEMENTFLAG2_CAN_DOUBLE_JUMP", "" };
+        case MOVEMENTFLAG2_DOUBLE_JUMP: return { "MOVEMENTFLAG2_DOUBLE_JUMP", "MOVEMENTFLAG2_DOUBLE_JUMP", "" };
+        case MOVEMENTFLAG2_AWAITING_LOAD: return { "MOVEMENTFLAG2_AWAITING_LOAD", "MOVEMENTFLAG2_AWAITING_LOAD", "" };
+        case MOVEMENTFLAG2_INTERPOLATED_MOVEMENT: return { "MOVEMENTFLAG2_INTERPOLATED_MOVEMENT", "MOVEMENTFLAG2_INTERPOLATED_MOVEMENT", "" };
+        case MOVEMENTFLAG2_INTERPOLATED_TURNING: return { "MOVEMENTFLAG2_INTERPOLATED_TURNING", "MOVEMENTFLAG2_INTERPOLATED_TURNING", "" };
+        case MOVEMENTFLAG2_INTERPOLATED_PITCHING: return { "MOVEMENTFLAG2_INTERPOLATED_PITCHING", "MOVEMENTFLAG2_INTERPOLATED_PITCHING", "" };
+        default: throw std::out_of_range("value");
+    }
+}
+
+template <>
+TC_API_EXPORT size_t EnumUtils<MovementFlags2>::Count() { return 19; }
+
+template <>
+TC_API_EXPORT MovementFlags2 EnumUtils<MovementFlags2>::FromIndex(size_t index)
+{
+    switch (index)
+    {
+        case 0: return MOVEMENTFLAG2_NONE;
+        case 1: return MOVEMENTFLAG2_NO_STRAFE;
+        case 2: return MOVEMENTFLAG2_NO_JUMPING;
+        case 3: return MOVEMENTFLAG2_FULL_SPEED_TURNING;
+        case 4: return MOVEMENTFLAG2_FULL_SPEED_PITCHING;
+        case 5: return MOVEMENTFLAG2_ALWAYS_ALLOW_PITCHING;
+        case 6: return MOVEMENTFLAG2_IS_VEHICLE_EXIT_VOLUNTARY;
+        case 7: return MOVEMENTFLAG2_WATERWALKING_FULL_PITCH;
+        case 8: return MOVEMENTFLAG2_VEHICLE_PASSENGER_IS_TRANSITION_ALLOWED;
+        case 9: return MOVEMENTFLAG2_CAN_SWIM_TO_FLY_TRANS;
+        case 10: return MOVEMENTFLAG2_UNK9;
+        case 11: return MOVEMENTFLAG2_CAN_TURN_WHILE_FALLING;
+        case 12: return MOVEMENTFLAG2_IGNORE_MOVEMENT_FORCES;
+        case 13: return MOVEMENTFLAG2_CAN_DOUBLE_JUMP;
+        case 14: return MOVEMENTFLAG2_DOUBLE_JUMP;
+        case 15: return MOVEMENTFLAG2_AWAITING_LOAD;
+        case 16: return MOVEMENTFLAG2_INTERPOLATED_MOVEMENT;
+        case 17: return MOVEMENTFLAG2_INTERPOLATED_TURNING;
+        case 18: return MOVEMENTFLAG2_INTERPOLATED_PITCHING;
+        default: throw std::out_of_range("index");
+    }
+}
+
+template <>
+TC_API_EXPORT size_t EnumUtils<MovementFlags2>::ToIndex(MovementFlags2 value)
+{
+    switch (value)
+    {
+        case MOVEMENTFLAG2_NONE: return 0;
+        case MOVEMENTFLAG2_NO_STRAFE: return 1;
+        case MOVEMENTFLAG2_NO_JUMPING: return 2;
+        case MOVEMENTFLAG2_FULL_SPEED_TURNING: return 3;
+        case MOVEMENTFLAG2_FULL_SPEED_PITCHING: return 4;
+        case MOVEMENTFLAG2_ALWAYS_ALLOW_PITCHING: return 5;
+        case MOVEMENTFLAG2_IS_VEHICLE_EXIT_VOLUNTARY: return 6;
+        case MOVEMENTFLAG2_WATERWALKING_FULL_PITCH: return 7;
+        case MOVEMENTFLAG2_VEHICLE_PASSENGER_IS_TRANSITION_ALLOWED: return 8;
+        case MOVEMENTFLAG2_CAN_SWIM_TO_FLY_TRANS: return 9;
+        case MOVEMENTFLAG2_UNK9: return 10;
+        case MOVEMENTFLAG2_CAN_TURN_WHILE_FALLING: return 11;
+        case MOVEMENTFLAG2_IGNORE_MOVEMENT_FORCES: return 12;
+        case MOVEMENTFLAG2_CAN_DOUBLE_JUMP: return 13;
+        case MOVEMENTFLAG2_DOUBLE_JUMP: return 14;
+        case MOVEMENTFLAG2_AWAITING_LOAD: return 15;
+        case MOVEMENTFLAG2_INTERPOLATED_MOVEMENT: return 16;
+        case MOVEMENTFLAG2_INTERPOLATED_TURNING: return 17;
+        case MOVEMENTFLAG2_INTERPOLATED_PITCHING: return 18;
+        default: throw std::out_of_range("value");
+    }
+}
+
+/********************************************************************\
+|* data for enum 'MovementFlags3' in 'UnitDefines.h' auto-generated *|
+\********************************************************************/
+template <>
+TC_API_EXPORT EnumText EnumUtils<MovementFlags3>::ToString(MovementFlags3 value)
+{
+    switch (value)
+    {
+        case MOVEMENTFLAG3_NONE: return { "MOVEMENTFLAG3_NONE", "MOVEMENTFLAG3_NONE", "" };
+        case MOVEMENTFLAG3_DISABLE_INERTIA: return { "MOVEMENTFLAG3_DISABLE_INERTIA", "MOVEMENTFLAG3_DISABLE_INERTIA", "" };
+        case MOVEMENTFLAG3_CAN_ADV_FLY: return { "MOVEMENTFLAG3_CAN_ADV_FLY", "MOVEMENTFLAG3_CAN_ADV_FLY", "" };
+        case MOVEMENTFLAG3_ADV_FLYING: return { "MOVEMENTFLAG3_ADV_FLYING", "MOVEMENTFLAG3_ADV_FLYING", "" };
+        default: throw std::out_of_range("value");
+    }
+}
+
+template <>
+TC_API_EXPORT size_t EnumUtils<MovementFlags3>::Count() { return 4; }
+
+template <>
+TC_API_EXPORT MovementFlags3 EnumUtils<MovementFlags3>::FromIndex(size_t index)
+{
+    switch (index)
+    {
+        case 0: return MOVEMENTFLAG3_NONE;
+        case 1: return MOVEMENTFLAG3_DISABLE_INERTIA;
+        case 2: return MOVEMENTFLAG3_CAN_ADV_FLY;
+        case 3: return MOVEMENTFLAG3_ADV_FLYING;
+        default: throw std::out_of_range("index");
+    }
+}
+
+template <>
+TC_API_EXPORT size_t EnumUtils<MovementFlags3>::ToIndex(MovementFlags3 value)
+{
+    switch (value)
+    {
+        case MOVEMENTFLAG3_NONE: return 0;
+        case MOVEMENTFLAG3_DISABLE_INERTIA: return 1;
+        case MOVEMENTFLAG3_CAN_ADV_FLY: return 2;
+        case MOVEMENTFLAG3_ADV_FLYING: return 3;
         default: throw std::out_of_range("value");
     }
 }

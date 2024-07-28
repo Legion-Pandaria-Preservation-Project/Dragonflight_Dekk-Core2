@@ -16,7 +16,6 @@
  */
 
 #include "ServiceBase.h"
-#include "Config.h"
 #include "Errors.h"
 #include "Log.h"
 #include <google/protobuf/message.h>
@@ -41,7 +40,6 @@ void ServiceBase::LogCallServerMethod(char const* methodName, char const* inputT
 
 void ServiceBase::LogUnimplementedServerMethod(char const* methodName, google::protobuf::Message const* request)
 {
-    if (sConfigMgr->GetBoolDefault("Console.NIM.Messages.Enabled", false)) // < Fluxurion
     TC_LOG_ERROR("service.protobuf", "{} Client tried to call not implemented method {}({{ {} }})",
             GetCallerInfo(), methodName, request->ShortDebugString());
 }

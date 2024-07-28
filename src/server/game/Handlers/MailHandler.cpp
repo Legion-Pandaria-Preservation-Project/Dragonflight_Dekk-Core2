@@ -117,7 +117,7 @@ void WorldSession::HandleSendMail(WorldPackets::Mail::SendMail& sendMail)
     }
 
     TC_LOG_INFO("network", "Player {} is sending mail to {} ({}) with subject {} and body {} "
-        "includes {} items, {} copper and " SI64FMTD  " COD copper with StationeryID = {}",
+        "includes {} items, {} copper and {} COD copper with StationeryID = {}",
         GetPlayerInfo(), sendMail.Info.Target, receiverGuid.ToString(), sendMail.Info.Subject,
         sendMail.Info.Body, sendMail.Info.Attachments.size(), sendMail.Info.SendMoney, sendMail.Info.Cod, sendMail.Info.StationeryID);
 
@@ -138,16 +138,16 @@ void WorldSession::HandleSendMail(WorldPackets::Mail::SendMail& sendMail)
         return;
     }
 
-    if (!player->HasEnoughMoney(reqmoney) && !player->IsGameMaster())
-    {
-        player->SendMailResult(0, MAIL_SEND, MAIL_ERR_NOT_ENOUGH_MONEY);
-        return;
-    }
-
-    auto mailCountCheckContinuation = [this, player = _player, receiverGuid, mailInfo = std::move(sendMail.Info), reqmoney, cost](uint32 receiverTeam, uint64 mailsCount, uint8 receiverLevel, uint32 receiverAccountId, uint32 receiverBnetAccountId) mutable
+    auto mailCountCheckContinuation = [this, player = _player, receiverGuid, mailInfo = std::move(sendMail.Info), reqmoney, cost](Team receiverTeam, uint64 mailsCount, uint8 receiverLevel, uint32 receiverAccountId, uint32 receiverBnetAccountId) mutable
     {
         if (_player != player)
             return;
+
+        if (!player->HasEnoughMoney(reqmoney) && !player->IsGameMaster())
+        {
+            player->SendMailResult(0, MAIL_SEND, MAIL_ERR_NOT_ENOUGH_MONEY);
+            return;
+        }
 
         // do not allow to have more than 100 mails in mailbox.. mails count is in opcode uint8!!! - so max can be 255..
         if (mailsCount > 100)
@@ -202,6 +202,13 @@ void WorldSession::HandleSendMail(WorldPackets::Mail::SendMail& sendMail)
                 return;
             }
 
+            // handle empty bag before CanBeTraded, since that func already has that check
+            if (item->IsNotEmptyBag())
+            {
+                player->SendMailResult(0, MAIL_SEND, MAIL_ERR_EQUIP_ERROR, EQUIP_ERR_DESTROY_NONEMPTY_BAG);
+                return;
+            }
+
             if (!item->CanBeTraded(true))
             {
                 player->SendMailResult(0, MAIL_SEND, MAIL_ERR_EQUIP_ERROR, EQUIP_ERR_MAIL_BOUND_ITEM);
@@ -226,12 +233,6 @@ void WorldSession::HandleSendMail(WorldPackets::Mail::SendMail& sendMail)
             if (mailInfo.Cod && item->IsWrapped())
             {
                 player->SendMailResult(0, MAIL_SEND, MAIL_ERR_CANT_SEND_WRAPPED_COD);
-                return;
-            }
-
-            if (item->IsNotEmptyBag())
-            {
-                player->SendMailResult(0, MAIL_SEND, MAIL_ERR_EQUIP_ERROR, EQUIP_ERR_DESTROY_NONEMPTY_BAG);
                 return;
             }
 
@@ -319,14 +320,14 @@ void WorldSession::HandleSendMail(WorldPackets::Mail::SendMail& sendMail)
 
         GetQueryProcessor().AddCallback(CharacterDatabase.AsyncQuery(stmt)
             .WithChainingPreparedCallback([continuation = std::move(mailCountCheckContinuation), receiverGuid](QueryCallback& queryCallback, PreparedQueryResult mailCountResult) mutable
+        {
+            if (CharacterCacheEntry const* characterInfo = sCharacterCache->GetCharacterCacheByGuid(receiverGuid))
+                queryCallback.WithPreparedCallback([continuation = std::move(continuation), characterInfo, mailCountResult](PreparedQueryResult bnetAccountResult) mutable
                 {
-                    if (CharacterCacheEntry const* characterInfo = sCharacterCache->GetCharacterCacheByGuid(receiverGuid))
-                    queryCallback.WithPreparedCallback([continuation = std::move(continuation), characterInfo, mailCountResult](PreparedQueryResult bnetAccountResult) mutable
-                        {
-                            continuation(Player::TeamForRace(characterInfo->Race), mailCountResult ? (*mailCountResult)[0].GetUInt64() : UI64LIT(0),
-                            characterInfo->Level, characterInfo->AccountId, bnetAccountResult ? (*bnetAccountResult)[0].GetUInt32() : 0);
-                        }).SetNextQuery(Battlenet::AccountMgr::GetIdByGameAccountAsync(characterInfo->AccountId));
-                }));
+                    continuation(Player::TeamForRace(characterInfo->Race), mailCountResult ? (*mailCountResult)[0].GetUInt64() : UI64LIT(0),
+                        characterInfo->Level, characterInfo->AccountId, bnetAccountResult ? (*bnetAccountResult)[0].GetUInt32() : 0);
+                }).SetNextQuery(Battlenet::AccountMgr::GetIdByGameAccountAsync(characterInfo->AccountId));
+        }));
     }
 }
 
@@ -436,7 +437,7 @@ void WorldSession::HandleMailTakeItem(WorldPackets::Mail::MailTakeItem& takeItem
     }
 
     // verify that the mail has the item to avoid cheaters taking COD items without paying
-    if (std::find_if(m->items.begin(), m->items.end(), [AttachID](MailItemInfo info) { return info.item_guid == AttachID; }) == m->items.end())
+    if (std::find_if(m->items.begin(), m->items.end(), [AttachID](MailItemInfo info){ return info.item_guid == AttachID; }) == m->items.end())
     {
         player->SendMailResult(takeItem.MailID, MAIL_ITEM_TAKEN, MAIL_ERR_INTERNAL_ERROR);
         return;
@@ -546,7 +547,7 @@ void WorldSession::HandleMailTakeMoney(WorldPackets::Mail::MailTakeMoney& takeMo
 
     // save money and mail to prevent cheating
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
-    player->SaveGoldToDB(trans);
+    player->SaveInventoryAndGoldToDB(trans);
     player->_SaveMail(trans);
     CharacterDatabase.CommitTransaction(trans);
 }

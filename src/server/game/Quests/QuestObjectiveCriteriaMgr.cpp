@@ -25,6 +25,7 @@
 #include "Map.h"
 #include "ObjectMgr.h"
 #include "Player.h"
+#include "WorldSession.h"
 
 QuestObjectiveCriteriaMgr::QuestObjectiveCriteriaMgr(Player* owner) : _owner(owner)
 {
@@ -164,38 +165,6 @@ void QuestObjectiveCriteriaMgr::SaveToDB(CharacterDatabaseTransaction trans)
     }
 }
 
-void QuestObjectiveCriteriaMgr::ResetCriteria(CriteriaFailEvent failEvent, int32 failAsset, bool evenIfCriteriaComplete)
-{
-    TC_LOG_DEBUG("criteria.quest", "QuestObjectiveCriteriaMgr::ResetCriteria({}, {}, {})", uint32(failEvent), failAsset, evenIfCriteriaComplete ? "true" : "false");
-
-    // disable for gamemasters with GM-mode enabled
-    if (_owner->IsGameMaster())
-        return;
-
-    if (CriteriaList const* playerCriteriaList = sCriteriaMgr->GetCriteriaByFailEvent(failEvent, failAsset))
-    {
-        for (Criteria const* playerCriteria : *playerCriteriaList)
-        {
-            std::vector<CriteriaTree const*> const* trees = sCriteriaMgr->GetCriteriaTreesByCriteria(playerCriteria->ID);
-            bool allComplete = true;
-            for (CriteriaTree const* tree : *trees)
-            {
-                // don't update already completed criteria if not forced
-                if (!(IsCompletedCriteriaTree(tree) && !evenIfCriteriaComplete))
-                {
-                    allComplete = false;
-                    break;
-                }
-            }
-
-            if (allComplete)
-                continue;
-
-            RemoveCriteriaProgress(playerCriteria);
-        }
-    }
-}
-
 void QuestObjectiveCriteriaMgr::ResetCriteriaTree(uint32 criteriaTreeId)
 {
     CriteriaTree const* tree = sCriteriaMgr->GetCriteriaTree(criteriaTreeId);
@@ -203,9 +172,9 @@ void QuestObjectiveCriteriaMgr::ResetCriteriaTree(uint32 criteriaTreeId)
         return;
 
     CriteriaMgr::WalkCriteriaTree(tree, [this](CriteriaTree const* criteriaTree)
-        {
-            RemoveCriteriaProgress(criteriaTree->Criteria);
-        });
+    {
+        RemoveCriteriaProgress(criteriaTree->Criteria);
+    });
 }
 
 void QuestObjectiveCriteriaMgr::SendAllData(Player const* /*receiver*/) const
@@ -219,7 +188,8 @@ void QuestObjectiveCriteriaMgr::SendAllData(Player const* /*receiver*/) const
         criteriaUpdate.PlayerGUID = _owner->GetGUID();
         criteriaUpdate.Flags = 0;
 
-        criteriaUpdate.CurrentTime = criteriaProgres.second.Date;
+        criteriaUpdate.CurrentTime.SetUtcTimeFromUnixTime(criteriaProgres.second.Date);
+        criteriaUpdate.CurrentTime += _owner->GetSession()->GetTimezoneOffset();
         criteriaUpdate.CreationTime = 0;
 
         SendPacket(criteriaUpdate.Write());
@@ -254,7 +224,8 @@ void QuestObjectiveCriteriaMgr::SendCriteriaUpdate(Criteria const* criteria, Cri
     if (criteria->Entry->StartTimer)
         criteriaUpdate.Flags = timedCompleted ? 1 : 0; // 1 is for keeping the counter at 0 in client
 
-    criteriaUpdate.CurrentTime = progress->Date;
+    criteriaUpdate.CurrentTime.SetUtcTimeFromUnixTime(progress->Date);
+    criteriaUpdate.CurrentTime += _owner->GetSession()->GetTimezoneOffset();
     criteriaUpdate.ElapsedTime = timeElapsed;
     criteriaUpdate.CreationTime = 0;
 
@@ -340,29 +311,7 @@ CriteriaList const& QuestObjectiveCriteriaMgr::GetCriteriaByType(CriteriaType ty
     return sCriteriaMgr->GetQuestObjectiveCriteriaByType(type);
 }
 
-//DekkCore
-void QuestObjectiveCriteriaMgr::RemoveCompletedObjective(QuestObjective const* questObjective)
+bool QuestObjectiveCriteriaMgr::RequiredAchievementSatisfied(uint32 achievementId) const
 {
-    if (!HasCompletedObjective(questObjective))
-        return;
-
-    TC_LOG_INFO("criteria.quest", "QuestObjectiveCriteriaMgr::RemoveCompletedObjective({}). {}", questObjective->ID, GetOwnerInfo());
-
-    _completedObjectives.erase(questObjective->ID);
+    return _owner->HasAchieved(achievementId);
 }
-
-void QuestObjectiveCriteriaMgr::ResetCriteriaID(CriteriaType type, uint32 id)
-{
-    TC_LOG_DEBUG("criteria.achievement", "PlayerAchievementMgr::ResetCriteriaID(%u)", id);
-    CriteriaList list = GetCriteriaByType(type, id);
-
-    for (Criteria const* crit : list)
-    {
-        if (crit->Entry->ID == id)
-        {
-            RemoveCriteriaProgress(crit);
-            break;
-        }
-    }
-}
-//DekkCore

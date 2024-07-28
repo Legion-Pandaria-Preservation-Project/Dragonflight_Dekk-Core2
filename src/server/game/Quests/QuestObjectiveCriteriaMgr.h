@@ -35,7 +35,6 @@ public:
     void LoadFromDB(PreparedQueryResult objectiveResult, PreparedQueryResult criteriaResult);
     void SaveToDB(CharacterDatabaseTransaction trans);
 
-    void ResetCriteria(CriteriaFailEvent failEvent, int32 failAsset, bool evenIfCriteriaComplete = false);
     void ResetCriteriaTree(uint32 criteriaTreeId);
 
     void SendAllData(Player const* receiver) const override;
@@ -43,10 +42,6 @@ public:
     void CompletedObjective(QuestObjective const* questObjective, Player* referencePlayer);
     bool HasCompletedObjective(QuestObjective const* questObjective) const;
 
-    //DekkCore
-    void RemoveCompletedObjective(QuestObjective const* questObjective);
-    void ResetCriteriaID(CriteriaType type, uint32 id);
-    //DekkCore
 protected:
     void SendCriteriaUpdate(Criteria const* entry, CriteriaProgress const* progress, Seconds timeElapsed, bool timedCompleted) const override;
 
@@ -60,6 +55,8 @@ protected:
 
     std::string GetOwnerInfo() const override;
     CriteriaList const& GetCriteriaByType(CriteriaType type, uint32 asset) const override;
+
+    bool RequiredAchievementSatisfied(uint32 achievementId) const override;
 
 private:
     Player* _owner;

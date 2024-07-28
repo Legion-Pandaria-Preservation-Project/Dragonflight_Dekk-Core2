@@ -21,13 +21,18 @@
 #include "CryptoRandom.h"
 #include "DatabaseEnv.h"
 #include "Errors.h"
+#include "Hash.h"
 #include "IPLocation.h"
-#include "QueryCallback.h"
 #include "LoginRESTService.h"
+#include "MapUtils.h"
 #include "ProtobufJSON.h"
+#include "QueryCallback.h"
 #include "RealmList.h"
-#include "ServiceDispatcher.h"
 #include "RealmList.pb.h"
+#include "ServiceDispatcher.h"
+#include "SslContext.h"
+#include "Timezone.h"
+#include <rapidjson/document.h>
 #include <zlib.h>
 
 void Battlenet::Session::AccountInfo::LoadResult(PreparedQueryResult result)
@@ -43,7 +48,7 @@ void Battlenet::Session::AccountInfo::LoadResult(PreparedQueryResult result)
     IsBanned = fields[6].GetUInt64() != 0;
     IsPermanenetlyBanned = fields[7].GetUInt64() != 0;
 
-    static uint32 const GameAccountFieldsOffset = 8;
+    static constexpr uint32 GameAccountFieldsOffset = 8;
 
     do
     {
@@ -52,7 +57,7 @@ void Battlenet::Session::AccountInfo::LoadResult(PreparedQueryResult result)
     } while (result->NextRow());
 }
 
-void Battlenet::Session::GameAccountInfo::LoadResult(Field* fields)
+void Battlenet::Session::GameAccountInfo::LoadResult(Field const* fields)
 {
     // a.id, a.username, ab.unbandate, ab.unbandate = ab.bandate, aa.SecurityLevel
     Id = fields[0].GetUInt32();
@@ -69,19 +74,19 @@ void Battlenet::Session::GameAccountInfo::LoadResult(Field* fields)
         DisplayName = Name;
 }
 
-Battlenet::Session::Session(boost::asio::ip::tcp::socket&& socket) : BattlenetSocket(std::move(socket)), _accountInfo(new AccountInfo()), _gameAccountInfo(nullptr), _locale(),
-_os(), _build(0), _ipCountry(), _authed(false), _requestToken(0)
+Battlenet::Session::Session(boost::asio::ip::tcp::socket&& socket) : BattlenetSocket(std::move(socket), SslContext::instance()),
+    _accountInfo(new AccountInfo()), _gameAccountInfo(nullptr), _locale(),
+    _os(), _build(0), _timezoneOffset(0min), _ipCountry(), _clientSecret(), _authed(false), _requestToken(0)
 {
     _headerLengthBuffer.Resize(2);
 }
 
-Battlenet::Session::~Session()
-{
-}
+Battlenet::Session::~Session() = default;
 
 void Battlenet::Session::AsyncHandshake()
 {
-    underlying_stream().async_handshake(boost::asio::ssl::stream_base::server, std::bind(&Session::HandshakeHandler, shared_from_this(), std::placeholders::_1));
+    underlying_stream().async_handshake(boost::asio::ssl::stream_base::server,
+        [sess = shared_from_this()](boost::system::error_code const& error) { sess->HandshakeHandler(error); });
 }
 
 void Battlenet::Session::Start()
@@ -95,7 +100,8 @@ void Battlenet::Session::Start()
     LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_IP_INFO);
     stmt->setString(0, ip_address);
 
-    _queryProcessor.AddCallback(LoginDatabase.AsyncQuery(stmt).WithPreparedCallback(std::bind(&Battlenet::Session::CheckIpCallback, this, std::placeholders::_1)));
+    _queryProcessor.AddCallback(LoginDatabase.AsyncQuery(stmt)
+        .WithPreparedCallback([sess = shared_from_this()](PreparedQueryResult result) { sess->CheckIpCallback(std::move(result)); }));
 }
 
 void Battlenet::Session::CheckIpCallback(PreparedQueryResult result)
@@ -229,12 +235,33 @@ uint32 Battlenet::Session::HandleLogon(authentication::v1::LogonRequest const* l
     _os = logonRequest->platform();
     _build = logonRequest->application_version();
 
+    _timezoneOffset = [&]
+    {
+        if (!logonRequest->has_device_id())
+            return 0min;
+
+        rapidjson::Document doc;
+        doc.Parse(logonRequest->device_id());
+        if (doc.HasParseError())
+            return 0min;
+
+        auto itr = doc.FindMember("UTCO");
+        if (itr == doc.MemberEnd())
+            return 0min;
+
+        if (!itr->value.IsUint())
+            return 0min;
+
+        return Trinity::Timezone::GetOffsetByHash(itr->value.GetUint());
+    }();
+
     if (logonRequest->has_cached_web_credentials())
         return VerifyWebCredentials(logonRequest->cached_web_credentials(), continuation);
 
     challenge::v1::ChallengeExternalRequest externalChallenge;
     externalChallenge.set_payload_type("web_auth_url");
-    externalChallenge.set_payload(Trinity::StringFormat("https://{}:{}/bnetserver/login/", sLoginService.GetHostnameForClient(GetRemoteIpAddress()), sLoginService.GetPort()));
+    externalChallenge.set_payload(Trinity::StringFormat("http{}://{}:{}/bnetserver/login/", !SslContext::UsesDevWildcardCertificate() ? "s" : "",
+        sLoginService.GetHostnameForClient(GetRemoteIpAddress()), sLoginService.GetPort()));
     Service<challenge::v1::ChallengeListener>(this).OnExternalChallenge(&externalChallenge);
     return ERROR_OK;
 }
@@ -266,13 +293,13 @@ uint32 Battlenet::Session::HandleGenerateWebCredentials(authentication::v1::Gene
     stmt->setUInt32(0, _accountInfo->Id);
 
     _queryProcessor.AddCallback(LoginDatabase.AsyncQuery(stmt).WithPreparedCallback([this, asyncContinuation = std::move(continuation)](PreparedQueryResult result)
-        {
-            // just send existing credentials back (not the best but it works for now with them being stored in db)
-            Battlenet::Services::Authentication asyncContinuationService(this);
-    authentication::v1::GenerateWebCredentialsResponse response;
-    response.set_web_credentials((*result)[0].GetCString());
-    asyncContinuation(&asyncContinuationService, ERROR_OK, &response);
-        }));
+    {
+        // just send existing credentials back (not the best but it works for now with them being stored in db)
+        Battlenet::Services::Authentication asyncContinuationService(this);
+        authentication::v1::GenerateWebCredentialsResponse response;
+        response.set_web_credentials((*result)[0].GetCString());
+        asyncContinuation(&asyncContinuationService, ERROR_OK, &response);
+    }));
 
     return ERROR_OK;
 }
@@ -288,141 +315,141 @@ uint32 Battlenet::Session::VerifyWebCredentials(std::string const& webCredential
     std::function<void(ServiceBase*, uint32, ::google::protobuf::Message const*)> asyncContinuation = std::move(continuation);
     std::shared_ptr<AccountInfo> accountInfo = std::make_shared<AccountInfo>();
     _queryProcessor.AddCallback(LoginDatabase.AsyncQuery(stmt).WithChainingPreparedCallback([this, accountInfo, asyncContinuation](QueryCallback& callback, PreparedQueryResult result)
+    {
+        Battlenet::Services::Authentication asyncContinuationService(this);
+        NoData response;
+        if (!result)
         {
-            Battlenet::Services::Authentication asyncContinuationService(this);
-    NoData response;
-    if (!result)
-    {
-        asyncContinuation(&asyncContinuationService, ERROR_DENIED, &response);
-        return;
-    }
+            asyncContinuation(&asyncContinuationService, ERROR_DENIED, &response);
+            return;
+        }
 
-    accountInfo->LoadResult(result);
+        accountInfo->LoadResult(result);
 
-    if (accountInfo->LoginTicketExpiry < time(nullptr))
-    {
-        asyncContinuation(&asyncContinuationService, ERROR_TIMED_OUT, &response);
-        return;
-    }
+        if (accountInfo->LoginTicketExpiry < time(nullptr))
+        {
+            asyncContinuation(&asyncContinuationService, ERROR_TIMED_OUT, &response);
+            return;
+        }
 
-    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BNET_CHARACTER_COUNTS_BY_BNET_ID);
-    stmt->setUInt32(0, accountInfo->Id);
-    callback.SetNextQuery(LoginDatabase.AsyncQuery(stmt));
-        })
+        LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BNET_CHARACTER_COUNTS_BY_BNET_ID);
+        stmt->setUInt32(0, accountInfo->Id);
+        callback.SetNextQuery(LoginDatabase.AsyncQuery(stmt));
+    })
         .WithChainingPreparedCallback([accountInfo](QueryCallback& callback, PreparedQueryResult characterCountsResult)
+    {
+        if (characterCountsResult)
+        {
+            do
             {
-                if (characterCountsResult)
-                {
-                    do
-                    {
-                        Field* fields = characterCountsResult->Fetch();
-                        accountInfo->GameAccounts[fields[0].GetUInt32()]
-                            .CharacterCounts[Battlenet::RealmHandle{ fields[3].GetUInt8(), fields[4].GetUInt8(), fields[2].GetUInt32() }.GetAddress()] = fields[1].GetUInt8();
+                Field* fields = characterCountsResult->Fetch();
+                accountInfo->GameAccounts[fields[0].GetUInt32()]
+                    .CharacterCounts[Battlenet::RealmHandle{ fields[3].GetUInt8(), fields[4].GetUInt8(), fields[2].GetUInt32() }.GetAddress()] = fields[1].GetUInt8();
 
-                    } while (characterCountsResult->NextRow());
-                }
+            } while (characterCountsResult->NextRow());
+        }
 
         LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_BNET_LAST_PLAYER_CHARACTERS);
         stmt->setUInt32(0, accountInfo->Id);
         callback.SetNextQuery(LoginDatabase.AsyncQuery(stmt));
-            })
-            .WithPreparedCallback([this, accountInfo, asyncContinuation](PreparedQueryResult lastPlayerCharactersResult)
-                {
-                    if (lastPlayerCharactersResult)
-                    {
-                        do
-                        {
-                            Field* fields = lastPlayerCharactersResult->Fetch();
-                            Battlenet::RealmHandle realmId{ fields[1].GetUInt8(), fields[2].GetUInt8(), fields[3].GetUInt32() };
-                            Battlenet::Session::LastPlayedCharacterInfo& lastPlayedCharacter = accountInfo->GameAccounts[fields[0].GetUInt32()]
-                                .LastPlayedCharacters[realmId.GetSubRegionAddress()];
-
-                            lastPlayedCharacter.RealmId = realmId;
-                            lastPlayedCharacter.CharacterName = fields[4].GetString();
-                            lastPlayedCharacter.CharacterGUID = fields[5].GetUInt64();
-                            lastPlayedCharacter.LastPlayedTime = fields[6].GetUInt32();
-
-                        } while (lastPlayerCharactersResult->NextRow());
-                    }
-
-            _accountInfo = accountInfo;
-            Battlenet::Services::Authentication asyncContinuationService(this);
-            NoData response;
-
-            std::string ip_address = GetRemoteIpAddress().to_string();
-
-            // If the IP is 'locked', check that the player comes indeed from the correct IP address
-            if (_accountInfo->IsLockedToIP)
+    })
+        .WithPreparedCallback([this, accountInfo, asyncContinuation](PreparedQueryResult lastPlayerCharactersResult)
+    {
+        if (lastPlayerCharactersResult)
+        {
+            do
             {
-                TC_LOG_DEBUG("session", "[Session::HandleVerifyWebCredentials] Account '{}' is locked to IP - '{}' is logging in from '{}'",
-                    _accountInfo->Login, _accountInfo->LastIP, ip_address);
+                Field* fields = lastPlayerCharactersResult->Fetch();
+                Battlenet::RealmHandle realmId{ fields[1].GetUInt8(), fields[2].GetUInt8(), fields[3].GetUInt32() };
+                Battlenet::Session::LastPlayedCharacterInfo& lastPlayedCharacter = accountInfo->GameAccounts[fields[0].GetUInt32()]
+                    .LastPlayedCharacters[realmId.GetSubRegionAddress()];
 
-                if (_accountInfo->LastIP != ip_address)
+                lastPlayedCharacter.RealmId = realmId;
+                lastPlayedCharacter.CharacterName = fields[4].GetString();
+                lastPlayedCharacter.CharacterGUID = fields[5].GetUInt64();
+                lastPlayedCharacter.LastPlayedTime = fields[6].GetUInt32();
+
+            } while (lastPlayerCharactersResult->NextRow());
+        }
+
+        _accountInfo = accountInfo;
+        Battlenet::Services::Authentication asyncContinuationService(this);
+        NoData response;
+
+        std::string ip_address = GetRemoteIpAddress().to_string();
+
+        // If the IP is 'locked', check that the player comes indeed from the correct IP address
+        if (_accountInfo->IsLockedToIP)
+        {
+            TC_LOG_DEBUG("session", "[Session::HandleVerifyWebCredentials] Account '{}' is locked to IP - '{}' is logging in from '{}'",
+                _accountInfo->Login, _accountInfo->LastIP, ip_address);
+
+            if (_accountInfo->LastIP != ip_address)
+            {
+                asyncContinuation(&asyncContinuationService, ERROR_RISK_ACCOUNT_LOCKED, &response);
+                return;
+            }
+        }
+        else
+        {
+            if (IpLocationRecord const* location = sIPLocation->GetLocationRecord(ip_address))
+                _ipCountry = location->CountryCode;
+
+            TC_LOG_DEBUG("session", "[Session::HandleVerifyWebCredentials] Account '{}' is not locked to ip", _accountInfo->Login);
+            if (_accountInfo->LockCountry.empty() || _accountInfo->LockCountry == "00")
+                TC_LOG_DEBUG("session", "[Session::HandleVerifyWebCredentials] Account '{}' is not locked to country", _accountInfo->Login);
+            else if (!_accountInfo->LockCountry.empty() && !_ipCountry.empty())
+            {
+                TC_LOG_DEBUG("session", "[Session::HandleVerifyWebCredentials] Account '{}' is locked to country: '{}' Player country is '{}'",
+                    _accountInfo->Login, _accountInfo->LockCountry, _ipCountry);
+
+                if (_ipCountry != _accountInfo->LockCountry)
                 {
                     asyncContinuation(&asyncContinuationService, ERROR_RISK_ACCOUNT_LOCKED, &response);
                     return;
                 }
             }
+        }
+
+        // If the account is banned, reject the logon attempt
+        if (_accountInfo->IsBanned)
+        {
+            if (_accountInfo->IsPermanenetlyBanned)
+            {
+                TC_LOG_DEBUG("session", "{} [Session::HandleVerifyWebCredentials] Banned account {} tried to login!", GetClientInfo(), _accountInfo->Login);
+                asyncContinuation(&asyncContinuationService, ERROR_GAME_ACCOUNT_BANNED, &response);
+                return;
+            }
             else
             {
-                if (IpLocationRecord const* location = sIPLocation->GetLocationRecord(ip_address))
-                    _ipCountry = location->CountryCode;
-
-                TC_LOG_DEBUG("session", "[Session::HandleVerifyWebCredentials] Account '{}' is not locked to ip", _accountInfo->Login);
-                if (_accountInfo->LockCountry.empty() || _accountInfo->LockCountry == "00")
-                    TC_LOG_DEBUG("session", "[Session::HandleVerifyWebCredentials] Account '{}' is not locked to country", _accountInfo->Login);
-                else if (!_accountInfo->LockCountry.empty() && !_ipCountry.empty())
-                {
-                    TC_LOG_DEBUG("session", "[Session::HandleVerifyWebCredentials] Account '{}' is locked to country: '{}' Player country is '{}'",
-                        _accountInfo->Login, _accountInfo->LockCountry, _ipCountry);
-
-                    if (_ipCountry != _accountInfo->LockCountry)
-                    {
-                        asyncContinuation(&asyncContinuationService, ERROR_RISK_ACCOUNT_LOCKED, &response);
-                        return;
-                    }
-                }
+                TC_LOG_DEBUG("session", "{} [Session::HandleVerifyWebCredentials] Temporarily banned account {} tried to login!", GetClientInfo(), _accountInfo->Login);
+                asyncContinuation(&asyncContinuationService, ERROR_GAME_ACCOUNT_SUSPENDED, &response);
+                return;
             }
+        }
 
-            // If the account is banned, reject the logon attempt
-            if (_accountInfo->IsBanned)
-            {
-                if (_accountInfo->IsPermanenetlyBanned)
-                {
-                    TC_LOG_DEBUG("session", "{} [Session::HandleVerifyWebCredentials] Banned account {} tried to login!", GetClientInfo(), _accountInfo->Login);
-                    asyncContinuation(&asyncContinuationService, ERROR_GAME_ACCOUNT_BANNED, &response);
-                    return;
-                }
-                else
-                {
-                    TC_LOG_DEBUG("session", "{} [Session::HandleVerifyWebCredentials] Temporarily banned account {} tried to login!", GetClientInfo(), _accountInfo->Login);
-                    asyncContinuation(&asyncContinuationService, ERROR_GAME_ACCOUNT_SUSPENDED, &response);
-                    return;
-                }
-            }
+        authentication::v1::LogonResult logonResult;
+        logonResult.set_error_code(0);
+        logonResult.mutable_account_id()->set_low(_accountInfo->Id);
+        logonResult.mutable_account_id()->set_high(UI64LIT(0x100000000000000));
+        for (auto const& [id, gameAccountInfo] : accountInfo->GameAccounts)
+        {
+            EntityId* gameAccountId = logonResult.add_game_account_id();
+            gameAccountId->set_low(gameAccountInfo.Id);
+            gameAccountId->set_high(UI64LIT(0x200000200576F57));
+        }
 
-            authentication::v1::LogonResult logonResult;
-            logonResult.set_error_code(0);
-            logonResult.mutable_account_id()->set_low(_accountInfo->Id);
-            logonResult.mutable_account_id()->set_high(UI64LIT(0x100000000000000));
-            for (auto itr = _accountInfo->GameAccounts.begin(); itr != _accountInfo->GameAccounts.end(); ++itr)
-            {
-                EntityId* gameAccountId = logonResult.add_game_account_id();
-                gameAccountId->set_low(itr->second.Id);
-                gameAccountId->set_high(UI64LIT(0x200000200576F57));
-            }
+        if (!_ipCountry.empty())
+            logonResult.set_geoip_country(_ipCountry);
 
-            if (!_ipCountry.empty())
-                logonResult.set_geoip_country(_ipCountry);
+        std::array<uint8, 64> k = Trinity::Crypto::GetRandomBytes<64>();
+        logonResult.set_session_key(k.data(), 64);
 
-            std::array<uint8, 64> k = Trinity::Crypto::GetRandomBytes<64>();
-            logonResult.set_session_key(k.data(), 64);
+        _authed = true;
 
-            _authed = true;
-
-            asyncContinuation(&asyncContinuationService, ERROR_OK, &response);
-            Service<authentication::v1::AuthenticationListener>(this).OnLogonComplete(&logonResult);
-                }));
+        asyncContinuation(&asyncContinuationService, ERROR_OK, &response);
+        Service<authentication::v1::AuthenticationListener>(this).OnLogonComplete(&logonResult);
+    }));
 
     return ERROR_OK;
 }
@@ -670,7 +697,8 @@ uint32 Battlenet::Session::GetRealmList(std::unordered_map<std::string, Variant 
 uint32 Battlenet::Session::JoinRealm(std::unordered_map<std::string, Variant const*> const& params, game_utilities::v1::ClientResponse* response)
 {
     if (Variant const* realmAddress = GetParam(params, "Param_RealmAddress"))
-        return sRealmList->JoinRealm(realmAddress->uint_value(), _build, GetRemoteIpAddress(), _clientSecret, GetLocaleByName(_locale), _os, _gameAccountInfo->Name, response);
+        return sRealmList->JoinRealm(realmAddress->uint_value(), _build, GetRemoteIpAddress(), _clientSecret, GetLocaleByName(_locale),
+            _os, _timezoneOffset, _gameAccountInfo->Name, response);
 
     return ERROR_WOW_SERVICES_INVALID_JOIN_TICKET;
 }
@@ -701,7 +729,7 @@ void Battlenet::Session::HandshakeHandler(boost::system::error_code const& error
     AsyncRead();
 }
 
-template<bool(Battlenet::Session::* processMethod)(), MessageBuffer Battlenet::Session::* outputBuffer>
+template<bool(Battlenet::Session::*processMethod)(), MessageBuffer Battlenet::Session::*outputBuffer>
 inline bool PartialProcessPacket(Battlenet::Session* session, MessageBuffer& inputBuffer)
 {
     MessageBuffer& buffer = session->*outputBuffer;

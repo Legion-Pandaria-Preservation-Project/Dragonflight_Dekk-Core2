@@ -30,9 +30,11 @@
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
 #include "Player.h"
+#include "SmartEnum.h"
 #include "SpellHistory.h"
 #include "TemporarySummon.h"
 #include "Vehicle.h"
+#include <queue>
 
 std::unordered_map<std::pair<uint32, Difficulty>, AISpellInfoType> UnitAI::AISpellInfo;
 AISpellInfoType* GetAISpellInfo(uint32 spellId, Difficulty difficulty)
@@ -42,7 +44,7 @@ AISpellInfoType* GetAISpellInfo(uint32 spellId, Difficulty difficulty)
 
 CreatureAI::CreatureAI(Creature* creature, uint32 scriptId)
     : UnitAI(creature), me(creature), _boundary(nullptr),
-      _negateBoundary(false), damageEvents(creature), instance(creature->GetInstanceScript()), _scriptId(scriptId ? scriptId : creature->GetScriptId()), _isEngaged(false), _moveInLOSLocked(false)
+      _negateBoundary(false), _scriptId(scriptId ? scriptId : creature->GetScriptId()), _isEngaged(false), _moveInLOSLocked(false)
 {
     ASSERT(_scriptId, "A CreatureAI was initialized with an invalid scriptId!");
 }
@@ -70,7 +72,7 @@ void CreatureAI::OnCharmed(bool isNew)
         me->LastCharmerGUID.Clear();
 
         if (!me->IsInCombat())
-            EnterEvadeMode(EVADE_REASON_NO_HOSTILES);
+            EnterEvadeMode(EvadeReason::NoHostiles);
     }
 
     UnitAI::OnCharmed(isNew);
@@ -219,7 +221,7 @@ void CreatureAI::EnterEvadeMode(EvadeReason why)
     if (!_EnterEvadeMode(why))
         return;
 
-    TC_LOG_DEBUG("scripts.ai", "CreatureAI::EnterEvadeMode: entering evade mode (why: {}) ({})", why, me->GetGUID().ToString());
+    TC_LOG_DEBUG("scripts.ai", "CreatureAI::EnterEvadeMode: entering evade mode (why: {}) ({})", EnumUtils::ToConstant(why), me->GetGUID().ToString());
 
     if (!me->GetVehicle()) // otherwise me will be in evade mode forever
     {
@@ -261,7 +263,7 @@ bool CreatureAI::UpdateVictim()
     }
     else if (!me->IsInCombat())
     {
-        EnterEvadeMode(EVADE_REASON_NO_HOSTILES);
+        EnterEvadeMode(EvadeReason::NoHostiles);
         return false;
     }
     else if (me->GetVictim())
@@ -305,7 +307,8 @@ bool CreatureAI::_EnterEvadeMode(EvadeReason /*why*/)
         return false;
     }
 
-    me->RemoveAurasOnEvade();
+    if (me->IsStateRestoredOnEvade())
+        me->RemoveAurasOnEvade();
 
     me->CombatStop(true);
     if (!me->IsTapListNotClearedOnEvade())
@@ -320,6 +323,21 @@ bool CreatureAI::_EnterEvadeMode(EvadeReason /*why*/)
     EngagementOver();
 
     return true;
+}
+
+void CreatureAI::AttackStart(Unit* victim)
+{
+    if (victim && me->Attack(victim, true))
+    {
+        // Clear distracted state on attacking
+        if (me->HasUnitState(UNIT_STATE_DISTRACTED))
+        {
+            me->ClearUnitState(UNIT_STATE_DISTRACTED);
+            me->GetMotionMaster()->Clear();
+        }
+
+        me->StartDefaultCombatMovement(victim);
+    }
 }
 
 Optional<QuestGiverStatus> CreatureAI::GetDialogStatus(Player const* /*player*/)
@@ -438,7 +456,7 @@ bool CreatureAI::CheckInRoom()
         return true;
     else
     {
-        EnterEvadeMode(EVADE_REASON_BOUNDARY);
+        EnterEvadeMode(EvadeReason::Boundary);
         return false;
     }
 }
@@ -460,16 +478,3 @@ Creature* CreatureAI::DoSummonFlyer(uint32 entry, WorldObject* obj, float flight
     pos.m_positionZ += flightZ;
     return me->SummonCreature(entry, pos, summonType, despawnTime);
 }
-
-// DekkCore >
-void CreatureAI::ZoneTalk(uint8 id, WorldObject const* whisperTarget /*= nullptr*/)
-{
-    sCreatureTextMgr->SendChat(me, id, whisperTarget, CHAT_MSG_ADDON, LANG_ADDON, TEXT_RANGE_ZONE);
-}
-
-void CreatureAI::Speak(uint32 TextID, uint32 SoundID, Player* TargetedPlayer)
-{
-    me->Say(TextID);
-    me->PlayDirectSound(SoundID, TargetedPlayer, TextID);
-}
-// < DekkCore

@@ -430,6 +430,7 @@ namespace WorldPackets
             bool DisplayPopup = false;
             bool StartCheat = false;
             bool AutoLaunched = false;
+            bool FromContentPush = false;
         };
 
         struct QuestObjectiveCollect
@@ -648,6 +649,16 @@ namespace WorldPackets
             int32 Count = 0;
         };
 
+        class QuestForceRemoved final : public ServerPacket
+        {
+        public:
+            explicit QuestForceRemoved(int32 questId) : ServerPacket(SMSG_QUEST_FORCE_REMOVED, 4), QuestID(questId) { }
+
+            WorldPacket const* Write() override;
+
+            int32 QuestID = 0;
+        };
+
         class RequestWorldQuestUpdate final : public ClientPacket
         {
         public:
@@ -658,12 +669,14 @@ namespace WorldPackets
 
         struct WorldQuestUpdateInfo
         {
+            WorldQuestUpdateInfo(time_t lastUpdate, uint32 questID, uint32 timer, int32 variableID, int32 value) :
+                LastUpdate(lastUpdate), QuestID(questID), Timer(timer), VariableID(variableID), Value(value) { }
             Timestamp<> LastUpdate;
-            uint32 QuestID = 0;
-            uint32 Timer = 0;
-            //int32 WorldState = 0;
-            int32 VariableID = 0;
-            int32 Value = 0;
+            uint32 QuestID;
+            uint32 Timer;
+            // WorldState
+            int32 VariableID;
+            int32 Value;
         };
 
         class WorldQuestUpdateResponse final : public ServerPacket
@@ -673,7 +686,7 @@ namespace WorldPackets
 
             WorldPacket const* Write() override;
 
-            std::vector<WorldPackets::Quest::WorldQuestUpdateInfo> WorldQuestUpdates;
+            std::vector<WorldQuestUpdateInfo> WorldQuestUpdates;
         };
 
         struct PlayerChoiceResponseRewardEntry
@@ -692,7 +705,6 @@ namespace WorldPackets
             uint32 HonorPointCount = 0;
             uint64 Money = 0;
             uint32 Xp = 0;
-            // int32 SpellID = 0; //Custom  NOTE: don't do that it will fuck up the packet
             std::vector<PlayerChoiceResponseRewardEntry> Items;
             std::vector<PlayerChoiceResponseRewardEntry> Currencies;
             std::vector<PlayerChoiceResponseRewardEntry> Factions;
@@ -764,191 +776,6 @@ namespace WorldPackets
             int32 ChoiceID = 0;
             int32 ResponseIdentifier = 0;
             bool IsReroll = false;
-        };
-
-        class UiMapQuestLinesResponse final : public ServerPacket
-        {
-        public:
-            UiMapQuestLinesResponse() : ServerPacket(SMSG_UI_MAP_QUEST_LINES_RESPONSE, 8) { }
-
-            WorldPacket const* Write() override;
-
-            int32 UiMapID = 0;
-            std::vector<uint32> QuestLineXQuestIDs;
-        };
-
-        class QueryQuestRewardResponse final : public ServerPacket
-        {
-        public:
-            QueryQuestRewardResponse() : ServerPacket(SMSG_TREASURE_PICKER_RESPONSE) { }
-
-            WorldPacket const* Write() override;
-
-            struct CurrencyReward
-            {
-                uint32 CurrencyID = 0;
-                uint32 Amount = 0;
-                uint32 CurrencyCount = 0;
-            };
-
-            struct ItemReward
-            {
-                WorldPackets::Item::ItemInstance Item;
-                bool HasItemBonus = false;
-                uint32 ContentTuningID = 0;
-                uint32 Contex = 0;
-            };
-
-            uint32 QuestID = 0;
-            uint32 TreasurePickerID = 0;
-            uint32 ItemCount = 0;
-            uint32 CurrencyCount = 0;
-            uint64 MoneyReward = 0;
-            uint64 BonusCount = 0;
-            uint32 Flags = 0;
-            std::vector<CurrencyReward> CurrencyRewards;
-            std::vector<ItemReward> ItemRewards;
-        };
-
-        class IsQuestCompleteResponse final : public ServerPacket
-        {
-        public:
-            IsQuestCompleteResponse() : ServerPacket(SMSG_IS_QUEST_COMPLETE_RESPONSE, 5) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 QuestID = 0;
-            bool Complete = false;
-        };
-
-        struct AreaPoiData
-        {
-            Timestamp<> StartTime;
-            int32 AreaPoiID = 0;
-            int32 DurationSec = 0;
-            uint32 WorldStateVariableID = 0;
-            uint32 WorldStateValue = 0;
-        };
-
-        class AreaPoiUpdate final : public ServerPacket
-        {
-        public:
-            AreaPoiUpdate() : ServerPacket(SMSG_AREA_POI_UPDATE_RESPONSE) { }
-
-            WorldPacket const* Write() override;
-
-            std::vector<AreaPoiData> AreaPois;
-        };
-
-        class QueryAdventureMapPOI final : public ClientPacket
-        {
-        public:
-            QueryAdventureMapPOI(WorldPacket&& packet) : ClientPacket(CMSG_CHECK_IS_ADVENTURE_MAP_POI_VALID, std::move(packet)) { }
-
-            void Read() override;
-
-            uint32 AdventureMapPOIID = 0;
-        };
-
-        class QueryAdventureMapPOIResponse final : public ServerPacket
-        {
-        public:
-            QueryAdventureMapPOIResponse() : ServerPacket(SMSG_PLAYER_IS_ADVENTURE_MAP_POI_VALID, 4 + 1) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 AdventureMapPOIID = 0;
-            bool Result = true;
-        };
-
-        class ShowAdventureMap final : public ServerPacket
-        {
-        public:
-            ShowAdventureMap(ObjectGuid guid, uint32 uiMapID) : ServerPacket(SMSG_PLAYER_IS_ADVENTURE_MAP_POI_VALID, 20), UnitGUID(guid), UiMapID(uiMapID) { }
-
-            WorldPacket const* Write() override;
-
-            ObjectGuid UnitGUID;
-            uint32 UiMapID;
-        };
-
-        class UiMapQuestLinesRequest final : public ClientPacket
-        {
-        public:
-            UiMapQuestLinesRequest(WorldPacket&& packet) : ClientPacket(CMSG_UI_MAP_QUEST_LINES_REQUEST, std::move(packet)) { }
-
-            void Read() override;
-
-            int32 UiMapID = 0;
-        };
-
-        class QueryQuestReward final : public ClientPacket
-        {
-        public:
-            QueryQuestReward(WorldPacket&& packet) : ClientPacket(CMSG_QUERY_TREASURE_PICKER, std::move(packet)) { }
-
-            void Read() override;
-
-            uint32 QuestID = 0;
-            uint32 TreasurePickerID = 0;
-        };
-
-        class DisplayQuestPopup final : public ServerPacket
-        {
-        public:
-            DisplayQuestPopup(uint32 questID) : ServerPacket(SMSG_DISPLAY_QUEST_POPUP, 4), QuestID(questID) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 QuestID = 0;
-        };
-
-        class RequestAreaPoiUpdate final : public ClientPacket
-        {
-        public:
-            RequestAreaPoiUpdate(WorldPacket&& packet) : ClientPacket(CMSG_REQUEST_AREA_POI_UPDATE, std::move(packet)) { }
-
-            void Read() override { }
-        };
-
-        struct TrackingUpdate
-        {
-            uint32 QuestID = 0;
-            uint32 UnkInt = 0;
-            bool UnkBit = false;
-        };
-
-        class QuestPOIUpdateResponse final : public ServerPacket
-        {
-        public:
-            QuestPOIUpdateResponse() : ServerPacket(SMSG_QUEST_POI_UPDATE_RESPONSE){ }
-
-            WorldPacket const* Write() override;
-
-            int32 SpawnTrackingID;
-            int32 QuestObjectID;
-
-            bool Visible;
-        };
-
-        class QuestForceRemoved final : public ServerPacket
-        {
-        public:
-            QuestForceRemoved(uint32 questID) : ServerPacket(SMSG_QUEST_FORCE_REMOVED, 4), QuestID(questID) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 QuestID = 0;
-        };
-
-        class ShowQuestCompletionText final : public ServerPacket
-        {
-        public:
-            ShowQuestCompletionText() : ServerPacket(SMSG_SHOW_QUEST_COMPLETION_TEXT, 4) { }
-
-            WorldPacket const* Write() override;
-
-            bool ShowQuestComplete = false;
         };
     }
 }

@@ -50,6 +50,7 @@ void AddGossipItemFor(Player* player, GossipOptionNpc optionNpc, std::string tex
 {
     player->PlayerTalkClass->GetGossipMenu().AddMenuItem(0, -1, optionNpc, std::move(text), 0, GossipOptionFlags::None, {}, 0, 0, coded, popupMoney, std::move(popupText), {}, {}, sender, action);
 }
+
 // Uses gossip item info from DB
 void AddGossipItemFor(Player* player, uint32 gossipMenuID, uint32 gossipMenuItemID, uint32 sender, uint32 action)
 {

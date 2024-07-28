@@ -48,8 +48,6 @@ enum LfgUpdateType
 {
     LFG_UPDATETYPE_DEFAULT                       = 0,      // Internal Use
     LFG_UPDATETYPE_LEADER_UNK1                   = 1,      // FIXME: At group leave
-    LFG_UPDATETYPE_LEAVE_RAIDBROWSER             = 2,
-    LFG_UPDATETYPE_JOIN_RAIDBROWSER              = 3,
     LFG_UPDATETYPE_ROLECHECK_ABORTED             = 4,
     LFG_UPDATETYPE_JOIN_QUEUE                    = 6,
     LFG_UPDATETYPE_ROLECHECK_FAILED              = 7,
@@ -69,8 +67,7 @@ enum LfgUpdateType
     LFG_UPDATETYPE_JOIN_LFG_OBJECT_FAILED        = 48,
     LFG_UPDATETYPE_REMOVED_LEVELUP               = 49,
     LFG_UPDATETYPE_REMOVED_XP_TOGGLE             = 50,
-    LFG_UPDATETYPE_REMOVED_FACTION_CHANGE        = 51,
-    LFG_UPDATETYPE_PAUSE                         = 54,
+    LFG_UPDATETYPE_REMOVED_FACTION_CHANGE        = 51
 };
 
 enum LfgState : uint8
@@ -82,19 +79,17 @@ enum LfgState : uint8
     //LFG_STATE_BOOT,                                      // Vote kick active
     LFG_STATE_DUNGEON = 5,                                 // In LFG Group, in a Dungeon
     LFG_STATE_FINISHED_DUNGEON,                            // In LFG Group, in a finished Dungeon
-    LFG_STATE_RAIDBROWSER,                                 // Using Raid finder
-    LFG_STATE_WAITE                                        // Waiting
+    LFG_STATE_RAIDBROWSER                                  // Using Raid finder
 };
 
 enum LfgQueueType
 {
-    LFG_QUEUE_DUNGEON   = 1,
-    LFG_QUEUE_LFR       = 2,
-    LFG_QUEUE_SCENARIO  = 3,
-    LFG_QUEUE_FLEX      = 4,
-    LFG_QUEUE_WORLD_PVP = 5,
-    LFG_QUEUE_BRAWL     = 6,
-    LFG_QUEUE_MAX       = 7
+    LFG_QUEUE_DUNGEON       = 1,
+    LFG_QUEUE_LFR           = 2,
+    LFG_QUEUE_SCENARIO      = 3,
+    LFG_QUEUE_FLEX          = 4,
+    LFG_QUEUE_WORLD_PVP     = 5,
+    LFG_QUEUE_SCHEDULED_PVP = 6,    // pvp brawl
 };
 
 /// Instance lock types
@@ -113,8 +108,7 @@ enum LfgLockStatusType
     LFG_LOCKSTATUS_QUEST_NOT_COMPLETED           = 1022,
     LFG_LOCKSTATUS_MISSING_ITEM                  = 1025,
     LFG_LOCKSTATUS_NOT_IN_SEASON                 = 1031,
-    LFG_LOCKSTATUS_MISSING_ACHIEVEMENT           = 1034,
-    LFG_LOCKSTATUS_NOT_IN_CHROMIETIME            = 2000
+    LFG_LOCKSTATUS_MISSING_ACHIEVEMENT           = 1034
 };
 
 /// Answer state (Also used to check compatibilites)
@@ -127,15 +121,12 @@ enum LfgAnswer
 
 struct TC_GAME_API LfgLockInfoData
 {
-    // Fluxurion >
-    LfgLockInfoData(uint32 _lockStatus = 0, uint16 _requiredItemLevel = 0, float _currentItemLevel = 0, bool _softLock = false) :
-        lockStatus(_lockStatus), requiredItemLevel(_requiredItemLevel), currentItemLevel(_currentItemLevel), softLock(_softLock) { }
-    // < Fluxurion
+    LfgLockInfoData(uint32 _lockStatus = 0, uint16 _requiredItemLevel = 0, float _currentItemLevel = 0) :
+        lockStatus(_lockStatus), requiredItemLevel(_requiredItemLevel), currentItemLevel(_currentItemLevel) { }
 
     uint32 lockStatus;
     uint16 requiredItemLevel;
     float currentItemLevel;
-    bool softLock; // < Fluxurion
 };
 
 typedef std::set<uint32> LfgDungeonSet;
@@ -147,6 +138,10 @@ typedef std::map<ObjectGuid, ObjectGuid> LfgGroupsMap;
 TC_GAME_API std::string ConcatenateDungeons(LfgDungeonSet const& dungeons);
 TC_GAME_API std::string GetRolesString(uint8 roles);
 TC_GAME_API std::string GetStateString(LfgState state);
+
+// allow implicit enum to int conversions for formatting
+inline int32 format_as(LfgUpdateType e) { return e; }
+inline uint8 format_as(LfgState e) { return e; }
 
 } // namespace lfg
 

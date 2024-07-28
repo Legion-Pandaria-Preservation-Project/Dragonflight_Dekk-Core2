@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 DekkCore
+ * This file is part of the TrinityCore Project. See AUTHORS file for Copyright information
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
@@ -15,69 +15,38 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "Map.h"
-#include "CreatureAI.h"
-#include "ObjectMgr.h"
+#ifndef _End_Time_h__
+#define _End_Time_h__
 
-#ifndef DEF_END_TIME_H
-#define DEF_END_TIME_H
+#include "CreatureAIImpl.h"
 
-#define EndTimeScriptName "instance_end_time"
+constexpr char const* DataHeader = "ET";
+constexpr char const* ETScriptName = "instance_end_time";
 
-enum DataTypes
+constexpr uint32 const EncounterCount = 5;
+
+enum ETWDataTypes
 {
-    DATA_BAINE = 0,
-    DATA_JAINA,
-    DATA_SYLVANAS,
-    DATA_TYRANDE,
-    DATA_MUROZOND,
-    FIRST_BOSS,
-    SECOND_BOSS,
-    DATA_MUROZOND_TRASH,
-    DATA_MUROZOND_STARTED,
-    DATA_BOSS_COUNT,
+    // Encounters
+    BOSS_ECHO_OF_BAINE      = 0,
+    BOSS_ECHO_OF_SYLVANAS   = 1,
+    BOSS_ECHO_OF_JAINA      = 2,
+    BOSS_ECHO_OF_TYRANDE    = 3,
+    BOSS_MUROZOND           = 4
 };
 
-enum Npcs
+enum ETCreatureIds
 {
-    NPC_ECHO_OF_BAINE       = 54431,
-    NPC_ECHO_OF_JAINA       = 54445,
-    NPC_ECHO_OF_SYLVANAS    = 54123,
-    NPC_ECHO_OF_TYRANDE     = 54544,
-    NPC_ECHO_OF_MUROZOND    = 54432,
+    // Bosses
+    NPC_MUROZOND            = 54432
 };
 
-enum TeleporterSpells
+template <class AI, class T>
+inline AI* GetEndTimeAI(T* obj)
 {
-    AZURE_DRAGONSHIRINE_TELEPORT    = 102126,
-    RUBY_DRAGONSHIRINE_TELEPORT     = 102579,
-    BLACK_DRAGONSHIRINE_TELEPORT    = 103868,
-    EMERALD_DRAGONSHIRINE_TELEPORT  = 104761,
-    BRONZE_DRAGONSHIRINE_TELEPORT   = 104764
-};
-
-enum CreaturesIds
-{
-    NPC_INFINITE_SUPPRESSOR             = 54920,
-    NPC_INFINITE_WARDEN                 = 54923,
-    NPC_TRIGGER_HOURGLASS_TIME          = 54928,
-    NPC_BOSS_MUROZOND                   = 54432,
-};
-
-enum Actions
-{
-    ACTION_MUROZOND_START                   = -500000,
-    ACTION_MUROZOND_REMOVE_TEMPORAL_BOMB    = -500001,
-    ACTION_MUROZOND_REMOVE_HOURGLASS_BAR    = -500002,
-    ACTION_TYRANDE_START                    = -500003,
-};
-
-template<class AI>
-CreatureAI* GetEndTimeAI(Creature* creature)
-{
-    return GetInstanceAI<AI>(creature, EndTimeScriptName);
-
+    return GetInstanceAI<AI>(obj, ETScriptName);
 }
 
+#define RegisterEndTimeCreatureAI(ai_name) RegisterCreatureAIWithFactory(ai_name, GetEndTimeAI)
 
-#endif // DEF_END_TIME_H
+#endif // _End_Time_h__

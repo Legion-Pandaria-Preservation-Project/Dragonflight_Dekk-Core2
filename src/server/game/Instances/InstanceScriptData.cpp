@@ -218,9 +218,9 @@ void InstanceScriptDataWriter::FillData(bool withValues)
             {
                 UpdateAdditionalSaveDataEvent data = additionalValue->CreateEvent();
                 std::visit([&](auto v)
-                    {
-                        moreData.AddMember(rapidjson::StringRef(data.Key), rapidjson::Value(v), _doc.GetAllocator());
-                    }, data.Value);
+                {
+                    moreData.AddMember(rapidjson::StringRef(data.Key), rapidjson::Value(v), _doc.GetAllocator());
+                }, data.Value);
             }
             else
                 moreData.AddMember(rapidjson::StringRef(additionalValue->GetName()), rapidjson::Value(), _doc.GetAllocator());
@@ -264,7 +264,7 @@ void InstanceScriptDataWriter::SetAdditionalData(UpdateAdditionalSaveDataEvent c
 
     // jsonptr("/AdditionalData/CustomValueName")
     std::visit([&](auto v)
-        {
-            rapidjson::SetValueByPointer(_doc, ptr, v);
-        }, data.Value);
+    {
+        rapidjson::SetValueByPointer(_doc, ptr, v);
+    }, data.Value);
 }

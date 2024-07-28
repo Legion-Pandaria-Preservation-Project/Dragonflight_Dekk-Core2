@@ -60,10 +60,12 @@ namespace WorldPackets
             uint8 Race            = RACE_NONE;
             uint8 Class           = CLASS_NONE;
             uint8 Sex             = GENDER_NONE;
-            Array<ChrCustomizationChoice, 125> Customizations;
+            Array<ChrCustomizationChoice, 250> Customizations;
             Optional<int32> TemplateSet;
+            int32 TimerunningSeasonID = 0;
             bool IsTrialBoost     = false;
             bool UseNPE           = false;
+            bool HardcoreSelfFound = false;
             std::string Name;
 
             /// Server side data
@@ -81,7 +83,7 @@ namespace WorldPackets
             ObjectGuid CharGUID;
             uint8 SexID             = GENDER_NONE;
             std::string CharName;
-            Array<ChrCustomizationChoice, 125> Customizations;
+            Array<ChrCustomizationChoice, 250> Customizations;
         };
 
         struct CharRaceOrFactionChangeInfo
@@ -92,7 +94,7 @@ namespace WorldPackets
             ObjectGuid Guid;
             bool FactionChange      = false;
             std::string Name;
-            Array<ChrCustomizationChoice, 125> Customizations;
+            Array<ChrCustomizationChoice, 250> Customizations;
         };
 
         struct CharacterUndeleteInfo
@@ -103,6 +105,15 @@ namespace WorldPackets
 
             /// Server side data
             std::string Name;
+        };
+
+        struct CustomTabardInfo
+        {
+            int32 EmblemStyle = -1;
+            int32 EmblemColor = -1;
+            int32 BorderStyle = -1;
+            int32 BorderColor = -1;
+            int32 BackgroundColor = -1;
         };
 
         class EnumCharactersResult final : public ServerPacket
@@ -143,6 +154,7 @@ namespace WorldPackets
                 uint32 Unknown703        = 0;
                 uint32 LastLoginVersion  = 0;
                 uint32 OverrideSelectScreenFileDataID = 0;
+                int32 TimerunningSeasonID = 0;
 
                 uint32 PetCreatureDisplayID = 0;
                 uint32 PetExperienceLevel   = 0;
@@ -160,9 +172,12 @@ namespace WorldPackets
                     uint8 Subclass          = 0;
                 };
 
-                std::array<VisualItemInfo, 35> VisualItems = { };
+                std::array<VisualItemInfo, 19> VisualItems = { };
                 std::vector<std::string> MailSenders;
                 std::vector<uint32> MailSenderTypes;
+                bool RpeResetAvailable = false;
+                bool RpeResetQuestClearAvailable = false;
+                CustomTabardInfo PersonalTabard;
             };
 
             struct RaceUnlock
@@ -171,6 +186,8 @@ namespace WorldPackets
                 bool HasExpansion     = false;
                 bool HasAchievement   = false;
                 bool HasHeritageArmor = false;
+                bool IsLocked         = false;
+                bool Unused1027       = false;
             };
 
             struct UnlockedConditionalAppearance
@@ -201,7 +218,6 @@ namespace WorldPackets
             bool IsNewPlayerRestricted            = false; ///< forbids using level boost and class trials
             bool IsNewPlayer                      = false; ///< forbids hero classes and allied races
             bool IsTrialAccountRestricted         = false;
-            bool IsAlliedRacesCreationAllowed     = false;
 
             int32 MaxCharacterLevel     = 1;
             Optional<uint32> DisabledClassesMask;
@@ -366,7 +382,7 @@ namespace WorldPackets
             std::string Name;
             uint8 SexID             = 0;
             uint8 RaceID            = RACE_NONE;
-            Array<ChrCustomizationChoice, 125> const* Customizations = nullptr;
+            Array<ChrCustomizationChoice, 250> const* Customizations = nullptr;
         };
 
         class CharFactionChangeResult final : public ServerPacket
@@ -637,7 +653,7 @@ namespace WorldPackets
             void Read() override;
 
             uint8 NewSex = 0;
-            Array<ChrCustomizationChoice, 125> Customizations;
+            Array<ChrCustomizationChoice, 250> Customizations;
             int32 CustomizedRace = 0;
             int32 CustomizedChrModelID = 0;
         };
@@ -691,7 +707,7 @@ namespace WorldPackets
 
             void Read() override;
 
-            uint8 FactionIndex = 0;
+            uint16 FactionIndex = 0;
         };
 
         class SetFactionNotAtWar final : public ClientPacket
@@ -701,7 +717,7 @@ namespace WorldPackets
 
             void Read() override;
 
-            uint8 FactionIndex = 0;
+            uint16 FactionIndex = 0;
         };
 
         class SetFactionInactive final : public ClientPacket
@@ -745,7 +761,7 @@ namespace WorldPackets
             ObjectGuid CharGUID;
             std::string CharName;
             uint8 SexID = 0;
-            Array<ChrCustomizationChoice, 125> const& Customizations;
+            Array<ChrCustomizationChoice, 250> const& Customizations;
         };
 
         class CharCustomizeFailure final : public ServerPacket
@@ -780,147 +796,27 @@ namespace WorldPackets
             ObjectGuid Player;
             int32 ResultCode = 0;
         };
-        //DekkCore
-        class XpGainEnabled final : public ServerPacket
+
+        class SavePersonalEmblem final : public ClientPacket
         {
         public:
-            XpGainEnabled(bool enabled) : ServerPacket(SMSG_XP_GAIN_ENABLED, 1) { Enabled = enabled; }
-
-            WorldPacket const* Write() override;
-
-            bool Enabled = false;
-        };
-
-        class XPGainAborted final : public ServerPacket
-        {
-        public:
-            XPGainAborted() : ServerPacket(SMSG_XP_GAIN_ABORTED, 16 + 4 + 4 + 4) { }
-
-            WorldPacket const* Write() override;
-
-            ObjectGuid Victim;
-            int32 XpToAdd = 0;
-            int32 XpGainReason = 0;
-            int32 XpAbortReason = 0;
-        };
-
-        class NeutralPlayerFactionSelectResult final : public ServerPacket
-        {
-        public:
-            NeutralPlayerFactionSelectResult() : ServerPacket(SMSG_NEUTRAL_PLAYER_FACTION_SELECT_RESULT, 4 + 1) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 NewRaceID = 0;
-            bool Success = false;
-        };
-
-        class UpdateCharacterFlags final : public ServerPacket
-        {
-        public:
-            UpdateCharacterFlags() : ServerPacket(SMSG_UPDATE_CHARACTER_FLAGS, 16 + 12) { }
-
-            WorldPacket const* Write() override;
-
-            ObjectGuid Character;
-            Optional<uint32> Flags;
-            Optional<uint32> Flags2;
-            Optional<uint32> Flags3;
-        };
-
-        class SetCurrencyFlags final : public ClientPacket
-        {
-        public:
-            SetCurrencyFlags(WorldPacket&& packet) : ClientPacket(CMSG_SET_CURRENCY_FLAGS, std::move(packet)) { }
+            SavePersonalEmblem(WorldPacket&& packet) : ClientPacket(CMSG_SAVE_PERSONAL_EMBLEM, std::move(packet)) { }
 
             void Read() override;
 
-            uint32 CurrencyID = 0;
-            uint32 Flags = 0;
+            ObjectGuid Vendor;
+            CustomTabardInfo PersonalTabard;
         };
 
-        class KickReason final : public ServerPacket
+        class PlayerSavePersonalEmblem final : public ServerPacket
         {
         public:
-            KickReason() : ServerPacket(SMSG_KICK_REASON, 5) { }
-            
+            explicit PlayerSavePersonalEmblem(int32 error) : ServerPacket(SMSG_PLAYER_SAVE_PERSONAL_EMBLEM, 4), Error(error) { }
+
             WorldPacket const* Write() override;
-            
-            int32 UnkInt = 0;
-            uint8 Reason = 0;
+
+            int32 Error;
         };
-
-        class EngineSurvey final : public ClientPacket
-        {
-        public:
-            EngineSurvey(WorldPacket&& packet) : ClientPacket(CMSG_ENGINE_SURVEY, std::move(packet)) { }
-
-            void Read() override;
-
-            uint64 TotalPhysMemory = 0;
-            uint64 GPUVideoMemory = 0;
-            uint64 GPUSystemMemory = 0;
-            uint64 GPUSharedMemory = 0;
-            uint32 GPUVendorID = 0;
-            uint32 GPUModelID = 0;
-            uint32 ProcessorUnkUnk = 0;
-            uint32 ProcessorFeatures = 0;
-            uint32 ProcessorVendor = 0;
-            uint32 ProcessorNumberOfProcessors = 0;
-            uint32 ProcessorNumberOfThreads = 0;
-            uint32 GXDisplayResWidth = 0;
-            uint32 GXDisplayResHeight = 0;
-            uint32 GXUnk = 0;
-            uint32 SystemOSIndex = 0;
-            uint32 UnkDword4C = 0;
-            uint32 UnkDword50 = 0;
-            uint32 Farclip = 0;
-            uint16 UnkWord58 = 0;
-            uint16 UnkWord5A = 0;
-            uint8 HasHDPlayerModels = 0;
-            uint8 Is64BitSystem = 0;
-            uint8 UnkByte5E = 0;
-            uint8 UnkByte5F = 0;
-            uint8 UnkByte60 = 0;
-            uint8 UnkByte61 = 0;
-            uint8 UnkByte62 = 0;
-            uint8 UnkByte63 = 0;
-            uint8 UnkByte64 = 0;
-            uint8 UnkByte65 = 0;
-            uint8 UnkByte66 = 0;
-            uint8 UnkByte67 = 0;
-        };
-
-        class CharacterCheckUpgrade final : public ClientPacket
-        {
-        public:
-            CharacterCheckUpgrade(WorldPacket&& packet) : ClientPacket(CMSG_CHARACTER_CHECK_UPGRADE, std::move(packet)) { }
-
-            void Read() override {}
-        };
-
-
-        class CharacterUpgradeManualUnrevokeRequest final : public ClientPacket
-        {
-        public:
-            CharacterUpgradeManualUnrevokeRequest(WorldPacket&& packet) : ClientPacket(CMSG_CHARACTER_UPGRADE_MANUAL_UNREVOKE_REQUEST, std::move(packet)) { }
-
-            void Read() override;
-
-            ObjectGuid PlayerGuid;
-        };
-
-        class CharacterUpgradeStart final : public ClientPacket
-        {
-        public:
-            CharacterUpgradeStart(WorldPacket&& packet) : ClientPacket(CMSG_CHARACTER_UPGRADE_START, std::move(packet)) { }
-
-            void Read() override;
-
-            ObjectGuid PlayerGuid;
-            int32 unk;
-        };
-        //DekkCore 
     }
 }
 

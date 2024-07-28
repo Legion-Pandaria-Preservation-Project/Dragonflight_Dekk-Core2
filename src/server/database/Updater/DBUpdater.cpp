@@ -29,8 +29,6 @@
 #include <fstream>
 #include <iostream>
 
-constexpr auto SQL_BASE_DIR = "/sql/base/";
-
 std::string DBUpdaterUtil::GetCorrectedMySQLExecutable()
 {
     if (!corrected_path().empty())
@@ -80,9 +78,10 @@ std::string DBUpdater<LoginDatabaseConnection>::GetTableName()
 }
 
 template<>
-std::string DBUpdater<LoginDatabaseConnection>::GetBaseDir()
+std::string DBUpdater<LoginDatabaseConnection>::GetBaseFile()
 {
-    return BuiltInConfig::GetSourceDirectory() + SQL_BASE_DIR + "auth/";
+    return BuiltInConfig::GetSourceDirectory() +
+        "/sql/base/auth_database.sql";
 }
 
 template<>
@@ -106,9 +105,9 @@ std::string DBUpdater<WorldDatabaseConnection>::GetTableName()
 }
 
 template<>
-std::string DBUpdater<WorldDatabaseConnection>::GetBaseDir()
+std::string DBUpdater<WorldDatabaseConnection>::GetBaseFile()
 {
-    return BuiltInConfig::GetSourceDirectory() + SQL_BASE_DIR + "world/";
+    return GitRevision::GetFullDatabase();
 }
 
 template<>
@@ -138,9 +137,10 @@ std::string DBUpdater<CharacterDatabaseConnection>::GetTableName()
 }
 
 template<>
-std::string DBUpdater<CharacterDatabaseConnection>::GetBaseDir()
+std::string DBUpdater<CharacterDatabaseConnection>::GetBaseFile()
 {
-    return BuiltInConfig::GetSourceDirectory() + SQL_BASE_DIR + "character/";
+    return BuiltInConfig::GetSourceDirectory() +
+        "/sql/base/characters_database.sql";
 }
 
 template<>
@@ -164,9 +164,9 @@ std::string DBUpdater<HotfixDatabaseConnection>::GetTableName()
 }
 
 template<>
-std::string DBUpdater<HotfixDatabaseConnection>::GetBaseDir()
+std::string DBUpdater<HotfixDatabaseConnection>::GetBaseFile()
 {
-    return BuiltInConfig::GetSourceDirectory() + SQL_BASE_DIR + "hotfix/";
+    return GitRevision::GetHotfixesDatabase();
 }
 
 template<>
@@ -214,6 +214,7 @@ bool DBUpdater<T>::Create(DatabaseWorkerPool<T>& pool)
     }
 
     file << "CREATE DATABASE `" << pool.GetConnectionInfo()->database << "` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci\n\n";
+
     file.close();
 
     try
@@ -292,47 +293,46 @@ bool DBUpdater<T>::Populate(DatabaseWorkerPool<T>& pool)
 
     TC_LOG_INFO("sql.updates", "Database {} is empty, auto populating it...", DBUpdater<T>::GetTableName());
 
-    std::string const baseDir = DBUpdater<T>::GetBaseDir();
-    Path const dirPath(baseDir);
-    if (dirPath.empty())
+    std::string const p = DBUpdater<T>::GetBaseFile();
+    if (p.empty())
     {
-        TC_LOG_ERROR("sql.updates", ">> Directory \"{}\" is empty", dirPath.generic_string());
-        return false;
+        TC_LOG_INFO("sql.updates", ">> No base file provided, skipped!");
+        return true;
     }
 
-    if (!boost::filesystem::is_directory(dirPath))
+    Path const base(p);
+    if (!exists(base))
     {
-        TC_LOG_ERROR("sql.updates", ">> Directory \"{}\" not exist", dirPath.generic_string());
-        return false;
-    }
-
-    std::size_t filesCount{ 0 };
-
-    for (auto const& dirEntry : boost::filesystem::directory_iterator(dirPath))
-        if (dirEntry.path().extension() == ".sql")
-            filesCount++;
-
-    if (!filesCount)
-    {
-        TC_LOG_ERROR("sql.updates", ">> In directory \"{}\" not exist '*.sql' files", dirPath.generic_string());
-        return false;
-    }
-
-    for (auto const& dirEntry : boost::filesystem::directory_iterator(dirPath))
-    {
-        auto const& path = dirEntry.path();
-        if (path.extension() != ".sql")
-            continue;
-
-        try
+        switch (DBUpdater<T>::GetBaseLocationType())
         {
-            TC_LOG_INFO("sql.updates", ">> Applying \'{}\'...", path.generic_string());
-            ApplyFile(pool, path);
+            case LOCATION_REPOSITORY:
+            {
+                TC_LOG_ERROR("sql.updates", ">> Base file \"{}\" is missing. Try fixing it by cloning the source again.",
+                    base.generic_string());
+
+                break;
+            }
+            case LOCATION_DOWNLOAD:
+            {
+                std::string const filename = base.filename().generic_string();
+                std::string const workdir = boost::filesystem::current_path().generic_string();
+                TC_LOG_ERROR("sql.updates", ">> File \"{}\" is missing, download it from \"https://github.com/TrinityCore/TrinityCore/releases\"" \
+                    " uncompress it and place the file \"{}\" in the directory \"{}\".", filename, filename, workdir);
+                break;
+            }
         }
-        catch (UpdateException&)
-        {
-            return false;
-        }
+        return false;
+    }
+
+    // Update database
+    TC_LOG_INFO("sql.updates", ">> Applying \'{}\'...", base.generic_string());
+    try
+    {
+        ApplyFile(pool, base);
+    }
+    catch (UpdateException&)
+    {
+        return false;
     }
 
     TC_LOG_INFO("sql.updates", ">> Done!");

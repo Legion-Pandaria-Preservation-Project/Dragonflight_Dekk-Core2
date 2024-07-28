@@ -36,33 +36,6 @@ struct PerksVendorItem
     bool Disabled = false;
 };
 
-class PerksProgramRequestPurchase final : public ClientPacket
-{
-public:
-    PerksProgramRequestPurchase(WorldPacket&& packet) : ClientPacket(CMSG_PERKS_PROGRAM_REQUEST_PURCHASE, std::move(packet)) { }
-
-    void Read() override;
-
-    ObjectGuid PlayerGuid;
-    int32 unk;
-};
-
-class PerksProgramStatusRequest final : public ClientPacket
-{
-public:
-    PerksProgramStatusRequest(WorldPacket&& packet) : ClientPacket(CMSG_PERKS_PROGRAM_STATUS_REQUEST, std::move(packet)) { }
-
-    void Read() override {}
-};
-
-class PerksProgramPendingRewards final : public ClientPacket
-{
-public:
-    PerksProgramPendingRewards(WorldPacket&& packet) : ClientPacket(CMSG_PERKS_PROGRAM_REQUEST_PENDING_REWARDS, std::move(packet)) { }
-
-    void Read() override {}
-};
-
 ByteBuffer& operator<<(ByteBuffer& data, PerksVendorItem const& perksVendorItem);
 }
 

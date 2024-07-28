@@ -40,20 +40,6 @@ struct GtBarberShopCostBaseEntry
     float Cost = 0.0f;
 };
 
-struct GtBattlePetTypeDamageModEntry
-{
-    float Humanoid = 0.0f;
-    float Dragonkin = 0.0f;
-    float Flying = 0.0f;
-    float Undead = 0.0f;
-    float Critter = 0.0f;
-    float Magic = 0.0f;
-    float Elemental = 0.0f;
-    float Beast = 0.0f;
-    float Aquatic = 0.0f;
-    float Mechanical = 0.0f;
-};
-
 struct GtBaseMPEntry
 {
     float Rogue = 0.0f;
@@ -120,16 +106,6 @@ struct GtCombatRatingsMultByILvl
     float WeaponMultiplier = 0.0f;
     float TrinketMultiplier = 0.0f;
     float JewelryMultiplier = 0.0f;
-};
-
-struct GtChallengeModeDamageEntry
-{
-    float Scalar;
-};
-
-struct GtChallengeModeHealthEntry
-{
-    float Scalar;
 };
 
 struct GtHpPerStaEntry
@@ -214,14 +190,10 @@ private:
 TC_GAME_API extern GameTable<GtArtifactKnowledgeMultiplierEntry>    sArtifactKnowledgeMultiplierGameTable;
 TC_GAME_API extern GameTable<GtArtifactLevelXPEntry>                sArtifactLevelXPGameTable;
 TC_GAME_API extern GameTable<GtBarberShopCostBaseEntry>             sBarberShopCostBaseGameTable;
-TC_GAME_API extern GameTable<GtBattlePetXPEntry>                    sBattlePetXPTable;
-TC_GAME_API extern GameTable<GtBattlePetTypeDamageModEntry>         sBattlePetTypeDamageModTable;
 TC_GAME_API extern GameTable<GtBaseMPEntry>                         sBaseMPGameTable;
 TC_GAME_API extern GameTable<GtBattlePetXPEntry>                    sBattlePetXPGameTable;
 TC_GAME_API extern GameTable<GtCombatRatingsEntry>                  sCombatRatingsGameTable;
 TC_GAME_API extern GameTable<GtCombatRatingsMultByILvl>             sCombatRatingsMultByILvlGameTable;
-TC_GAME_API extern GameTable<GtChallengeModeDamageEntry>            sChallengeModeDamageTable;
-TC_GAME_API extern GameTable<GtChallengeModeHealthEntry>            sChallengeModeHealthTable;
 TC_GAME_API extern GameTable<GtHpPerStaEntry>                       sHpPerStaGameTable;
 TC_GAME_API extern GameTable<GtItemSocketCostPerLevelEntry>         sItemSocketCostPerLevelGameTable;
 TC_GAME_API extern GameTable<GtNpcManaCostScalerEntry>              sNpcManaCostScalerGameTable;

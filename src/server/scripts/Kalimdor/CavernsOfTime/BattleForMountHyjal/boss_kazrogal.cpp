@@ -158,8 +158,6 @@ public:
                 MarkTimer = MarkTimerBase;
                 Talk(SAY_MARK);
             } else MarkTimer -= diff;
-
-            DoMeleeAttackIfReady();
         }
     };
 
@@ -184,8 +182,6 @@ class spell_mark_of_kazrogal : public SpellScriptLoader
 
         class spell_mark_of_kazrogal_SpellScript : public SpellScript
         {
-            PrepareSpellScript(spell_mark_of_kazrogal_SpellScript);
-
             void FilterTargets(std::list<WorldObject*>& targets)
             {
                 targets.remove_if(MarkTargetFilter());
@@ -199,8 +195,6 @@ class spell_mark_of_kazrogal : public SpellScriptLoader
 
         class spell_mark_of_kazrogal_AuraScript : public AuraScript
         {
-            PrepareAuraScript(spell_mark_of_kazrogal_AuraScript);
-
             bool Validate(SpellInfo const* /*spell*/) override
             {
                 return ValidateSpellInfo({ SPELL_MARK_DAMAGE });

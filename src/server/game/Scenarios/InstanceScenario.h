@@ -24,14 +24,14 @@ class InstanceMap;
 
 class TC_GAME_API InstanceScenario : public Scenario
 {
-public:
-    InstanceScenario(InstanceMap* map, ScenarioData const* scenarioData);
+    public:
+        InstanceScenario(InstanceMap* map, ScenarioData const* scenarioData);
 
-    void LoadInstanceData();
+        void LoadInstanceData();
 
-protected:
-    std::string GetOwnerInfo() const override;
-    void SendPacket(WorldPacket const* data) const override;
+    protected:
+        std::string GetOwnerInfo() const override;
+        void SendPacket(WorldPacket const* data) const override;
 };
 
 #endif // InstanceScenario_h__

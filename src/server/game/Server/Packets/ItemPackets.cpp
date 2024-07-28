@@ -152,7 +152,7 @@ WorldPacket const* WorldPackets::Item::SetProficiency::Write()
 
 WorldPacket const* WorldPackets::Item::InventoryChangeFailure::Write()
 {
-    _worldPacket << int8(BagResult);
+    _worldPacket << int32(BagResult);
     _worldPacket << Item[0];
     _worldPacket << Item[1];
     _worldPacket << uint8(ContainerBSlot); // bag type subclass, used with EQUIP_ERR_EVENT_AUTOEQUIP_BIND_CONFIRM and EQUIP_ERR_WRONG_BAG_TYPE_2
@@ -238,8 +238,10 @@ void WorldPackets::Item::DestroyItem::Read()
 WorldPacket const* WorldPackets::Item::SellResponse::Write()
 {
     _worldPacket << VendorGUID;
-    _worldPacket << ItemGUID;
-    _worldPacket << uint8(Reason);
+    _worldPacket << uint32(ItemGUIDs.size());
+    _worldPacket << int32(Reason);
+    for (ObjectGuid const& itemGuid : ItemGUIDs)
+        _worldPacket << itemGuid;
 
     return &_worldPacket;
 }
@@ -264,6 +266,7 @@ WorldPacket const* WorldPackets::Item::ItemPushResult::Write()
 
     _worldPacket.WriteBit(Pushed);
     _worldPacket.WriteBit(Created);
+    _worldPacket.WriteBit(Unused_1017);
     _worldPacket.WriteBits(DisplayText, 3);
     _worldPacket.WriteBit(IsBonusRoll);
     _worldPacket.WriteBit(IsEncounterLoot);
@@ -371,44 +374,54 @@ void WorldPackets::Item::RemoveNewItem::Read()
     _worldPacket >> ItemGuid;
 }
 
-WorldPacket const* WorldPackets::Item::SocketGemsFailure::Write()
+void WorldPackets::Item::ChangeBagSlotFlag::Read()
 {
-    _worldPacket << Item;
-
-    return &_worldPacket;
+    _worldPacket >> BagIndex;
+    FlagToChange = _worldPacket.read<BagSlotFlags, uint32>();
+    On = _worldPacket.ReadBit();
 }
 
-/// Seraphim
-/// Last Checked 9.2.5.44061
-WorldPacket const* WorldPackets::Item::ItemChanged::Write()
+void WorldPackets::Item::ChangeBankBagSlotFlag::Read()
 {
-    _worldPacket << PlayerGUID;
-    _worldPacket << Before;
-    _worldPacket << After;
-    return &_worldPacket;
+    _worldPacket >> BagIndex;
+    FlagToChange = _worldPacket.read<BagSlotFlags, uint32>();
+    On = _worldPacket.ReadBit();
 }
 
-/// Last Checked 9.2.5.44061
-WorldPacket const* WorldPackets::Item::ItemInteractionComplete::Write()
+void WorldPackets::Item::SetBackpackAutosortDisabled::Read()
 {
-    _worldPacket.WriteBit(Complete);
-    _worldPacket.FlushBits();
-    return &_worldPacket;
+    Disable = _worldPacket.ReadBit();
 }
 
-WorldPacket const* WorldPackets::Item::RecraftItemResul::Write()
+void WorldPackets::Item::SetBackpackSellJunkDisabled::Read()
 {
-    _worldPacket << itemID;
-    _worldPacket << result;
-    _worldPacket << newItemID;
-    _worldPacket << cost;
+    Disable = _worldPacket.ReadBit();
+}
 
-    return &_worldPacket;
+void WorldPackets::Item::SetBankAutosortDisabled::Read()
+{
+    Disable = _worldPacket.ReadBit();
 }
 
 WorldPacket const* WorldPackets::Item::AddItemPassive::Write()
 {
-    _worldPacket << itemID;
+    _worldPacket << int32(SpellID);
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Item::RemoveItemPassive::Write()
+{
+    _worldPacket << int32(SpellID);
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Item::SendItemPassives::Write()
+{
+    _worldPacket << uint32(SpellID.size());
+    if (!SpellID.empty())
+        _worldPacket.append(SpellID.data(), SpellID.size());
 
     return &_worldPacket;
 }

@@ -16,16 +16,21 @@
  */
 
 #include "ScriptMgr.h"
+#include "AreaTrigger.h"
 #include "AreaTriggerAI.h"
 #include "DB2Structure.h"
 #include "GameObject.h"
 #include "GameTime.h"
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
+#include "PathGenerator.h"
 #include "ScriptedCreature.h"
+#include "Spell.h"
+#include "SpellInfo.h"
 #include "Player.h"
 #include "TemporarySummon.h"
 #include "World.h"
+#include "ZoneScript.h"
 
 /*######
 ## at_coilfang_waterfall
@@ -140,20 +145,20 @@ class AreaTrigger_at_sholazar_waygate : public AreaTriggerScript
     public:
         AreaTrigger_at_sholazar_waygate() : AreaTriggerScript("at_sholazar_waygate") { }
 
-        bool OnTrigger(Player* player, AreaTriggerEntry const* areaTrigger) override
+        bool OnTrigger(Player* player, AreaTriggerEntry const* trigger) override
         {
             if (!player->isDead() && (player->GetQuestStatus(QUEST_MEETING_A_GREAT_ONE) != QUEST_STATUS_NONE ||
                 (player->GetQuestStatus(QUEST_THE_MAKERS_OVERLOOK) == QUEST_STATUS_REWARDED && player->GetQuestStatus(QUEST_THE_MAKERS_PERCH) == QUEST_STATUS_REWARDED)))
             {
-                switch (areaTrigger->ID)
+                switch (trigger->ID)
                 {
-                case AT_SHOLAZAR:
-                    player->CastSpell(player, SPELL_SHOLAZAR_TO_UNGORO_TELEPORT, true);
-                    break;
+                    case AT_SHOLAZAR:
+                        player->CastSpell(player, SPELL_SHOLAZAR_TO_UNGORO_TELEPORT, true);
+                        break;
 
-                case AT_UNGORO:
-                    player->CastSpell(player, SPELL_UNGORO_TO_SHOLAZAR_TELEPORT, true);
-                    break;
+                    case AT_UNGORO:
+                        player->CastSpell(player, SPELL_UNGORO_TO_SHOLAZAR_TELEPORT, true);
+                        break;
                 }
             }
 
@@ -222,9 +227,9 @@ class AreaTrigger_at_brewfest : public AreaTriggerScript
             _triggerTimes[AT_BREWFEST_DUROTAR] = _triggerTimes[AT_BREWFEST_DUN_MOROGH] = 0;
         }
 
-        bool OnTrigger(Player* player, AreaTriggerEntry const* areaTrigger) override
+        bool OnTrigger(Player* player, AreaTriggerEntry const* trigger) override
         {
-            uint32 triggerId = areaTrigger->ID;
+            uint32 triggerId = trigger->ID;
             // Second trigger happened too early after first, skip for now
             if (GameTime::GetGameTime() - _triggerTimes[triggerId] < AREATRIGGER_TALK_COOLDOWN)
                 return false;
@@ -407,6 +412,137 @@ struct areatrigger_stormwind_teleport_unit : AreaTriggerAI
     }
 };
 
+void HandleBuffAreaTrigger(Player* player)
+{
+    if (GameObject* buffObject = player->FindNearestGameObjectWithOptions(4.0f, { .StringId = "bg_buff_object" }))
+    {
+        buffObject->ActivateObject(GameObjectActions::Disturb, 0, player);
+        buffObject->DespawnOrUnsummon();
+    }
+}
+
+struct areatrigger_battleground_buffs : AreaTriggerAI
+{
+    areatrigger_battleground_buffs(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
+
+    void OnUnitEnter(Unit* unit) override
+    {
+        if (!unit->IsPlayer())
+            return;
+
+        HandleBuffAreaTrigger(unit->ToPlayer());
+    }
+};
+
+class AreaTrigger_at_battleground_buffs : public AreaTriggerScript
+{
+public:
+    AreaTrigger_at_battleground_buffs() : AreaTriggerScript("at_battleground_buffs") { }
+
+    bool OnTrigger(Player* player, AreaTriggerEntry const* /*areaTrigger*/) override
+    {
+        HandleBuffAreaTrigger(player);
+        return true;
+    }
+};
+
+struct areatrigger_action_capture_flag : AreaTriggerAI
+{
+    areatrigger_action_capture_flag(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
+
+    void OnUnitEnter(Unit* unit) override
+    {
+        if (!unit->IsPlayer())
+            return;
+
+        Player* player = unit->ToPlayer();
+        if (ZoneScript* zoneScript = at->GetZoneScript())
+            if (zoneScript->CanCaptureFlag(at, player))
+                zoneScript->OnCaptureFlag(at, player);
+    }
+};
+
+// 18235 - Void Orb
+struct at_void_orb_harbinger : AreaTriggerAI
+{
+    at_void_orb_harbinger(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger) { }
+
+    enum Spells
+    {
+        SPELL_VOID_ORB_DAMAGE = 273502,
+    };
+
+    void OnInitialize() override
+    {
+        if (Unit* caster = at->GetCaster())
+        {
+            at->SetOrientation(caster->GetOrientation());
+
+            Position destPos = caster->GetPosition();
+            at->MovePositionToFirstCollision(destPos, 35.0f, 0.0f);
+
+            PathGenerator path(at);
+            path.CalculatePath(destPos.GetPositionX(), destPos.GetPositionY(), destPos.GetPositionZ(), false);
+
+            float timeToTarget = at->GetDistance(destPos.GetPositionX(), destPos.GetPositionY(), destPos.GetPositionZ()) * 144.5f;
+            at->InitSplines(path.GetPath(), timeToTarget);
+        }
+    }
+
+    void OnDestinationReached() override
+    {
+        at->Remove();
+    }
+
+    void OnUnitEnter(Unit* unit) override
+    {
+        Unit* caster = at->GetCaster();
+        if (!caster)
+            return;
+
+        if (caster->IsFriendlyTo(unit))
+            return;
+
+        caster->CastSpell(unit, SPELL_VOID_ORB_DAMAGE);
+    }
+};
+
+// 18242 - Abyssal Portal
+struct at_abyssal_portal_harbinger : AreaTriggerAI
+{
+    at_abyssal_portal_harbinger(AreaTrigger* areatrigger) : AreaTriggerAI(areatrigger), _remainingSummons(0) { }
+
+    enum Spells
+    {
+        SPELL_ABYSSAL_PORTAL_SUMMON = 273587
+    };
+
+    void OnCreate(Spell const* creatingSpell) override
+    {
+        if (Unit* caster = at->GetCaster())
+            _remainingSummons = creatingSpell->GetSpellInfo()->GetEffect(EFFECT_0).CalcValue(caster);
+
+        _scheduler.Schedule(500ms, [this](TaskContext task)
+        {
+            if (Unit* caster = at->GetCaster())
+                caster->CastSpell(at->GetRandomNearPosition(3.0f), SPELL_ABYSSAL_PORTAL_SUMMON, true);
+
+            _remainingSummons--;
+            if (_remainingSummons > 0)
+                task.Repeat(1s);
+        });
+    }
+
+    void OnUpdate(uint32 diff) override
+    {
+        _scheduler.Update(diff);
+    }
+
+private:
+    TaskScheduler _scheduler;
+    uint8 _remainingSummons;
+};
+
 void AddSC_areatrigger_scripts()
 {
     new AreaTrigger_at_coilfang_waterfall();
@@ -418,4 +554,9 @@ void AddSC_areatrigger_scripts()
     new AreaTrigger_at_area_52_entrance();
     new AreaTrigger_at_frostgrips_hollow();
     RegisterAreaTriggerAI(areatrigger_stormwind_teleport_unit);
+    RegisterAreaTriggerAI(areatrigger_battleground_buffs);
+    new AreaTrigger_at_battleground_buffs();
+    RegisterAreaTriggerAI(areatrigger_action_capture_flag);
+    RegisterAreaTriggerAI(at_void_orb_harbinger);
+    RegisterAreaTriggerAI(at_abyssal_portal_harbinger);
 }

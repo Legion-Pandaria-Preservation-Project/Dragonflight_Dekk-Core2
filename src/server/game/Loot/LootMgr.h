@@ -46,14 +46,14 @@ struct TC_GAME_API LootStoreItem
     uint8 groupid;
     uint8 mincount;                                        // mincount for drop items
     uint8 maxcount;                                        // max drop count for the item mincount or Ref multiplicator
-    ConditionContainer conditions;                         // additional loot condition
+    ConditionsReference conditions;                        // additional loot condition
 
     // Constructor
     // displayid is filled in IsValid() which must be called after
     LootStoreItem(uint32 _itemid, uint32 _reference, float _chance, bool _needs_quest, uint16 _lootmode, uint8 _groupid, uint8 _mincount, uint8 _maxcount)
         : itemid(_itemid), reference(_reference), chance(_chance), lootmode(_lootmode),
         needs_quest(_needs_quest), groupid(_groupid), mincount(_mincount), maxcount(_maxcount)
-    { }
+         { }
 
     bool Roll(bool rate) const;                             // Checks if the entry takes it's chance (at loot generation)
     bool IsValid(LootStore const& store, uint32 entry) const; // Checks correctness of values
@@ -66,39 +66,38 @@ typedef std::set<uint32> LootIdSet;
 
 class TC_GAME_API LootStore
 {
-public:
-    explicit LootStore(char const* name, char const* entryName, bool ratesAllowed)
-        : m_name(name), m_entryName(entryName), m_ratesAllowed(ratesAllowed) { }
+    public:
+        explicit LootStore(char const* name, char const* entryName, bool ratesAllowed)
+            : m_name(name), m_entryName(entryName), m_ratesAllowed(ratesAllowed) { }
 
-    virtual ~LootStore() { Clear(); }
+        virtual ~LootStore() { Clear(); }
 
-    void Verify() const;
+        void Verify() const;
 
-    uint32 LoadAndCollectLootIds(LootIdSet& ids_set);
-    void CheckLootRefs(LootIdSet* ref_set = nullptr) const; // check existence reference and remove it from ref_set
-    void ReportUnusedIds(LootIdSet const& ids_set) const;
-    void ReportNonExistingId(uint32 lootId) const;
-    void ReportNonExistingId(uint32 lootId, char const* ownerType, uint32 ownerId) const;
+        uint32 LoadAndCollectLootIds(LootIdSet& ids_set);
+        void CheckLootRefs(LootIdSet* ref_set = nullptr) const; // check existence reference and remove it from ref_set
+        void ReportUnusedIds(LootIdSet const& ids_set) const;
+        void ReportNonExistingId(uint32 lootId) const;
+        void ReportNonExistingId(uint32 lootId, char const* ownerType, uint32 ownerId) const;
 
-    bool HaveLootFor(uint32 loot_id) const { return m_LootTemplates.find(loot_id) != m_LootTemplates.end(); }
-    bool HaveQuestLootFor(uint32 loot_id) const;
-    bool HaveQuestLootForPlayer(uint32 loot_id, Player const* player) const;
+        bool HaveLootFor(uint32 loot_id) const { return m_LootTemplates.find(loot_id) != m_LootTemplates.end(); }
+        bool HaveQuestLootFor(uint32 loot_id) const;
+        bool HaveQuestLootForPlayer(uint32 loot_id, Player const* player) const;
 
-    LootTemplate const* GetLootFor(uint32 loot_id) const;
-    void ResetConditions();
-    LootTemplate* GetLootForConditionFill(uint32 loot_id);
+        LootTemplate const* GetLootFor(uint32 loot_id) const;
+        LootTemplate* GetLootForConditionFill(uint32 loot_id);
 
-    char const* GetName() const { return m_name; }
-    char const* GetEntryName() const { return m_entryName; }
-    bool IsRatesAllowed() const { return m_ratesAllowed; }
-protected:
-    uint32 LoadLootTable();
-    void Clear();
-private:
-    LootTemplateMap m_LootTemplates;
-    char const* m_name;
-    char const* m_entryName;
-    bool m_ratesAllowed;
+        char const* GetName() const { return m_name; }
+        char const* GetEntryName() const { return m_entryName; }
+        bool IsRatesAllowed() const { return m_ratesAllowed; }
+    protected:
+        uint32 LoadLootTable();
+        void Clear();
+    private:
+        LootTemplateMap m_LootTemplates;
+        char const* m_name;
+        char const* m_entryName;
+        bool m_ratesAllowed;
 };
 
 class TC_GAME_API LootTemplate
@@ -106,38 +105,37 @@ class TC_GAME_API LootTemplate
     class LootGroup;                                       // A set of loot definitions for items (refs are not allowed inside)
     typedef std::vector<LootGroup*> LootGroups;
 
-public:
-    LootTemplate() { }
-    ~LootTemplate();
+    public:
+        LootTemplate() { }
+        ~LootTemplate();
 
-    // Adds an entry to the group (at loading stage)
-    void AddEntry(LootStoreItem* item);
-    // Rolls for every item in the template and adds the rolled items the the loot
-    void Process(Loot& loot, bool rate, uint16 lootMode, uint8 groupId, Player const* personalLooter = nullptr) const;
-    void ProcessPersonalLoot(std::unordered_map<Player*, std::unique_ptr<Loot>>& personalLoot, bool rate, uint16 lootMode) const;
-    void CopyConditions(ConditionContainer const& conditions);
-    void CopyConditions(LootItem* li) const;
+        // Adds an entry to the group (at loading stage)
+        void AddEntry(LootStoreItem* item);
+        // Rolls for every item in the template and adds the rolled items the the loot
+        void Process(Loot& loot, bool rate, uint16 lootMode, uint8 groupId, Player const* personalLooter = nullptr) const;
+        void ProcessPersonalLoot(std::unordered_map<Player*, std::unique_ptr<Loot>>& personalLoot, bool rate, uint16 lootMode) const;
+        void CopyConditions(LootItem* li) const;
 
-    // True if template includes at least 1 drop for the player
-    bool HasDropForPlayer(Player const* player, uint8 groupId = 0, bool strictUsabilityCheck = false) const;
-    // True if template includes at least 1 quest drop entry
-    bool HasQuestDrop(LootTemplateMap const& store, uint8 groupId = 0) const;
-    // True if template includes at least 1 quest drop for an active quest of the player
-    bool HasQuestDropForPlayer(LootTemplateMap const& store, Player const* player, uint8 groupId = 0) const;
+        // True if template includes at least 1 drop for the player
+        bool HasDropForPlayer(Player const* player, uint8 groupId = 0, bool strictUsabilityCheck = false) const;
+        // True if template includes at least 1 quest drop entry
+        bool HasQuestDrop(LootTemplateMap const& store, uint8 groupId = 0) const;
+        // True if template includes at least 1 quest drop for an active quest of the player
+        bool HasQuestDropForPlayer(LootTemplateMap const& store, Player const* player, uint8 groupId = 0) const;
 
-    // Checks integrity of the template
-    void Verify(LootStore const& store, uint32 Id) const;
-    void CheckLootRefs(LootTemplateMap const& store, LootIdSet* ref_set) const;
-    bool addConditionItem(Condition* cond);
-    bool isReference(uint32 id);
+        // Checks integrity of the template
+        void Verify(LootStore const& store, uint32 Id) const;
+        void CheckLootRefs(LootTemplateMap const& store, LootIdSet* ref_set) const;
+        bool LinkConditions(ConditionId const& id, ConditionsReference reference);
+        bool isReference(uint32 id);
 
-private:
-    LootStoreItemList Entries;                          // not grouped only
-    LootGroups        Groups;                           // groups have own (optimised) processing, grouped entries go there
+    private:
+        LootStoreItemList Entries;                          // not grouped only
+        LootGroups        Groups;                           // groups have own (optimised) processing, grouped entries go there
 
-    // Objects of this class must never be copied, we are storing pointers in container
-    LootTemplate(LootTemplate const&) = delete;
-    LootTemplate& operator=(LootTemplate const&) = delete;
+        // Objects of this class must never be copied, we are storing pointers in container
+        LootTemplate(LootTemplate const&) = delete;
+        LootTemplate& operator=(LootTemplate const&) = delete;
 };
 
 std::unordered_map<ObjectGuid, std::unique_ptr<Loot>> GenerateDungeonEncounterPersonalLoot(uint32 dungeonEncounterId,
@@ -160,9 +158,7 @@ TC_GAME_API extern LootStore LootTemplates_Skinning;
 TC_GAME_API extern LootStore LootTemplates_Disenchant;
 TC_GAME_API extern LootStore LootTemplates_Prospecting;
 TC_GAME_API extern LootStore LootTemplates_Spell;
-//DekkCore
-TC_GAME_API extern LootStore LootTemplates_Scrapping;
-//DekkCore
+
 TC_GAME_API void LoadLootTemplates_Creature();
 TC_GAME_API void LoadLootTemplates_Fishing();
 TC_GAME_API void LoadLootTemplates_Gameobject();
@@ -179,7 +175,4 @@ TC_GAME_API void LoadLootTemplates_Reference();
 
 TC_GAME_API void LoadLootTables();
 
-//DekkCore
-TC_GAME_API void LoadLootTemplates_Scrapping();
-//DekkCore
 #endif

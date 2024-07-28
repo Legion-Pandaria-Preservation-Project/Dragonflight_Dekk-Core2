@@ -65,7 +65,7 @@ class TC_GAME_API AuraEffect
         void SetPeriodicTimer(int32 periodicTimer) { _periodicTimer = periodicTimer; }
 
         int32 CalculateAmount(Unit* caster);
-        static Optional<float> CalculateEstimatedAmount(Unit const* caster, Unit* target, SpellInfo const* spellInfo, SpellEffectInfo const& spellEffectInfo, int32 amount, uint8 stack);
+        static Optional<float> CalculateEstimatedAmount(Unit const* caster, Unit* target, SpellInfo const* spellInfo, SpellEffectInfo const& spellEffectInfo, int32 amount, uint8 stack, AuraEffect const* aurEff);
         Optional<float> CalculateEstimatedAmount(Unit const* caster, int32 amount) const;
         static float CalculateEstimatedfTotalPeriodicAmount(Unit* caster, Unit* target, SpellInfo const* spellInfo, SpellEffectInfo const& spellEffectInfo, float amount, uint8 stack);
         void CalculatePeriodic(Unit* caster, bool resetPeriodicTimer = true, bool load = false);
@@ -193,6 +193,7 @@ class TC_GAME_API AuraEffect
         void HandleAuraModTotalThreat(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleModTaunt(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleModDetaunt(AuraApplication const* aurApp, uint8 mode, bool apply) const;
+        void HandleAuraModFixate(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         //  control
         void HandleModConfuse(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleModFear(AuraApplication const* aurApp, uint8 mode, bool apply) const;
@@ -313,6 +314,7 @@ class TC_GAME_API AuraEffect
         void HandleAuraModFakeInebriation(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleAuraOverrideSpells(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleAuraSetVehicle(AuraApplication const* aurApp, uint8 mode, bool apply) const;
+        void HandleSetVignette(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandlePreventResurrection(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleMastery(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleAuraForceWeather(AuraApplication const* aurApp, uint8 mode, bool apply) const;
@@ -324,7 +326,6 @@ class TC_GAME_API AuraEffect
         void HandlePlayScene(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleCreateAreaTrigger(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleLinkedSummon(AuraApplication const* aurApp, uint8 mode, bool apply) const;
-        void HandleSwitchTeam(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleSetFFAPvP(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleModOverrideZonePVPType(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleBattlegroundPlayerPosition(AuraApplication const* aurApp, uint8 mode, bool apply) const;
@@ -337,13 +338,7 @@ class TC_GAME_API AuraEffect
         void HandleModRequiredMountCapabilityFlags(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleSuppressItemPassiveEffectBySpellLabel(AuraApplication const* aurApp, uint8 mode, bool apply) const;
         void HandleForceBreathBar(AuraApplication const* aurApp, uint8 mode, bool apply) const;
-        void HandleModFixate(AuraApplication const* aurApp, uint8 mode, bool apply) const;
-        void HandleAdvancedFlying(AuraApplication const* aurApp, uint8 mode, bool apply) const;
-        //DekkCore
-        void HandleAuraModSpellPowerPercent(AuraApplication const* aurApp, uint8 mode, bool) const;
-        void HandleAuraTrackResources(AuraApplication const* aurApp, uint8 mode, bool apply) const;
-        void HandleModNextSpell(AuraApplication const* aurApp, uint8 mode, bool apply) const;
-        //DekkCore
+
         // aura effect periodic tick handlers
         void HandlePeriodicTriggerSpellAuraTick(Unit* target, Unit* caster) const;
         void HandlePeriodicTriggerSpellWithValueAuraTick(Unit* target, Unit* caster) const;
@@ -367,19 +362,6 @@ class TC_GAME_API AuraEffect
 
         // pvp talents
         void HandleAuraPvpTalents(AuraApplication const* auraApp, uint8 mode, bool apply) const;
-        void HandleCancelEquipmentStats(AuraApplication const* aurApp, uint8 mode, bool apply) const;
-
-        // DekkCore >
-        public:
-            int32 GetRemainingAmount([[maybe_unused]] int32 maxDurationIfPermanent = 0) const
-            {
-                int32 ticks = GetTotalTicks();
-                if (!GetBase()->IsPermanent())
-                    ticks -= GetTickNumber();
-
-                return GetAmount() * ticks;
-            }
-        // < DekkCore
 };
 
 namespace Trinity

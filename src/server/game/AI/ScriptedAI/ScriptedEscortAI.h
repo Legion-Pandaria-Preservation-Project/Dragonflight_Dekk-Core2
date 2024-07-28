@@ -43,13 +43,13 @@ struct TC_GAME_API EscortAI : public ScriptedAI
         void MoveInLineOfSight(Unit* who) override;
         void JustDied(Unit*) override;
         void ReturnToLastPoint();
-        void EnterEvadeMode(EvadeReason /*why*/ = EVADE_REASON_OTHER) override;
+        void EnterEvadeMode(EvadeReason why) override;
         void MovementInform(uint32, uint32) override;
         void UpdateAI(uint32 diff) override; // the "internal" update, calls UpdateEscortAI()
 
         virtual void UpdateEscortAI(uint32 diff); // used when it's needed to add code in update (abilities, scripted events, etc)
         void AddWaypoint(uint32 id, float x, float y, float z, bool run);
-        void AddWaypoint(uint32 id, float x, float y, float z, float orientation = 0.f, Milliseconds waitTime = 0s, bool run = false);
+        void AddWaypoint(uint32 id, float x, float y, float z, float orientation = 0.f, Optional<Milliseconds> waitTime = {}, bool run = false);
         void ResetPath();
         void LoadPath(uint32 pathId);
         void Start(bool isActiveAttacker = true, ObjectGuid playerGUID = ObjectGuid::Empty, Quest const* quest = nullptr, bool instantRespawn = false, bool canLoopPath = false);

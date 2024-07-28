@@ -25,10 +25,11 @@
 #include <functional>
 #include <list>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 enum TypeID
 {
@@ -66,7 +67,9 @@ enum TypeMask
     TYPEMASK_AREATRIGGER            = 0x0800,
     TYPEMASK_SCENEOBJECT            = 0x1000,
     TYPEMASK_CONVERSATION           = 0x2000,
-    TYPEMASK_SEER                   = TYPEMASK_PLAYER | TYPEMASK_UNIT | TYPEMASK_DYNAMICOBJECT
+
+    TYPEMASK_SEER                   = TYPEMASK_UNIT | TYPEMASK_DYNAMICOBJECT,
+    TYPEMASK_WORLDOBJECT            = TYPEMASK_UNIT | TYPEMASK_GAMEOBJECT | TYPEMASK_DYNAMICOBJECT | TYPEMASK_CORPSE | TYPEMASK_AREATRIGGER | TYPEMASK_SCENEOBJECT | TYPEMASK_CONVERSATION
 };
 
 enum class HighGuid
@@ -198,7 +201,7 @@ MAKE_GUID_TRAIT(HighGuid::Scenario, ObjectGuidSequenceSource::Map, ObjectGuidFor
 MAKE_GUID_TRAIT(HighGuid::AIGroup, ObjectGuidSequenceSource::Map, ObjectGuidFormatType::WorldObject);
 MAKE_GUID_TRAIT(HighGuid::DynamicDoor, ObjectGuidSequenceSource::Map, ObjectGuidFormatType::WorldObject);
 MAKE_GUID_TRAIT(HighGuid::ClientActor, ObjectGuidSequenceSource::None, ObjectGuidFormatType::ClientActor);
-MAKE_GUID_TRAIT(HighGuid::Vignette, ObjectGuidSequenceSource::Global, ObjectGuidFormatType::WorldObject);
+MAKE_GUID_TRAIT(HighGuid::Vignette, ObjectGuidSequenceSource::Map, ObjectGuidFormatType::WorldObject);
 MAKE_GUID_TRAIT(HighGuid::CallForHelp, ObjectGuidSequenceSource::Map, ObjectGuidFormatType::WorldObject);
 MAKE_GUID_TRAIT(HighGuid::AIResource, ObjectGuidSequenceSource::Map, ObjectGuidFormatType::WorldObject);
 MAKE_GUID_TRAIT(HighGuid::AILock, ObjectGuidSequenceSource::Map, ObjectGuidFormatType::WorldObject);
@@ -270,6 +273,7 @@ class TC_GAME_API ObjectGuid
 
     public:
         static ObjectGuid const Empty;
+        static ObjectGuid const ToStringFailed;
         static ObjectGuid const FromStringFailed;
         static ObjectGuid const TradeItem;
 
@@ -347,33 +351,11 @@ class TC_GAME_API ObjectGuid
             return std::strong_ordering::equal;
         }
 
-        static char const* GetTypeName(HighGuid high);
-        char const* GetTypeName() const { return !IsEmpty() ? GetTypeName(GetHigh()) : "None"; }
+        static std::string_view GetTypeName(HighGuid high);
+        std::string_view GetTypeName() const { return !IsEmpty() ? GetTypeName(GetHigh()) : "None"; }
         std::string ToString() const;
         std::string ToHexString() const;
-        static ObjectGuid FromString(std::string const& guidString);
-        uint32 GetGUIDLow() const; //DekkCore
-        // Need for ELUNA
-        static TypeID GetTypeId(HighGuid high)
-        {
-            switch (high)
-            {
-            case HighGuid::Item:         return TYPEID_ITEM;
-                //case HighGuid::Container:    return TYPEID_CONTAINER; HighGuid::Container == HighGuid::Item currently
-            case HighGuid::Creature:     return TYPEID_UNIT;
-            case HighGuid::Pet:          return TYPEID_UNIT;
-            case HighGuid::Player:       return TYPEID_PLAYER;
-            case HighGuid::GameObject:   return TYPEID_GAMEOBJECT;
-            case HighGuid::DynamicObject: return TYPEID_DYNAMICOBJECT;
-            case HighGuid::Corpse:       return TYPEID_CORPSE;
-            case HighGuid::Transport:    return TYPEID_GAMEOBJECT;
-            case HighGuid::Vehicle:      return TYPEID_UNIT;
-            default:                    return TYPEID_OBJECT;
-            }
-        }
-
-        TypeID GetTypeId() const { return GetTypeId(GetHigh()); }
-        // Need for ELUNA
+        static ObjectGuid FromString(std::string_view guidString);
         std::size_t GetHash() const;
 
         template<HighGuid type> static std::enable_if_t<ObjectGuidTraits<type>::Format::value == ObjectGuidFormatType::Null, ObjectGuid> Create() { return ObjectGuidFactory::CreateNull(); }
@@ -398,10 +380,8 @@ class TC_GAME_API ObjectGuid
         template<HighGuid type> static std::enable_if_t<ObjectGuidTraits<type>::Format::value == ObjectGuidFormatType::LMMLobby, ObjectGuid> Create(uint32 arg2, uint8 arg3, uint8 arg4, ObjectGuid::LowType counter) { return ObjectGuidFactory::CreateLMMLobby(0, arg2, arg3, arg4, counter); }
 
     protected:
-        ObjectGuid(uint64 high, uint64 low)
+        ObjectGuid(uint64 high, uint64 low) : _data({{ low, high }})
         {
-            _data[0] = low;
-            _data[1] = high;
         }
 
         std::array<uint64, 2> _data = { };
@@ -446,6 +426,35 @@ namespace std
             return key.GetHash();
         }
     };
+}
+
+namespace fmt
+{
+inline namespace v10
+{
+template <typename T, typename Char, typename Enable>
+struct formatter;
+
+template <>
+struct formatter<ObjectGuid, char, void>
+{
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx) -> decltype(ctx.begin())
+    {
+        auto begin = ctx.begin(), end = ctx.end();
+        if (begin == end)
+            return begin;
+
+        if (*begin != '}')
+            throw std::invalid_argument("invalid type specifier");
+
+        return begin;
+    }
+
+    template <typename FormatContext>
+    auto format(ObjectGuid const& guid, FormatContext& ctx) const -> decltype(ctx.out());
+};
+}
 }
 
 namespace Trinity

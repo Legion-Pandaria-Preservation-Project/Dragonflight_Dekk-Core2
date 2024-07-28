@@ -64,7 +64,7 @@ HyperlinkInfo Trinity::Hyperlinks::ParseSingleHyperlink(std::string_view str)
     if (size_t delimPos = str.find('|'); delimPos != std::string_view::npos)
     {
         tag = str.substr(0, delimPos);
-        str.remove_prefix(delimPos + 1);
+        str.remove_prefix(delimPos+1);
     }
     else
         return {};
@@ -72,7 +72,7 @@ HyperlinkInfo Trinity::Hyperlinks::ParseSingleHyperlink(std::string_view str)
     // split tag if : is present (data separator)
     if (size_t dataStart = tag.find(':'); dataStart != std::string_view::npos)
     {
-        data = tag.substr(dataStart + 1);
+        data = tag.substr(dataStart+1);
         tag = tag.substr(0, dataStart);
     }
 
